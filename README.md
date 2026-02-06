@@ -12,9 +12,10 @@
 
 <br>
 
+<div align="center">
 <table>
 <tr>
-<td>
+<td align="center">
 
 ### 📌 이번 주차
 
@@ -29,6 +30,7 @@
 </td>
 </tr>
 </table>
+</div>
 
 <br>
 
