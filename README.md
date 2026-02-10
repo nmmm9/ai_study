@@ -47,7 +47,7 @@
 | 1 | LLM API 연동 | API 연동, .env 보안, Streaming 응답 | LLM 1:1 채팅 환경 구축 및 토큰 관리 전략 |
 | 2 | Chunking | PDF/Markdown 로드 및 텍스트 분할 전략 | 도메인 데이터를 의미 단위로 분할 |
 | 3 | Embedding & Vector DB | Embedding 모델 선정 및 Vector DB 구축 | 인덱싱 및 유사도 검색 구현 |
-| 4 | RAG 파이프라인 | Retriever + Prompt + Generator 결합 | 문맥 참고 답변 프롬프트 설계 및 Citation 표시 |
+| 4 | RAG 파이프라인 | Retriever + Prompt + Generator 결합, Guardrails | 문맥 참고 답변 프롬프트 설계, Citation 표시, 출력 검증 |
 | 5 | Advanced RAG | Hybrid Search(BM25+Vector), Reranking | 검색 알고리즘 개선 전/후 품질 수치 비교 |
 | 6 | Streamlit UI (1차 시연) | Streamlit UI 및 세션 관리 | 웹 기반 RAG 서비스 시연 및 기술 결정 회고 |
 
@@ -65,6 +65,14 @@
 | 12 | Agentic RAG | RAG를 에이전트 도구로 통합 | 정보 부족 시 스스로 검색 도구를 호출하는 지능형 RAG |
 | 13 | 평가 (Evaluation) | RAGAS, LangSmith 활용 정량 평가 | 성공률 지표 산출 및 실패 사례 분석 리포트 |
 | 14 | 최종 데모 | 전체 시스템 통합 시연 | 기술적 결정, 프롬프트 전략, 삽질 로그 총정리 발표 |
+
+### PART 3: 오픈소스 모델 전환 및 비교 (14주 이후)
+
+> 목표: API 기반으로 완성한 시스템을 오픈소스 모델로 교체하고, Fine-tuning 후 성능 비교
+
+- 14주간 만든 RAG + Agent 파이프라인에 오픈소스 모델(LLaMA, Mistral 등) 적용
+- 동일 파이프라인에서 API 모델 vs 오픈소스 모델 vs Fine-tuned 모델 성능 비교
+- 13주차 평가 체계(RAGAS, LangSmith)를 활용한 정량 비교 리포트
 
 ---
 
