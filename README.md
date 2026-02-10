@@ -1,7 +1,7 @@
 <div align="center">
 
 # 너네 왜 22살 23살이냐?
-
+pr
 `LangChain` `LangGraph` `RAG` `Multi-Agent` `Evaluation`
 
 [![Duration](https://img.shields.io/badge/Duration-14%20Weeks-blue)]()
@@ -70,9 +70,14 @@
 
 > 목표: API 기반으로 완성한 시스템을 오픈소스 모델로 교체하고, Fine-tuning 후 성능 비교
 
-- 14주간 만든 RAG + Agent 파이프라인에 오픈소스 모델(LLaMA, Mistral 등) 적용
-- 동일 파이프라인에서 API 모델 vs 오픈소스 모델 vs Fine-tuned 모델 성능 비교
-- 13주차 평가 체계(RAGAS, LangSmith)를 활용한 정량 비교 리포트
+| 단계 | 내용 | 상세 |
+|:---:|------|------|
+| 1 | 오픈소스 모델 적용 | LLaMA, Mistral 등을 기존 RAG + Agent 파이프라인에 교체 적용 |
+| 2 | Fine-tuning | QLoRA 등을 활용해 도메인 데이터로 모델 파인튜닝 |
+| 3 | 성능 비교 | API 모델 vs 오픈소스 모델 vs Fine-tuned 모델 정량 비교 |
+| 4 | 비교 리포트 | 13주차 평가 체계(RAGAS, LangSmith)를 재활용한 최종 리포트 |
+
+> 일정 및 세부 계획은 14주차 완료 후 확정
 
 ---
 

@@ -27,4 +27,9 @@ chroma_db/
 faiss_index/
 AA.txt
 B.TXT
+guide.md
+week_guide/
 .claude/
+
+# bkit/PDCA
+docs/
