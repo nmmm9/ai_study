@@ -1,6 +1,0 @@
-openai
-anthropic
-langchain-openai
-langchain-anthropic
-python-dotenv
-tiktoken
