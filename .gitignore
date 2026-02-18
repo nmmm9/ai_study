@@ -33,3 +33,5 @@ week_guide/
 
 # bkit/PDCA
 docs/
+.bkit
+.agents
