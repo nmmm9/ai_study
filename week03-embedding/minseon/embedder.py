@@ -1,14 +1,15 @@
 """
 3주차 과제: Embedding & Vector DB - 문서 임베딩 및 유사도 검색
-OpenAI 임베딩 + ChromaDB로 구성하는 RAG 파이프라인
+OpenAI 임베딩 + numpy 코사인 유사도로 구성하는 RAG 파이프라인
 """
 
 import argparse
+import json
 import os
 
+import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
-import chromadb
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 load_dotenv()
@@ -19,7 +20,7 @@ client = OpenAI()
 EMBEDDING_MODEL = "text-embedding-3-small"
 CHUNK_SIZE = 900
 CHUNK_OVERLAP = 90
-COLLECTION_NAME = "minseon_docs"
+DB_PATH = "./vector_db.json"
 
 
 # ── 문서 로딩 ──────────────────────────────────────────
@@ -75,61 +76,84 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     return vectors
 
 
-# ── Vector DB (ChromaDB) ───────────────────────────────
+# ── Vector DB (JSON + numpy) ───────────────────────────
 
-def get_collection(db_path: str = "./chroma_db") -> chromadb.Collection:
-    """ChromaDB 클라이언트 및 컬렉션 반환 (없으면 생성)"""
-    chroma_client = chromadb.PersistentClient(path=db_path)
-    collection = chroma_client.get_or_create_collection(
-        name=COLLECTION_NAME,
-        metadata={"hnsw:space": "cosine"},  # 코사인 유사도 사용
-    )
-    return collection
+def load_db(db_path: str = DB_PATH) -> dict:
+    """저장된 벡터 DB 로드 (없으면 빈 구조 반환)"""
+    if os.path.exists(db_path):
+        with open(db_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"chunks": [], "vectors": [], "metadatas": []}
+
+
+def save_db(db: dict, db_path: str = DB_PATH) -> None:
+    """벡터 DB를 JSON 파일로 저장"""
+    with open(db_path, "w", encoding="utf-8") as f:
+        json.dump(db, f, ensure_ascii=False)
 
 
 def store_embeddings(
-    collection: chromadb.Collection,
     chunks: list[str],
     vectors: list[list[float]],
     source: str,
+    db_path: str = DB_PATH,
 ) -> None:
-    """청크와 벡터를 ChromaDB에 저장"""
-    ids = [f"{source}_{i}" for i in range(len(chunks))]
+    """청크와 벡터를 JSON DB에 저장 (기존 데이터에 추가)"""
+    db = load_db(db_path)
 
-    collection.upsert(
-        ids=ids,
-        documents=chunks,
-        embeddings=vectors,
-        metadatas=[{"source": source, "chunk_index": i} for i in range(len(chunks))],
-    )
-    print(f"  벡터DB 저장 완료: {len(chunks)}개 → '{COLLECTION_NAME}' 컬렉션")
+    # 같은 소스 파일은 덮어쓰기
+    existing = [(c, v, m) for c, v, m in zip(db["chunks"], db["vectors"], db["metadatas"])
+                if m.get("source") != source]
+    db["chunks"] = [x[0] for x in existing]
+    db["vectors"] = [x[1] for x in existing]
+    db["metadatas"] = [x[2] for x in existing]
+
+    for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+        db["chunks"].append(chunk)
+        db["vectors"].append(vector)
+        db["metadatas"].append({"source": source, "chunk_index": i})
+
+    save_db(db, db_path)
+    print(f"  벡터DB 저장 완료: {len(chunks)}개 청크 → '{db_path}'")
+
+
+def cosine_similarity(a: list[float], b: list[float]) -> float:
+    """두 벡터의 코사인 유사도 계산"""
+    a, b = np.array(a), np.array(b)
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
 
 def search(
-    collection: chromadb.Collection,
     query: str,
     top_k: int = 3,
+    db_path: str = DB_PATH,
 ) -> list[dict]:
     """
     사용자 질문을 임베딩 후 코사인 유사도로 가장 유사한 청크 검색
 
     1. 질문 텍스트 → 임베딩 벡터
-    2. ChromaDB에서 유사도 높은 top_k개 청크 반환
+    2. 저장된 모든 벡터와 코사인 유사도 계산
+    3. 유사도 높은 top_k개 청크 반환
     """
+    db = load_db(db_path)
+    if not db["chunks"]:
+        return []
+
     query_vector = embed_texts([query])[0]
 
-    results = collection.query(
-        query_embeddings=[query_vector],
-        n_results=top_k,
-        include=["documents", "distances", "metadatas"],
-    )
+    similarities = [
+        cosine_similarity(query_vector, vec)
+        for vec in db["vectors"]
+    ]
+
+    top_indices = np.argsort(similarities)[::-1][:top_k]
 
     hits = []
-    for i in range(len(results["documents"][0])):
+    for idx in top_indices:
         hits.append({
-            "content": results["documents"][0][i],
-            "distance": results["distances"][0][i],
-            "metadata": results["metadatas"][0][i],
+            "content": db["chunks"][idx],
+            "similarity": similarities[idx],
+            "metadata": db["metadatas"][idx],
         })
     return hits
 
@@ -139,16 +163,16 @@ def search(
 def print_results(hits: list[dict], preview_length: int = 150) -> None:
     """검색 결과 출력"""
     print(f"\n{'='*60}")
-    print(f"  검색 결과: {len(hits)}개")
+    print(f"  검색 결과: {len(hits)}개  |  임베딩 모델: {EMBEDDING_MODEL}")
     print(f"{'='*60}\n")
 
     for i, hit in enumerate(hits):
-        similarity = 1 - hit["distance"]  # 코사인 거리 → 유사도
+        sim = hit["similarity"]
         preview = hit["content"][:preview_length].replace("\n", " ")
         if len(hit["content"]) > preview_length:
             preview += "..."
 
-        print(f"  [{i+1}] 유사도: {similarity:.4f} | 출처: {hit['metadata']['source']} (청크 #{hit['metadata']['chunk_index']})")
+        print(f"  [{i+1}] 유사도: {sim:.4f} ({sim*100:.1f}%) | 출처: {hit['metadata']['source']} (청크 #{hit['metadata']['chunk_index']})")
         print(f"       {preview}")
         print()
 
@@ -157,21 +181,18 @@ def print_results(hits: list[dict], preview_length: int = 150) -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="문서를 임베딩해서 ChromaDB에 저장하고 유사도 검색 수행"
+        description="문서를 임베딩해서 JSON DB에 저장하고 유사도 검색 수행"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # index 명령: 문서 → 임베딩 → 저장
     index_parser = subparsers.add_parser("index", help="문서를 임베딩해서 DB에 저장")
     index_parser.add_argument("file", help="임베딩할 파일 경로 (MD, TXT, PDF)")
 
-    # search 명령: 질문 → 검색
     search_parser = subparsers.add_parser("search", help="질문으로 유사한 청크 검색")
     search_parser.add_argument("query", help="검색할 질문")
     search_parser.add_argument("--top-k", type=int, default=3, help="반환할 결과 수 (기본값: 3)")
 
     args = parser.parse_args()
-    collection = get_collection()
 
     if args.command == "index":
         if not os.path.exists(args.file):
@@ -184,19 +205,19 @@ def main():
         print(f"\n── 2. 청킹 ──")
         chunks = split_text(text)
 
-        print(f"\n── 3. 임베딩 ──")
+        print(f"\n── 3. 임베딩 ({EMBEDDING_MODEL}) ──")
         vectors = embed_texts(chunks)
 
         print(f"\n── 4. 벡터DB 저장 ──")
         source = os.path.basename(args.file)
-        store_embeddings(collection, chunks, vectors, source)
+        store_embeddings(chunks, vectors, source)
 
         print(f"\n완료! 이제 'python embedder.py search \"질문\"' 으로 검색하세요.\n")
 
     elif args.command == "search":
-        print(f"\n── 질문 임베딩 및 검색 ──")
+        print(f"\n── 질문 임베딩 및 검색 ({EMBEDDING_MODEL}) ──")
         print(f"  질문: {args.query}\n")
-        hits = search(collection, args.query, top_k=args.top_k)
+        hits = search(args.query, top_k=args.top_k)
         print_results(hits)
 
 

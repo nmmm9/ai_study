@@ -7,7 +7,7 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
-from embedder import embed_texts, get_collection, store_embeddings, search, split_text, load_document
+from embedder import embed_texts, store_embeddings, search, split_text, load_document, EMBEDDING_MODEL
 
 load_dotenv()
 
@@ -38,14 +38,16 @@ with st.sidebar:
             text = load_document(tmp_path)
             chunks = split_text(text)
             vectors = embed_texts(chunks)
-            collection = get_collection()
-            store_embeddings(collection, chunks, vectors, uploaded.name)
+            store_embeddings(chunks, vectors, uploaded.name)
 
         os.remove(tmp_path)
         st.session_state.indexed = True
         st.success(f"완료! {len(chunks)}개 청크 저장됨")
 
     st.divider()
+
+    st.divider()
+    st.caption(f"임베딩 모델: `{EMBEDDING_MODEL}`")
 
     top_k = st.slider("검색할 청크 수 (top-k)", min_value=1, max_value=5, value=3)
     show_chunks = st.checkbox("참조 청크 보기", value=True)
@@ -65,7 +67,8 @@ for msg in st.session_state.messages:
         if msg.get("chunks") and show_chunks:
             with st.expander("참조한 문서 청크"):
                 for i, chunk in enumerate(msg["chunks"]):
-                    st.markdown(f"**[{i+1}] 유사도: {chunk['similarity']:.3f}**")
+                    sim = chunk['similarity']
+                    st.markdown(f"**[{i+1}] 유사도: {sim:.4f}** ({sim*100:.1f}%)")
                     st.text(chunk["content"][:300] + ("..." if len(chunk["content"]) > 300 else ""))
 
 # ── 사용자 입력 ────────────────────────────────────────
@@ -77,8 +80,7 @@ if user_input := st.chat_input("질문을 입력하세요...", disabled=not st.s
 
     with st.chat_message("assistant"):
         with st.spinner("검색 중..."):
-            collection = get_collection()
-            hits = search(collection, user_input, top_k=top_k)
+            hits = search(user_input, top_k=top_k)
 
         # 검색된 청크를 컨텍스트로 구성
         context = "\n\n---\n\n".join([h["content"] for h in hits])
@@ -111,11 +113,13 @@ if user_input := st.chat_input("질문을 입력하세요...", disabled=not st.s
         )
 
         # 참조 청크 표시
-        chunks_info = [{"content": h["content"], "similarity": 1 - h["distance"]} for h in hits]
+        chunks_info = [{"content": h["content"], "similarity": h["similarity"]} for h in hits]
         if show_chunks:
             with st.expander("참조한 문서 청크"):
+                st.caption(f"임베딩 모델: `{EMBEDDING_MODEL}`")
                 for i, chunk in enumerate(chunks_info):
-                    st.markdown(f"**[{i+1}] 유사도: {chunk['similarity']:.3f}**")
+                    sim = chunk['similarity']
+                    st.markdown(f"**[{i+1}] 유사도: {sim:.4f}** ({sim*100:.1f}%)")
                     st.text(chunk["content"][:300] + ("..." if len(chunk["content"]) > 300 else ""))
 
     st.session_state.messages.append({

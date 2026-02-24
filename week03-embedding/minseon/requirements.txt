@@ -2,7 +2,7 @@
 
 
 openai OpenAI API 호출 텍스트를 벡터로 변환(임베딩)할 때 사용
-chromadb 벡터 저장소 임베딩된 벡터를 로컬에 저장하고 검색
+numpy 벡터 연산 코사인 유사도 계산에 사용
 langchain AI 파이프라인 프레임워크
 langchain-text-splitters
 pymupdf PDF 로더
