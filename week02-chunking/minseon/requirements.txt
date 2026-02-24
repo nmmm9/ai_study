@@ -1,4 +1,6 @@
 langchain
 langchain-community
+langchain-text-splitters
 pymupdf
 python-dotenv
+streamlit
