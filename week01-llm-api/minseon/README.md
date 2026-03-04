@@ -5,7 +5,7 @@
 |------|------|------|----------|
 |LLM API | OpenAI GPT-4o | Anthropic Claude, Google Gemini | 가장 넓은 개발 생태계 구축되어있음. 오류가 났을 때 찾아볼 수 있는 과거의 예시 많아서 고치기 쉬움. |
 |응답방식 | Straming | Non - Streaming (일괄수신) | 전체 텍스트가 생성될 때까지 기다려야하는 Non-streaming 말고 생성된 토큰을 바로 클라이언트로 전송해서 보여주면 답답하지 않을거임.|
-|웹 UI ||FastAPI + React |FastAPI + React, Flask + Jinja Streamlit (파이썬 코드만 짜면 알아서 웹사이트 화면을 만들어줌) | 
+|웹 UI ||FastAPI + React |Flask + Jinja, Streamlit (파이썬 코드만 짜면 알아서 웹사이트 화면을 만들어줌) | Streamlit로 간단하게 구현했었는데 나는 대규모의 서비스를 만들고싶어서 빠르고 AI 서비스에 좋다는 FastAI와 react의 조합을 선택했다 
 |토큰관리 | Sliding Window (내용 밀어내기)|Summarization (요약하기) |	구현 단순. 최근 대화 맥락을 우선적으로 보존하는 것이 답변의 정확도랑 맥락 유지에 유리함.|
 |환경변수 | pyton - dotenv | 시스템 환경변수 직접 설정 | .env파일로 관리하면 편함. API 인증 키 등 보안 데이터의 안전한 격리 및 관리. .env파일에 비밀번호를 따로 보관해서 인터넷(Git 클로드)에 정보가 유출되는걸 막음|
 |실행 방식 | 터미널 + 웹 분리 | 웹, 터미널 | 챗봇 기능(chat.py) 먼저 테스트하고 웹 화면(app.py) 연결. 에러 발생 시 원인 파악이 빠름 (화면 문제인지, 기능 문제인지 즉시 구분 가능)|
@@ -26,6 +26,13 @@ echo "OPENAI_API_KEY=sk-..." > .env
 
 python week01-llm-api/minseon/chat.py (터미널 챗봇 실행)
 streamlit run week01-llm-api/minseon/app.py (웹 챗봇 실행) 
+
+
+fastapi-react
+터미널에서 uvicorn server:app --reload 실행
+Application startup complete. 메시지 확인
+브라우저에서 index.html 열기
+채팅 테스트!
 
 
 ## WHY (의사결정 기록)
@@ -93,7 +100,15 @@ RAG 주요 구성 요소
 RAG 작동 원리 
 
 
-O
+ Gradio
+
+Python 코드만 작성 → AI 전용 웹UI 생성
+특징
+
+Streamlit과 비슷하지만 AI/ML에 특화
+채팅, 이미지 업로드 등 AI 기능이 기본 제공
+Hugging Face와 연동이 쉬움
+적합한 상황: AI 모델 데모, ML 실험 공유
 
 
 
