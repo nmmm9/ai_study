@@ -1,19 +1,27 @@
 """
-1주차 과제: OpenAI GPT-4o - Streamlit 웹 챗봇
+1주차 과제: Streamlit 웹 챗봇
+
+[관심사 분리]
+  이 파일: Streamlit UI (세션 상태, 화면 렌더링)
+  services/llm_service.py: OpenAI 클라이언트, 설정값, 대화 유틸 함수
+
+Python 코드만 작성 → 자동으로 웹UI 생성
+HTML/CSS/JS 전혀 몰라도 됨
+배포가 매우 쉬움 (Streamlit Cloud)
 """
 
 import os
+import sys
+
+# services/ 폴더가 상위 디렉토리에 있으므로 경로 추가
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
 import streamlit as st
 from dotenv import load_dotenv
-from openai import OpenAI
+
+from services.llm_service import client, MODEL, MAX_TOKENS, SYSTEM_PROMPT
 
 load_dotenv()
-client = OpenAI()
-
-# ── 설정 ──────────────────────────────────────────────
-MODEL = "gpt-4o"
-MAX_TOKENS = 1024
-SYSTEM_PROMPT = "당신은 친절한 AI 어시스턴트입니다. 한국어로 답변합니다."
 
 # ── 페이지 설정 ────────────────────────────────────────
 st.set_page_config(page_title="GPT-4o 챗봇", page_icon="🤖")

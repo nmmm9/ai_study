@@ -14,8 +14,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 load_dotenv()
 
-client = OpenAI()
-
 # ── 설정 ──────────────────────────────────────────────
 EMBEDDING_MODEL = "text-embedding-3-small"
 CHUNK_SIZE = 900
@@ -67,6 +65,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     - 한 번의 API 호출로 여러 텍스트를 배치 처리
     - 반환값: 각 텍스트에 대응하는 1536차원 벡터 리스트
     """
+    client = OpenAI()
     response = client.embeddings.create(
         model=EMBEDDING_MODEL,
         input=texts,

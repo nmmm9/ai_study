@@ -3,10 +3,13 @@
 문서를 업로드하면 청킹 결과를 시각적으로 확인
 """
 
-import streamlit as st
-from chunker import chunk_text, chunk_markdown_by_headers, load_document
-import tempfile
 import os
+import tempfile
+
+import streamlit as st
+
+from services.chunker import chunk_text, chunk_markdown_by_headers
+from services.document_loader import load_document
 
 # ── 페이지 설정 ────────────────────────────────────────
 st.set_page_config(page_title="문서 청킹 도구", page_icon="✂️", layout="wide")
