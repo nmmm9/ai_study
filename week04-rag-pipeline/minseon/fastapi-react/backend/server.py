@@ -58,7 +58,9 @@ async def auto_index_on_startup():
         if not results:
             print("[자동 인덱싱] 새로 인덱싱할 파일 없음 (이미 완료됨)")
     except Exception as e:
+        import traceback
         print(f"[자동 인덱싱] 실패: {e}")
+        traceback.print_exc()
 
 
 # ── 요청 모델 ──────────────────────────────────────────────

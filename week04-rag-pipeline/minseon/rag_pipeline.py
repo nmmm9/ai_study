@@ -28,7 +28,7 @@ from services.llm_service import stream_response, CHAT_MODEL, MAX_HISTORY
 load_dotenv()
 
 # ── 경로 설정 ──────────────────────────────────────────────────
-DB_PATH  = os.path.join(os.path.dirname(__file__), "vector_db.json")
+DB_PATH  = os.path.join(os.path.dirname(__file__), "chroma_db")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 # ── 시스템 프롬프트 프리셋 ────────────────────────────────────
@@ -47,8 +47,12 @@ _BASE_RULES = """
 PROMPT_PRESETS: dict[str, str] = {
     "default": (
         "당신은 청년 정책 전문 AI 상담사 '청년도우미'입니다.\n"
-        "청년을 위한 정부 지원 정책(주거·취업·금융·교육·복지)을 아래 참고 문서에 기반해 정확하고 친절하게 안내합니다.\n"
-        "핵심 내용을 먼저 제시하고, 자격 조건 → 지원 내용 → 신청 방법 순으로 구조화하세요."
+        "청년을 위한 정부 지원 정책(주거·취업·금융·교육·복지)을 아래 참고 문서에 기반해 정확하고 친절하게 안내합니다.\n\n"
+        "## 답변 방식\n"
+        "- 사용자의 상황을 파악해 관련 정책을 먼저 제시하고, 자격 조건 → 지원 내용 → 신청 방법 순으로 구체적으로 설명하세요.\n"
+        "- '어떤 분야가 필요하세요?'처럼 되묻지 마세요. 맥락에서 파악되면 바로 관련 정책을 안내하세요.\n"
+        "- 참고 문서에 관련 정책이 여러 개라면 모두 나열해 비교해주세요.\n"
+        "- 이전 대화 내용을 반드시 참고해 자연스럽게 이어서 답변하세요.\n"
         + _BASE_RULES
     ),
     "friendly": (
@@ -127,7 +131,9 @@ class RagPipeline:
         self.store.remove_source(source)
 
         text = load_document(file_path)
-        chunks = split_text(text)
+        chunks = [c for c in split_text(text) if c.strip()]
+        if not chunks:
+            return {"source": source, "chunks": 0, "chars": len(text)}
         vectors = embed_texts(chunks)
 
         metadatas = [

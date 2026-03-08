@@ -17,8 +17,13 @@ def load_document(file_path: str) -> str:
     ext = os.path.splitext(file_path)[1].lower()
 
     if ext in (".md", ".markdown", ".txt"):
-        with open(file_path, "r", encoding="utf-8") as f:
-            return f.read()
+        for encoding in ("utf-8-sig", "utf-8", "cp949", "euc-kr"):
+            try:
+                with open(file_path, "r", encoding=encoding) as f:
+                    return f.read()
+            except (UnicodeDecodeError, LookupError):
+                continue
+        raise ValueError(f"파일 인코딩을 인식할 수 없습니다: {file_path}")
 
     elif ext == ".pdf":
         import fitz
