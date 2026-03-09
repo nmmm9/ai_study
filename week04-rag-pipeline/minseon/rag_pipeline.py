@@ -23,6 +23,7 @@ from services.chunking_service import split_text, CHUNK_SIZE, CHUNK_OVERLAP
 from services.embedding_service import embed_texts, EMBEDDING_MODEL
 from services.vector_store import VectorStore
 from services.llm_service import stream_response, CHAT_MODEL, MAX_HISTORY
+from services.reranker_service import rerank
 
 
 load_dotenv()
@@ -39,6 +40,15 @@ _BASE_RULES = """
 3. 문서에 없는 내용은 "해당 정보는 보유 문서에서 찾을 수 없습니다"라고 안내하세요.
 4. 금액·나이·기간 등 수치 정보는 문서 내용을 정확하게 전달하세요.
 5. 이전 대화 내용도 참고하여 자연스러운 대화를 이어가세요.
+6. 신청 방법 안내 시 반드시 공식 신청 링크를 [신청하기](URL) 형식으로 포함하세요.
+   주요 신청 포털:
+   - 복지로(복지 전반): https://www.bokjiro.go.kr
+   - 청년포털(청년 정책 통합): https://www.youthcenter.go.kr
+   - 마이홈(주거 지원): https://www.myhome.go.kr
+   - 워크넷(취업 지원): https://www.work.go.kr
+   - 한국장학재단(국가장학금): https://www.kosaf.go.kr
+   - 청년도약계좌·청년희망적금: https://ylaccount.kinfa.or.kr
+   - 서민금융진흥원(금융 지원): https://www.kinfa.or.kr
 
 ## 참고 문서
 {context}
@@ -144,6 +154,43 @@ class RagPipeline:
 
         return {"source": source, "chunks": len(chunks), "chars": len(text)}
 
+    # ── 쿼리 재작성 ───────────────────────────────────────────
+
+    def _rewrite_query(self, user_message: str) -> str:
+        """
+        대화 히스토리를 반영한 검색 최적화 쿼리 생성 (Query Rewriting)
+
+        대화 맥락이 없으면 원본 질문을 그대로 반환.
+        예) "그거 신청하려면?" → "청년희망적금 신청 방법 자격 조건"
+        """
+        if not self.conversation:
+            return user_message
+
+        recent = self.conversation[-4:]  # 최근 2쌍만 컨텍스트로 사용
+        history_text = "\n".join(
+            f"{'사용자' if m['role'] == 'user' else 'AI'}: {m['content'][:200]}"
+            for m in recent
+        )
+        prompt = (
+            f"이전 대화:\n{history_text}\n\n"
+            f"현재 질문: {user_message}\n\n"
+            f"위 대화 맥락을 고려해 현재 질문을 청년 정책 문서 검색에 최적화된 검색어로 재작성하세요. "
+            f"검색어만 한 줄로 반환하세요."
+        )
+        try:
+            from openai import OpenAI
+            client = OpenAI()
+            response = client.chat.completions.create(
+                model=CHAT_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+                max_tokens=100,
+            )
+            rewritten = response.choices[0].message.content.strip()
+            return rewritten if rewritten else user_message
+        except Exception:
+            return user_message
+
     # ── 검색 ──────────────────────────────────────────────────
 
     def search(
@@ -194,14 +241,20 @@ class RagPipeline:
         Yields:
             str: 텍스트 청크
         """
-        # 1. 검색
-        hits = self.search(user_message, top_k, threshold, max_per_source)
+        # 1. 쿼리 재작성 (대화 맥락 반영)
+        search_query = self._rewrite_query(user_message)
+
+        # 2. 확장 검색 (재순위화를 위해 top_k*3 후보 확보)
+        candidates = self.search(search_query, top_k * 3, threshold, max_per_source + 1)
+
+        # 3. GPT 기반 재순위화 → 최종 top_k 선택
+        hits = rerank(user_message, candidates, top_k)
         self._last_hits = hits
 
-        # 2. 프롬프트 구성
+        # 4. 프롬프트 구성
         system_content = self._build_system_prompt(hits, preset=preset)
 
-        # 3. LLM 스트리밍 호출 (대화 히스토리 in-place 수정)
+        # 5. LLM 스트리밍 호출 (대화 히스토리 in-place 수정)
         yield from stream_response(system_content, self.conversation, user_message)
 
         # 4. 사용량 저장 (app.py에서 스트림 종료 후 읽음)

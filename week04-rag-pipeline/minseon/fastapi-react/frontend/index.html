@@ -8,6 +8,7 @@
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -154,13 +155,44 @@
 
     .msg-bubble {
       padding: 12px 16px; border-radius: 12px;
-      font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+      font-size: 14px; line-height: 1.7; word-break: break-word;
     }
     .message.user .msg-bubble {
       background: #2563eb; color: white; border-bottom-right-radius: 4px;
+      white-space: pre-wrap;
     }
     .message.assistant .msg-bubble {
       background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px;
+    }
+
+    /* ── AI 메시지 마크다운 스타일 ── */
+    .message.assistant .msg-bubble p { margin: 0 0 8px; }
+    .message.assistant .msg-bubble p:last-child { margin-bottom: 0; }
+    .message.assistant .msg-bubble h1,
+    .message.assistant .msg-bubble h2,
+    .message.assistant .msg-bubble h3 {
+      font-size: 14px; font-weight: 700; color: #111827;
+      margin: 12px 0 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;
+    }
+    .message.assistant .msg-bubble h1:first-child,
+    .message.assistant .msg-bubble h2:first-child,
+    .message.assistant .msg-bubble h3:first-child { margin-top: 0; }
+    .message.assistant .msg-bubble ul,
+    .message.assistant .msg-bubble ol {
+      padding-left: 18px; margin: 4px 0 8px;
+    }
+    .message.assistant .msg-bubble li { margin-bottom: 3px; }
+    .message.assistant .msg-bubble strong { font-weight: 700; color: #1f2937; }
+    .message.assistant .msg-bubble code {
+      background: #e5e7eb; border-radius: 4px; padding: 1px 5px;
+      font-family: monospace; font-size: 12px;
+    }
+    .message.assistant .msg-bubble blockquote {
+      border-left: 3px solid #d1d5db; margin: 6px 0; padding: 4px 10px;
+      color: #6b7280; font-style: italic;
+    }
+    .message.assistant .msg-bubble hr {
+      border: none; border-top: 1px solid #e5e7eb; margin: 8px 0;
     }
 
     .cursor { display: inline-block; animation: blink 0.8s infinite; color: #6b7280; }
@@ -232,6 +264,95 @@
     .preset-btn { padding: 5px 14px; border-radius: 99px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid #e5e7eb; background: white; color: #374151; transition: all 0.15s; }
     .preset-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
     .preset-btn:hover:not(.active) { border-color: #2563eb; color: #2563eb; }
+
+    /* ── 대화 기록 ── */
+    .session-search {
+      width: 100%; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 12px; outline: none; margin-bottom: 8px;
+    }
+    .session-search:focus { border-color: #2563eb; }
+    .session-item {
+      padding: 8px 10px; background: #f9fafb; border-radius: 8px;
+      margin-bottom: 6px; cursor: pointer; border: 1px solid #e5e7eb; transition: all 0.15s;
+    }
+    .session-item:hover { border-color: #2563eb; background: #eff6ff; }
+    .sess-time { font-size: 10px; color: #9ca3af; margin-bottom: 2px; }
+    .sess-preview { font-size: 12px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sess-cnt { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+    /* ── 모달 ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-box {
+      background: white; border-radius: 16px; width: 700px; max-width: 95vw;
+      max-height: 82vh; display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid #e5e7eb;
+      display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .modal-header h3 { font-size: 15px; font-weight: 700; color: #111827; }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #6b7280; line-height: 1; }
+    .modal-close:hover { color: #111827; }
+    .modal-search { padding: 12px 20px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+    .modal-search input {
+      width: 100%; padding: 7px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 13px; outline: none;
+    }
+    .modal-search input:focus { border-color: #2563eb; }
+    .modal-messages {
+      flex: 1; overflow-y: auto; padding: 16px 20px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    mark.hl { background: #fef08a; border-radius: 2px; font-style: normal; }
+
+    /* ── 채팅 링크 ── */
+    .chat-link {
+      display: inline-flex; align-items: center; gap: 3px;
+      color: #2563eb; text-decoration: none; font-weight: 600;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 6px; padding: 1px 7px; font-size: 13px;
+      transition: all 0.15s;
+    }
+    .chat-link:hover { background: #dbeafe; border-color: #93c5fd; }
+    .message.user .chat-link { color: #bfdbfe; background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+    .message.user .chat-link:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── 신청하기 버튼 링크 ── */
+    .apply-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #2563eb; color: white !important; text-decoration: none;
+      border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 700;
+      transition: background 0.15s; margin: 3px 2px;
+    }
+    .apply-btn:hover { background: #1d4ed8; }
+    .apply-btn::after { content: " →"; }
+
+    /* ── 마크다운 테이블 ── */
+    .message.assistant .msg-bubble table {
+      border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px;
+      border-radius: 8px; overflow: hidden;
+    }
+    .message.assistant .msg-bubble th,
+    .message.assistant .msg-bubble td {
+      border: 1px solid #d1d5db; padding: 7px 12px; text-align: left;
+    }
+    .message.assistant .msg-bubble th {
+      background: #e0e7ff; font-weight: 700; color: #1e3a8a;
+    }
+    .message.assistant .msg-bubble tr:nth-child(even) td { background: #f9fafb; }
+
+    /* ── 자격 체크리스트 ── */
+    .message.assistant .msg-bubble ul li input[type="checkbox"] {
+      accent-color: #2563eb; width: 14px; height: 14px;
+      margin-right: 4px; vertical-align: middle; cursor: default;
+    }
+    .message.assistant .msg-bubble ul li:has(input[type="checkbox"]) {
+      list-style: none; margin-left: -18px;
+    }
   </style>
 </head>
 <body>
@@ -240,6 +361,30 @@
   <script type="text/babel">
     const { useState, useRef, useEffect } = React;
     const API = "http://localhost:8000";
+    const SESSIONS_KEY = "rag_chat_sessions";
+
+    // ── 마크다운 렌더링 (링크 새 탭 + 스타일 적용) ────────
+    (function setupMarked() {
+      const renderer = new marked.Renderer();
+      renderer.link = ({ href, title, text }) => {
+        // "신청하기" 또는 "신청" 텍스트 링크는 버튼 스타일로 렌더링
+        const isApply = /신청/.test(text);
+        if (isApply) {
+          return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="apply-btn">${text}</a>`;
+        }
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="chat-link">${text} ↗</a>`;
+      };
+      marked.use({ renderer, breaks: true, gfm: true });
+    })();
+
+    function renderMarkdown(text) {
+      let html = marked.parse(text);
+      // GFM 체크리스트 폴백: marked가 변환 못한 경우 직접 처리
+      html = html
+        .replace(/<li>\[x\]/gi, '<li><input type="checkbox" checked disabled>')
+        .replace(/<li>\[ \]/g,  '<li><input type="checkbox" disabled>');
+      return html;
+    }
 
     // ── 출처 칩 컴포넌트 ──────────────────────────────────
     function SourceChip({ hit, index }) {
@@ -261,8 +406,58 @@
       );
     }
 
+    // ── 과거 대화 모달 ────────────────────────────────────
+    function SessionModal({ session, onClose }) {
+      const [search, setSearch] = useState("");
+      const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      const hlContent = (text) => {
+        if (!search.trim()) return text;
+        return text.replace(new RegExp(`(${esc(search)})`, 'gi'), '<mark class="hl">$1</mark>');
+      };
+
+      const visible = search.trim()
+        ? session.messages.filter(m => m.content.toLowerCase().includes(search.toLowerCase()))
+        : session.messages;
+
+      return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+          <div className="modal-box">
+            <div className="modal-header">
+              <h3>🕐 {new Date(session.timestamp).toLocaleString('ko-KR')} 대화</h3>
+              <button className="modal-close" onClick={onClose}>×</button>
+            </div>
+            <div className="modal-search">
+              <input
+                autoFocus
+                placeholder="이 대화 내용 검색..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="modal-messages">
+              {visible.length === 0 && (
+                <div style={{color:"#9ca3af", fontSize:13, textAlign:"center", marginTop:20}}>검색 결과 없음</div>
+              )}
+              {visible.map((msg, i) => (
+                <div key={i} className={`message ${msg.role}`}>
+                  <div className="msg-label">{msg.role === "user" ? "나" : "AI"}</div>
+                  <div className="msg-bubble" dangerouslySetInnerHTML={{ __html: hlContent(msg.content) }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // ── 사이드바 ───────────────────────────────────────────
-    function Sidebar({ sources, stats, settings, onSettingsChange, onDelete, onReset, tokens }) {
+    function Sidebar({ sources, stats, settings, onSettingsChange, onDelete, onReset, tokens, sessions, onViewSession, onDeleteSession }) {
+      const [sessSearch, setSessSearch] = useState("");
+      const filtered = sessions
+        .slice()
+        .reverse()
+        .filter(s => !sessSearch.trim() || s.preview.toLowerCase().includes(sessSearch.toLowerCase()));
       return (
         <div className="sidebar">
           <div>
@@ -322,7 +517,39 @@
           </div>
 
           <hr />
-          <button className="btn-sm" onClick={onReset}>대화 초기화</button>
+          <button className="btn-sm" onClick={onReset}>대화 초기화 (기록에 저장됨)</button>
+
+          {sessions.length > 0 && (
+            <>
+              <hr />
+              <div className="sidebar-section">
+                <h3>🕐 대화 기록 ({sessions.length})</h3>
+                <input
+                  className="session-search"
+                  placeholder="기록 검색..."
+                  value={sessSearch}
+                  onChange={e => setSessSearch(e.target.value)}
+                />
+                {filtered.length === 0 && (
+                  <div style={{fontSize:12, color:"#9ca3af"}}>검색 결과 없음</div>
+                )}
+                {filtered.map(s => (
+                  <div className="session-item" key={s.id} onClick={() => onViewSession(s)}>
+                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                      <div className="sess-time">{new Date(s.timestamp).toLocaleString('ko-KR')}</div>
+                      <button
+                        style={{background:"none", border:"none", cursor:"pointer", fontSize:15, color:"#d1d5db", padding:"0 2px", lineHeight:1}}
+                        onClick={e => { e.stopPropagation(); onDeleteSession(s.id); }}
+                        title="삭제"
+                      >×</button>
+                    </div>
+                    <div className="sess-preview">{s.preview}</div>
+                    <div className="sess-cnt">메시지 {s.msgCount}개</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       );
     }
@@ -336,13 +563,23 @@
       { id:"expert",   label:"💼 전문가"  },
     ];
 
-    function ChatTab({ sources, settings }) {
-      const [messages, setMessages] = useState([]);
+    const STORAGE_KEY = "rag_chat_messages";
+
+    function ChatTab({ sources, settings, onTokensUpdate }) {
+      const [messages, setMessages] = useState(() => {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          return saved ? JSON.parse(saved) : [];
+        } catch { return []; }
+      });
       const [input, setInput]       = useState("");
       const [loading, setLoading]   = useState(false);
       const [preset,  setPreset]    = useState("default");
-      const [tokens, setTokens]     = useState({ input: 0, output: 0 });
       const bottomRef               = useRef(null);
+
+      useEffect(() => {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch {}
+      }, [messages]);
 
       useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -388,7 +625,7 @@
                 });
               }
               if (data.type === "usage") {
-                setTokens(prev => ({ input: prev.input + data.input, output: prev.output + data.output }));
+                onTokensUpdate(data.input, data.output);
               }
             }
           }
@@ -426,7 +663,11 @@
               <div key={i} className={`message ${msg.role}`}>
                 <div className="msg-label">{msg.role === "user" ? "나" : "AI"}</div>
                 <div className="msg-bubble">
-                  {msg.content}
+                  {msg.role === "user" ? (
+                    msg.content
+                  ) : (
+                    <span dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
+                  )}
                   {msg.role === "assistant" && loading && i === messages.length - 1 && (
                     <span className="cursor">▌</span>
                   )}
@@ -459,10 +700,14 @@
 
     // ── 메인 앱 ───────────────────────────────────────────
     function App() {
-      const [sources,  setSources]  = useState([]);
-      const [stats,    setStats]    = useState({ total_documents: 0, total_chunks: 0 });
-      const [tokens,   setTokens]   = useState({ input: 0, output: 0 });
-      const [settings, setSettings] = useState({ top_k: 5, threshold: 0.2, max_per_source: 2 });
+      const [sources,        setSources]        = useState([]);
+      const [stats,          setStats]          = useState({ total_documents: 0, total_chunks: 0 });
+      const [tokens,         setTokens]         = useState({ input: 0, output: 0 });
+      const [settings,       setSettings]       = useState({ top_k: 5, threshold: 0.2, max_per_source: 2 });
+      const [sessions,       setSessions]       = useState(() => {
+        try { return JSON.parse(localStorage.getItem(SESSIONS_KEY)) || []; } catch { return []; }
+      });
+      const [viewingSession, setViewingSession] = useState(null);
 
       const loadSources = async () => {
         const [s, st] = await Promise.all([
@@ -481,9 +726,39 @@
       };
 
       const handleReset = async () => {
+        // 현재 대화가 있으면 세션으로 저장
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          const msgs = saved ? JSON.parse(saved) : [];
+          if (msgs.length > 0) {
+            const firstUser = msgs.find(m => m.role === "user");
+            const newSession = {
+              id: Date.now().toString(),
+              timestamp: Date.now(),
+              preview: firstUser ? firstUser.content.slice(0, 60) : "대화",
+              msgCount: msgs.length,
+              messages: msgs,
+            };
+            const updated = [...sessions, newSession];
+            setSessions(updated);
+            localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated));
+          }
+        } catch {}
+
         await fetch(`${API}/chat`, { method: "DELETE" });
+        try { localStorage.removeItem(STORAGE_KEY); } catch {}
         setTokens({ input: 0, output: 0 });
         window.location.reload();
+      };
+
+      const handleDeleteSession = (id) => {
+        const updated = sessions.filter(s => s.id !== id);
+        setSessions(updated);
+        try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated)); } catch {}
+      };
+
+      const handleTokensUpdate = (inputDelta, outputDelta) => {
+        setTokens(prev => ({ input: prev.input + inputDelta, output: prev.output + outputDelta }));
       };
 
       const updateSetting = (key, val) => setSettings(prev => ({ ...prev, [key]: val }));
@@ -495,14 +770,20 @@
             onSettingsChange={updateSetting}
             onDelete={handleDelete}
             onReset={handleReset}
+            sessions={sessions}
+            onViewSession={setViewingSession}
+            onDeleteSession={handleDeleteSession}
           />
           <div className="main">
             <div className="tab-content">
               <div className="tab-panel active">
-                <ChatTab sources={sources} settings={settings} />
+                <ChatTab sources={sources} settings={settings} onTokensUpdate={handleTokensUpdate} />
               </div>
             </div>
           </div>
+          {viewingSession && (
+            <SessionModal session={viewingSession} onClose={() => setViewingSession(null)} />
+          )}
         </div>
       );
     }
