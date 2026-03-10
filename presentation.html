@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 04 — 취업 상담 AI · juwon</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --c1: #5c6ef8;
+    --c2: #f85c8a;
+    --c3: #00c9a7;
+    --c4: #ffb347;
+    --c5: #a259ff;
+    --white: #ffffff;
+    --bg: #f7f7fb;
+    --text: #1a1a2e;
+    --mid: #5a5a7a;
+    --light: #9090b0;
+    --stroke: #e4e4f0;
+    --dark: #1c1c30;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .deck { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex;
+    transform: translateX(100%);
+    transition: transform 0.5s cubic-bezier(0.77,0,0.18,1);
+  }
+  .slide.active { transform: translateX(0); }
+
+  /* ── Left panel ── */
+  .lp {
+    width: 280px; min-width: 280px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 44px 32px;
+    position: relative; overflow: hidden;
+  }
+  .lp::after {
+    content: attr(data-icon);
+    position: absolute; bottom: -16px; right: -8px;
+    font-size: 140px; line-height: 1; opacity: 0.15;
+    pointer-events: none;
+  }
+  .lp .top-label { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+  .lp .main-title { font-size: 30px; font-weight: 900; color: #fff; line-height: 1.25; letter-spacing: -0.5px; margin-top: 8px; }
+  .lp .sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 8px; line-height: 1.6; }
+  .lp .pg { font-size: 12px; color: rgba(255,255,255,0.35); }
+
+  /* ── Right panel ── */
+  .rp {
+    flex: 1; background: var(--white);
+    padding: 40px 52px 64px;
+    overflow-y: auto;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+
+  /* ── Type ── */
+  h2 { font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 20px; letter-spacing: -0.5px; }
+  .section-tag { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--light); margin-bottom: 8px; }
+  p { font-size: 16px; line-height: 1.85; color: var(--mid); }
+  li { font-size: 15px; line-height: 1.7; color: var(--mid); margin-bottom: 6px; list-style: none; }
+  li::before { content: "·"; margin-right: 10px; color: var(--light); font-weight: 900; }
+  strong { font-weight: 700; color: var(--text); }
+  .muted { color: var(--light); }
+  .sm { font-size: 14px; }
+  .xs { font-size: 12px; color: var(--light); }
+
+  /* ── Chips ── */
+  .chip { display: inline-block; padding: 3px 11px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .ch1 { background: #eef0fe; color: var(--c1); }
+  .ch2 { background: #feeef3; color: var(--c2); }
+  .ch3 { background: #e0faf5; color: var(--c3); }
+  .ch4 { background: #fff3e0; color: var(--c4); }
+  .ch5 { background: #f3eeff; color: var(--c5); }
+
+  /* ── Cards ── */
+  .card { background: var(--bg); border: 1.5px solid var(--stroke); border-radius: 14px; padding: 16px 18px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .card p, .card li { font-size: 13px; line-height: 1.65; }
+  .ac1 { border-color: var(--c1); background: #f6f7ff; }
+  .ac2 { border-color: var(--c2); background: #fff6f8; }
+  .ac3 { border-color: var(--c3); background: #f0fdfb; }
+  .ac4 { border-color: var(--c4); background: #fffbf4; }
+  .ac5 { border-color: var(--c5); background: #faf6ff; }
+
+  .grid { display: grid; gap: 12px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .row { display: flex; gap: 18px; }
+  .col { flex: 1; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', monospace; background: #eef0ff; color: var(--c1); padding: 1px 7px; border-radius: 5px; font-size: 0.82em; }
+  pre { font-family: 'JetBrains Mono', monospace; background: var(--dark); color: #c8c8e8; border-radius: 12px; padding: 16px 20px; font-size: 12.5px; line-height: 1.7; overflow-x: auto; }
+  pre .kw { color: #c792ea; } pre .fn { color: #82aaff; } pre .str { color: #c3e88d; } pre .cmt { color: #546e7a; font-style: italic; } pre .cls { color: #ffcb6b; }
+
+  /* ── Compare ── */
+  .vs { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 0; align-items: stretch; }
+  .vs-mid { display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; color: var(--light); }
+  .vs-box { border-radius: 14px; padding: 18px; border: 1.5px solid var(--stroke); }
+  .vs-box h4 { font-size: 14px; font-weight: 800; margin-bottom: 8px; }
+  .vs-box li { font-size: 13px; }
+  .bad  { background: #fff6f8; border-color: var(--c2); }
+  .good { background: #f0fdfb; border-color: var(--c3); }
+
+  /* ── Decision box ── */
+  .why-box {
+    border-left: 4px solid var(--c1); background: #f6f7ff;
+    border-radius: 0 12px 12px 0; padding: 14px 18px; margin-top: 12px;
+  }
+  .why-box .why-label { font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--c1); margin-bottom: 4px; }
+  .why-box p { font-size: 14px; color: var(--mid); }
+
+  /* ── Pipeline strip ── */
+  .pipe { display: flex; align-items: center; gap: 0; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--stroke); }
+  .pipe-step { flex: 1; padding: 14px 10px; text-align: center; border-right: 1.5px solid var(--stroke); }
+  .pipe-step:last-child { border-right: none; }
+  .pipe-step .ps-icon { font-size: 20px; margin-bottom: 4px; }
+  .pipe-step .ps-name { font-size: 12px; font-weight: 700; color: var(--text); }
+  .pipe-step .ps-sub { font-size: 10px; color: var(--light); margin-top: 2px; }
+  .pipe-step.hi { background: #f6f7ff; }
+
+  /* ── Trouble ── */
+  .tcard { display: flex; gap: 0; border-radius: 12px; overflow: hidden; border: 1.5px solid var(--stroke); background: var(--white); margin-bottom: 10px; }
+  .tcard-bar { width: 5px; flex-shrink: 0; }
+  .tcard-body { padding: 12px 16px; flex: 1; }
+  .tcard-body .prob { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .tcard-body .cause { font-size: 13px; color: var(--light); margin-bottom: 3px; }
+  .tcard-body .fix { font-size: 13px; font-weight: 600; color: var(--c3); }
+
+  /* ── Summary numbers ── */
+  .big-num { font-size: 48px; font-weight: 900; line-height: 1; }
+
+  /* ── BGs ── */
+  .bg1  { background: linear-gradient(150deg,#5c6ef8,#3a4de0); }
+  .bg2  { background: linear-gradient(150deg,#1e1e40,#2d2d60); }
+  .bg3  { background: linear-gradient(150deg,#f85c8a,#c83060); }
+  .bg4  { background: linear-gradient(150deg,#5c6ef8,#a259ff); }
+  .bg5  { background: linear-gradient(150deg,#a259ff,#7030c0); }
+  .bg6  { background: linear-gradient(150deg,#00c9a7,#0090a0); }
+  .bg7  { background: linear-gradient(150deg,#f85c8a,#a259ff); }
+  .bg8  { background: linear-gradient(150deg,#ffb347,#e07020); }
+  .bg9  { background: linear-gradient(150deg,#5c6ef8,#00c9a7); }
+
+  /* ── Nav ── */
+  .nav {
+    position: fixed; bottom: 0; left: 280px; right: 0; height: 50px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 36px;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+    border-top: 1.5px solid var(--stroke); z-index: 200;
+  }
+  .dots { display: flex; gap: 6px; align-items: center; }
+  .dot { width: 7px; height: 7px; border-radius: 99px; background: var(--stroke); cursor: pointer; transition: all 0.25s; }
+  .dot.on { width: 22px; background: var(--c1); }
+  .arrows { display: flex; gap: 8px; }
+  .abtn {
+    width: 32px; height: 32px; border-radius: 9px; border: 1.5px solid var(--stroke);
+    background: var(--white); cursor: pointer; font-size: 15px;
+    display: flex; align-items: center; justify-content: center; color: var(--mid);
+    transition: all 0.2s;
+  }
+  .abtn:hover { border-color: var(--c1); color: var(--c1); }
+  .pg-count { font-size: 12px; color: var(--light); min-width: 44px; text-align: right; }
+  .pg-count b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- ═══ 0: Title ═══ -->
+<div class="slide active" data-slide="0">
+  <div class="lp bg1" data-icon="💼">
+    <div class="top-label">Week 04 · juwon</div>
+    <div>
+      <div class="main-title">취업 상담 AI</div>
+      <div class="sub">RAG Pipeline<br>2026.03</div>
+    </div>
+    <div class="pg">01 / 12</div>
+  </div>
+  <div class="rp" style="justify-content:center;">
+    <div class="section-tag">What I Built</div>
+    <h2 style="font-size:30px;">취업공고에 대해<br>물어볼 수 있는 AI 챗봇</h2>
+    <p style="margin-bottom:24px; max-width:480px;">
+      "카카오 자격요건 알려줘" 같은 질문을 하면<br>
+      실제 채용공고를 찾아서 근거 있는 답변을 해줍니다.
+    </p>
+    <div class="grid g3" style="max-width:420px; margin-bottom:24px;">
+      <div class="card" style="text-align:center; padding:14px 10px;">
+        <div class="big-num" style="color:var(--c1);">20</div>
+        <div class="xs">개 회사 공고</div>
+      </div>
+      <div class="card" style="text-align:center; padding:14px 10px;">
+        <div class="big-num" style="color:var(--c2);">129</div>
+        <div class="xs">개 청크</div>
+      </div>
+      <div class="card" style="text-align:center; padding:14px 10px;">
+        <div class="big-num" style="color:var(--c3);">7</div>
+        <div class="xs">단계 파이프라인</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:7px; flex-wrap:wrap;">
+      <span class="chip ch1">ChromaDB</span>
+      <span class="chip ch5">sentence-transformers</span>
+      <span class="chip ch3">Cross-Encoder</span>
+      <span class="chip ch2">Guardrails</span>
+      <span class="chip ch4">Streamlit</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 1: GPT로 안 되는 이유 ═══ -->
+<div class="slide" data-slide="1">
+  <div class="lp bg3" data-icon="🤔">
+    <div class="top-label">시작 전 고민</div>
+    <div>
+      <div class="main-title">그냥 GPT에게<br>물어보면<br>안 되나요?</div>
+    </div>
+    <div class="pg">02 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Problem</div>
+    <h2>GPT만으로 부족한 이유</h2>
+    <div class="vs" style="margin-bottom:18px;">
+      <div class="vs-box bad">
+        <h4 style="color:var(--c2);">❌ GPT 단독 사용</h4>
+        <ul>
+          <li class="sm">오늘 올라온 채용공고를 모름 (학습 컷오프)</li>
+          <li class="sm">없는 내용을 그럴듯하게 지어냄 (할루시네이션)</li>
+          <li class="sm">"카카오 연봉 8000만원" 같은 근거 없는 답변</li>
+          <li class="sm">출처를 제시할 수 없음</li>
+        </ul>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-box good">
+        <h4 style="color:var(--c3);">✅ RAG 방식</h4>
+        <ul>
+          <li class="sm">실제 공고 파일을 직접 검색</li>
+          <li class="sm">찾은 내용만 근거로 답변</li>
+          <li class="sm">모르면 모른다고 말함</li>
+          <li class="sm">어디서 찾았는지 출처 표시</li>
+        </ul>
+      </div>
+    </div>
+    <div class="why-box">
+      <div class="why-label">내 생각</div>
+      <p>취업 정보는 정확성이 중요하다. 잘못된 자격요건이나 연봉 정보를 알려주면 오히려 해롭기 때문에, 반드시 <strong>문서에 있는 내용만</strong> 답하도록 만들고 싶었다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 2: 전체 흐름 ═══ -->
+<div class="slide" data-slide="2">
+  <div class="lp bg4" data-icon="🔄">
+    <div class="top-label">구조</div>
+    <div>
+      <div class="main-title">어떻게<br>동작하나요?</div>
+      <div class="sub">질문 → 검색 → 생성</div>
+    </div>
+    <div class="pg">03 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Pipeline Overview</div>
+    <h2>7단계로 질문에서 답변까지</h2>
+    <div class="pipe" style="margin-bottom:20px;">
+      <div class="pipe-step">
+        <div class="ps-icon">🛡️</div>
+        <div class="ps-name">Guardrail</div>
+        <div class="ps-sub">취업 외 차단</div>
+      </div>
+      <div class="pipe-step hi">
+        <div class="ps-icon">🔍</div>
+        <div class="ps-name">검색</div>
+        <div class="ps-sub">top-10</div>
+      </div>
+      <div class="pipe-step hi">
+        <div class="ps-icon">📊</div>
+        <div class="ps-name">재랭킹</div>
+        <div class="ps-sub">top-3</div>
+      </div>
+      <div class="pipe-step">
+        <div class="ps-icon">📝</div>
+        <div class="ps-name">프롬프트</div>
+        <div class="ps-sub">문서 주입</div>
+      </div>
+      <div class="pipe-step">
+        <div class="ps-icon">🤖</div>
+        <div class="ps-name">GPT</div>
+        <div class="ps-sub">답변 생성</div>
+      </div>
+      <div class="pipe-step">
+        <div class="ps-icon">✅</div>
+        <div class="ps-name">출력 검증</div>
+        <div class="ps-sub">품질 체크</div>
+      </div>
+      <div class="pipe-step">
+        <div class="ps-icon">📎</div>
+        <div class="ps-name">출처 표시</div>
+        <div class="ps-sub">Citation</div>
+      </div>
+    </div>
+    <div class="grid g3">
+      <div class="card ac1">
+        <h4>📥 데이터 준비</h4>
+        <p class="sm">20개 회사 공고를 <code>.md</code> 파일로 저장 → 129개 청크로 분할 → ChromaDB에 벡터로 저장</p>
+      </div>
+      <div class="card ac5">
+        <h4>🔍 검색 (핵심)</h4>
+        <p class="sm">질문과 비슷한 문단을 찾아서 GPT에게 전달. <strong>키워드가 아닌 의미 기반 검색</strong></p>
+      </div>
+      <div class="card ac3">
+        <h4>💬 생성</h4>
+        <p class="sm">GPT가 찾아온 문서만 참고해서 답변. 출처와 함께 반환.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 3: RAG 동작 원리 그림 ═══ -->
+<div class="slide" data-slide="3">
+  <div class="lp bg6" data-icon="🖼️">
+    <div class="top-label">동작 원리</div>
+    <div>
+      <div class="main-title">RAG는<br>이렇게<br>돌아간다</div>
+      <div class="sub">전체 흐름을<br>그림으로 보기</div>
+    </div>
+    <div class="pg">04 / 12</div>
+  </div>
+  <div class="rp" style="gap:16px;">
+    <div class="section-tag">Pipeline Diagram</div>
+    <h2>문서 준비 → 질문 → 검색 → 답변</h2>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:16px; border:1.5px solid var(--stroke); overflow:hidden; min-height:0;">
+      <img src="rag.png" alt="RAG Pipeline Diagram"
+           style="max-width:100%; max-height:100%; object-fit:contain; display:block; padding:12px;" />
+    </div>
+    <div class="grid g3" style="margin-top:4px;">
+      <div class="card ac5" style="padding:12px 14px;">
+        <h4>① Indexing</h4>
+        <p class="sm">문서 → 청크 → 임베딩 → ChromaDB 저장. <strong>한 번만</strong> 수행.</p>
+      </div>
+      <div class="card ac1" style="padding:12px 14px;">
+        <h4>② Retrieval</h4>
+        <p class="sm">질문을 벡터로 변환 후 가장 가까운 청크를 코사인 유사도로 검색.</p>
+      </div>
+      <div class="card ac3" style="padding:12px 14px;">
+        <h4>③ Generation</h4>
+        <p class="sm">찾은 청크를 GPT에게 전달. <strong>문서 기반</strong>으로만 답변 생성.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 4: 문서 준비 ═══ -->
+<div class="slide" data-slide="4">
+  <div class="lp" style="background:#1a1a2e;" data-icon="📄">
+    <div class="top-label">① 문서</div>
+    <div>
+      <div class="main-title">문서를<br>어떻게<br>준비했나?</div>
+      <div class="sub">Indexing 단계</div>
+    </div>
+    <div class="pg">05 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Document Preparation</div>
+    <h2>수집 → 분할 → 저장</h2>
+    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+      <div class="card" style="display:flex; gap:14px; align-items:flex-start;">
+        <span style="font-size:20px; min-width:28px; margin-top:2px;">📁</span>
+        <div>
+          <h4>① 수집</h4>
+          <p class="sm">20개 회사 채용공고를 <code>.md</code> 파일로 저장. 각 파일에 자격요건 · 우대사항 · 주요업무 섹션이 있음.</p>
+        </div>
+      </div>
+      <div class="card" style="display:flex; gap:14px; align-items:flex-start;">
+        <span style="font-size:20px; min-width:28px; margin-top:2px;">✂️</span>
+        <div>
+          <h4>② Chunking <span class="xs muted">(chunk_size=200, paragraph 전략)</span></h4>
+          <p class="sm">단락 기준으로 200자씩 분할. 처음엔 400이었는데 섹션이 합쳐져서 검색이 안 됨 → 200으로 변경 → <strong>129개 청크</strong>.</p>
+        </div>
+      </div>
+      <div class="card" style="display:flex; gap:14px; align-items:flex-start;">
+        <span style="font-size:20px; min-width:28px; margin-top:2px;">🏷️</span>
+        <div>
+          <h4>③ 회사명 접두어 추가</h4>
+          <p class="sm">청크 안에 회사 이름이 없으면 검색이 엉뚱한 회사를 반환. <code>"카카오 - 자격 요건:\n..."</code> 형식으로 앞에 붙여서 해결.</p>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--bg); border:1.5px solid var(--stroke); border-radius:10px; padding:10px 16px;">
+      <p class="xs muted">20개 파일 → 129개 청크 → 벡터 변환 → ChromaDB 저장</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 5: RAG 핵심 질문 ═══ -->
+<div class="slide" data-slide="4">
+  <div class="lp bg2" data-icon="❓">
+    <div class="top-label">자주 받는 질문</div>
+    <div>
+      <div class="main-title">RAG에 대해<br>자주 묻는<br>3가지</div>
+      <div class="sub">발표·면접에서<br>꼭 나오는 질문들</div>
+    </div>
+    <div class="pg">06 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Key Questions</div>
+    <h2>이 3가지는 설명할 수 있어야 한다</h2>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card ac5">
+        <h4>Q1. 왜 Chunking을 해야 하나?</h4>
+        <p class="sm">LLM에 넣을 수 있는 텍스트 길이(토큰)가 제한되어 있어서 문서 전체를 넣을 수 없다. 또한 문서 전체보다 <strong>관련 있는 부분만</strong> 잘라서 주는 게 더 정확한 답변을 유도한다.</p>
+      </div>
+      <div class="card ac1">
+        <h4>Q2. 왜 Vector DB를 쓰나?</h4>
+        <p class="sm">키워드 검색은 단어가 일치할 때만 찾는다. Vector DB는 <strong>의미(semantic)가 비슷한 문서를 찾는다.</strong> "자격요건"을 검색했을 때 "필수 역량"도 함께 찾아주는 게 그 예시다.</p>
+      </div>
+      <div class="card ac3">
+        <h4>Q3. RAG가 Fine-tuning보다 좋은 이유는?</h4>
+        <p class="sm">Fine-tuning은 새 데이터마다 모델을 다시 학습해야 해서 비용·시간이 크다. RAG는 <strong>문서만 교체하면</strong> 되어서 빠르고 저렴하다. 채용공고처럼 자주 바뀌는 데이터에 특히 적합하다.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 5: 벡터DB 선택 이유 ═══ -->
+<div class="slide" data-slide="5">
+  <div class="lp bg5" data-icon="🗄️">
+    <div class="top-label">결정 1</div>
+    <div>
+      <div class="main-title">왜<br>ChromaDB<br>인가?</div>
+      <div class="sub">벡터 DB 선택 과정</div>
+    </div>
+    <div class="pg">07 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Decision — Vector DB</div>
+    <h2>FAISS 말고 ChromaDB를 선택한 이유</h2>
+    <div class="vs" style="margin-bottom:16px;">
+      <div class="vs-box bad">
+        <h4 style="color:var(--c2);">FAISS (이전 방식)</h4>
+        <ul>
+          <li class="sm">메모리에만 존재</li>
+          <li class="sm">프로그램 꺼지면 사라짐</li>
+          <li class="sm">실행할 때마다 임베딩 재계산</li>
+          <li class="sm">시간 & 비용 낭비</li>
+        </ul>
+      </div>
+      <div class="vs-mid">VS</div>
+      <div class="vs-box good">
+        <h4 style="color:var(--c3);">ChromaDB (선택)</h4>
+        <ul>
+          <li class="sm"><strong>디스크에 파일로 저장</strong></li>
+          <li class="sm">꺼도 데이터 유지</li>
+          <li class="sm">다음 실행 시 바로 사용 가능</li>
+          <li class="sm">실제 서비스처럼 동작</li>
+        </ul>
+      </div>
+    </div>
+    <div class="why-box">
+      <div class="why-label">선택 이유</div>
+      <p>선배한테 "실제로 설치해서 파일로 저장되는 DB를 써보라"는 피드백을 받았다. 단순히 라이브러리로 불러오는 게 아니라, <strong>실제 DB처럼 데이터가 남아 있는 게 더 현실적인 구현</strong>이라고 생각해서 ChromaDB를 선택했다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 7: 임베딩 ═══ -->
+<div class="slide" data-slide="7">
+  <div class="lp" style="background:#1a1a2e;" data-icon="📐">
+    <div class="top-label">② 임베딩</div>
+    <div>
+      <div class="main-title">텍스트를<br>숫자로<br>바꾼다</div>
+      <div class="sub">벡터 변환 + 검색</div>
+    </div>
+    <div class="pg">08 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Embedding</div>
+    <h2>문장 → 384차원 벡터 → 유사도 검색</h2>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div class="card">
+        <h4>사용 모델</h4>
+        <p class="sm" style="margin-top:4px;"><code>paraphrase-multilingual-MiniLM-L12-v2</code></p>
+        <p class="sm" style="margin-top:6px;">한국어 포함 50개 언어 지원. 텍스트를 <strong>384개 숫자(벡터)</strong>로 변환한다.</p>
+      </div>
+      <div class="card">
+        <h4>임베딩 예시</h4>
+        <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="background:#eee; padding:2px 10px; border-radius:6px; font-size:12px;">"Java 개발 경험"</span>
+            <span class="xs muted">→</span>
+            <span class="xs muted">[0.21, −0.45, 0.88 ... ] (384개)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="background:#eee; padding:2px 10px; border-radius:6px; font-size:12px;">"백엔드 자격요건"</span>
+            <span class="xs muted">→</span>
+            <span class="xs muted">[0.19, −0.41, 0.77 ... ] (384개)</span>
+          </div>
+        </div>
+        <p class="sm" style="margin-top:8px;">두 벡터가 가까울수록 = 의미가 비슷한 문장. <strong>코사인 유사도</strong>로 측정.</p>
+      </div>
+      <div class="card">
+        <h4>검색 흐름</h4>
+        <p class="sm" style="margin-top:4px;">질문 → 같은 모델로 벡터 변환 → ChromaDB에서 코사인 유사도 top-10 검색 → Re-ranker로 top-3 최종 선정</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 5: Re-ranker ═══ -->
+<div class="slide" data-slide="5">
+  <div class="lp bg4" data-icon="🏆">
+    <div class="top-label">결정 3</div>
+    <div>
+      <div class="main-title">왜<br>Re-ranker<br>까지?</div>
+      <div class="sub">2단계 검색 전략</div>
+    </div>
+    <div class="pg">09 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Re-ranking Strategy</div>
+    <h2>검색을 두 번 하는 이유</h2>
+    <div class="row" style="margin-bottom:16px;">
+      <div class="col">
+        <div class="card ac5" style="margin-bottom:10px;">
+          <h4>1단계 — ChromaDB (Bi-Encoder)</h4>
+          <ul style="margin-top:6px;">
+            <li class="sm">질문 → 벡터로 변환해서 검색</li>
+            <li class="sm">빠르지만 맥락 파악이 부족</li>
+            <li class="sm"><strong>top-10</strong> 후보 추출</li>
+          </ul>
+        </div>
+        <div class="card ac1">
+          <h4>2단계 — Cross-Encoder (Re-ranker)</h4>
+          <ul style="margin-top:6px;">
+            <li class="sm">질문 + 청크를 <strong>함께</strong> 넣어서 관련성 계산</li>
+            <li class="sm">느리지만 훨씬 정확</li>
+            <li class="sm">top-10 → <strong>top-3</strong> 정밀 선정</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="card" style="text-align:center; background:#f8f9ff; border-color:var(--c5);">
+            <div class="xs">질문: "카카오 자격요건"</div>
+            <div style="margin:6px 0; font-size:11px; color:var(--light);">↓ 1단계 top-10</div>
+            <div class="xs muted">카카오 자격요건 · 카카오 우대사항<br>네이버 자격요건 · ... 10개</div>
+            <div style="margin:6px 0; font-size:11px; color:var(--light);">↓ 2단계 재정렬</div>
+            <div class="xs" style="color:var(--c1); font-weight:700;">✓ 카카오 자격요건 (0.94)<br>✓ 카카오 우대사항 (0.87)<br>✓ 카카오 주요업무 (0.81)</div>
+          </div>
+        </div>
+        <div class="why-box" style="margin-top:10px;">
+          <div class="why-label">선택 이유</div>
+          <p class="sm">1단계만으로는 가끔 엉뚱한 회사 청크가 섞였다. Re-ranker를 추가하니 <strong>정확도가 눈에 띄게 향상</strong>됐다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 6: 가드레일 & Citation ═══ -->
+<div class="slide" data-slide="6">
+  <div class="lp bg7" data-icon="🔐">
+    <div class="top-label">결정 4</div>
+    <div>
+      <div class="main-title">취업 챗봇<br>답게<br>만들기</div>
+      <div class="sub">가드레일 + 출처 표시</div>
+    </div>
+    <div class="pg">10 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Guardrails + Citation</div>
+    <h2>목적에 맞게, 신뢰할 수 있게</h2>
+    <div class="grid g2" style="margin-bottom:14px;">
+      <div class="card ac2">
+        <h4>🛡️ 입력 가드레일</h4>
+        <p class="sm">GPT에게 "취업 관련 질문인가?"를 먼저 물어봄. 관련 없으면 차단.</p>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:4px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="xs">"카카오 자격요건 알려줘"</span>
+            <span class="chip ch3">허용 ✓</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="xs">"오늘 점심 뭐 먹지?"</span>
+            <span class="chip ch2">차단 ✕</span>
+          </div>
+        </div>
+      </div>
+      <div class="card ac4">
+        <h4>📎 Citation (출처 표시)</h4>
+        <p class="sm">답변 마지막에 어디서 찾았는지 표시. 할루시네이션 억제에도 도움.</p>
+        <div class="card" style="margin-top:10px; padding:10px 12px; background:#fff; border-style:dashed;">
+          <p class="xs muted" style="font-style:italic;">카카오는 Java/Kotlin 경험 3년 이상을 요구합니다.</p>
+          <p class="xs" style="color:var(--c4); font-weight:700; margin-top:4px;">[출처: 카카오 - 자격 요건]</p>
+        </div>
+      </div>
+      <div class="card ac3">
+        <h4>✅ 출력 검증</h4>
+        <p class="sm">답변이 너무 짧거나 "반드시 합격", "100% 취업" 같은 단정 표현이 있으면 경고 표시.</p>
+      </div>
+      <div class="card ac1">
+        <h4>🖥️ Streamlit UI</h4>
+        <p class="sm">실시간 스트리밍 응답. 대화 히스토리 유지 (최대 10턴). 사이드바에 토큰 사용량 표시.</p>
+      </div>
+    </div>
+    <div class="why-box">
+      <div class="why-label">의도</div>
+      <p class="sm">취업 정보는 신뢰가 중요하다. 잘못된 정보를 자신 있게 말하는 것보다 <strong>"이 내용은 이 공고에 있습니다"라고 출처와 함께 말하는 게</strong> 훨씬 낫다고 생각했다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 7: 트러블슈팅 ═══ -->
+<div class="slide" data-slide="7">
+  <div class="lp bg8" data-icon="🔧">
+    <div class="top-label">힘들었던 것들</div>
+    <div>
+      <div class="main-title">만들면서<br>막혔던<br>문제들</div>
+    </div>
+    <div class="pg">11 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Troubleshooting</div>
+    <h2>발견하고 고쳤던 3가지</h2>
+
+    <div class="tcard">
+      <div class="tcard-bar" style="background:var(--c2);"></div>
+      <div class="tcard-body">
+        <div class="prob">📦 청크 크기가 너무 컸다</div>
+        <div class="cause">chunk_size=400 → 카카오 자격요건·우대사항이 다 합쳐서 청크 1개. 검색해도 정보를 찾지 못함.</div>
+        <div class="fix">→ chunk_size 400 → 200으로 변경. 51개 → 129개 청크. 섹션 단위로 분리됨.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-bar" style="background:var(--c4);"></div>
+      <div class="tcard-body">
+        <div class="prob">🏢 "카카오 자격요건" 검색했는데 다른 회사가 나옴</div>
+        <div class="cause">자격요건 청크 안에 "카카오"라는 단어가 없음 → 임베딩이 어느 회사 청크인지 알 수 없음.</div>
+        <div class="fix">→ 저장할 때 "카카오 - 자격 요건: ..." 식으로 회사명을 청크 앞에 붙임. 해결.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-bar" style="background:var(--c5);"></div>
+      <div class="tcard-body">
+        <div class="prob">🔒 ChromaDB 파일이 잠겨서 삭제가 안 됨</div>
+        <div class="cause">Streamlit 실행 중에 chroma.sqlite3 파일을 다른 프로세스가 점유.</div>
+        <div class="fix">→ 사실 삭제할 필요가 없었음. build() 함수 안에 delete_collection()이 있어서 재시작하면 자동 재구축.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 8: 배운 것 ═══ -->
+<div class="slide" data-slide="8">
+  <div class="lp bg9" data-icon="💡">
+    <div class="top-label">회고</div>
+    <div>
+      <div class="main-title">이번 주에<br>배운 것</div>
+    </div>
+    <div class="pg">12 / 12</div>
+  </div>
+  <div class="rp">
+    <div class="section-tag">Retrospective</div>
+    <h2>느낀 점 & 다음에 해보고 싶은 것</h2>
+    <div class="grid g2" style="margin-bottom:20px;">
+      <div class="card ac1">
+        <h4>💡 RAG의 핵심을 이해했다</h4>
+        <p class="sm">LLM이 만능이 아니라는 걸 알게 됐다. 문서를 검색해서 LLM에게 "힌트"를 주는 방식이 얼마나 강력한지 직접 구현하면서 체감했다.</p>
+      </div>
+      <div class="card ac3">
+        <h4>🔍 검색 품질이 전부다</h4>
+        <p class="sm">RAG에서 가장 중요한 건 검색이었다. 청크 크기, 접두어 추가, Re-ranker까지 — 검색을 잘 해야 GPT가 좋은 답을 할 수 있다.</p>
+      </div>
+      <div class="card ac5">
+        <h4>🗄️ 실제 DB를 써봤다</h4>
+        <p class="sm">메모리에만 사는 FAISS가 아니라 파일로 저장되는 ChromaDB를 써봤다. 재시작해도 데이터가 남아 있는 게 실제 서비스와 같다는 걸 알았다.</p>
+      </div>
+      <div class="card ac4">
+        <h4>🚀 다음에 해보고 싶은 것</h4>
+        <ul style="margin-top:6px;">
+          <li class="sm">HyDE — 질문을 가상 답변으로 변환 후 검색</li>
+          <li class="sm">실제 채용공고 크롤링해서 데이터 연결</li>
+          <li class="sm">GraphRAG — 회사 간 관계도 활용</li>
+        </ul>
+      </div>
+    </div>
+    <div style="text-align:center; padding:16px; border-top:1.5px solid var(--stroke);">
+    
+    </div>
+  </div>
+</div>
+
+</div><!-- end deck -->
+
+<div class="nav">
+  <div class="dots" id="dots"></div>
+  <div class="arrows">
+    <button class="abtn" id="prevBtn">←</button>
+    <button class="abtn" id="nextBtn">→</button>
+  </div>
+  <div class="pg-count"><b id="cn">1</b> / <span id="tn"></span></div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let cur = 0;
+
+  document.getElementById('tn').textContent = total;
+
+  const dotsEl = document.getElementById('dots');
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.addEventListener('click', () => show(i));
+    dotsEl.appendChild(d);
+  }
+
+  function show(n) {
+    if (n < 0 || n >= total) return;
+    const prev = cur;
+    slides[prev].style.transition = 'none';
+    slides[prev].style.transform = 'translateX(0)';
+    slides[n].style.transition = 'none';
+    slides[n].style.transform = n > prev ? 'translateX(100%)' : 'translateX(-100%)';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const t = 'transform 0.5s cubic-bezier(0.77,0,0.18,1)';
+      slides[prev].style.transition = t;
+      slides[n].style.transition = t;
+      slides[prev].style.transform = n > prev ? 'translateX(-100%)' : 'translateX(100%)';
+      slides[n].style.transform = 'translateX(0)';
+      slides[prev].classList.remove('active');
+      slides[n].classList.add('active');
+    }));
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === n));
+    cur = n;
+    document.getElementById('cn').textContent = cur + 1;
+  }
+
+  slides[0].classList.add('active');
+  document.getElementById('prevBtn').addEventListener('click', () => show(cur - 1));
+  document.getElementById('nextBtn').addEventListener('click', () => show(cur + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); show(cur + 1); }
+    else if (e.key === 'ArrowLeft') show(cur - 1);
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(total - 1);
+  });
+</script>
+</body>
+</html>
