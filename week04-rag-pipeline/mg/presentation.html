@@ -156,6 +156,7 @@
 
   .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
   .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
 
   .card h4 {
     font-size: 18px;
@@ -275,6 +276,7 @@
   .badge-gold { background: rgba(201,169,110,0.15); color: var(--gold); }
   .badge-blue { background: rgba(91,155,213,0.15); color: var(--blue); }
   .badge-green { background: rgba(124,196,124,0.15); color: var(--green); }
+  .badge-purple { background: rgba(160,124,212,0.15); color: var(--purple); }
 
   /* ─── Progress Bar (Navigation) ─── */
   .nav {
@@ -330,8 +332,6 @@
     font-size: 12px;
     margin: 0 2px;
   }
-
-  /* ─── Animations ─── */
 
   /* ─── Decorations ─── */
   .glow {
@@ -393,6 +393,28 @@
     width: 20px;
     height: 20px;
   }
+
+  /* ─── Token animation ─── */
+  .token-flow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+
+  .token {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .token-in { background: rgba(91,155,213,0.15); color: var(--blue); border: 1px solid rgba(91,155,213,0.3); }
+  .token-out { background: rgba(124,196,124,0.15); color: var(--green); border: 1px solid rgba(124,196,124,0.3); }
+  .token-arrow { color: var(--text-dim); font-size: 18px; }
 </style>
 </head>
 <body>
@@ -408,9 +430,10 @@
     <span class="dim" style="font-size: 36px; font-weight: 300;">Retrieval-Augmented Generation</span>
   </h1>
   <p style="margin-top: 32px; font-size: 20px;">
-    LLM의 한계를 극복하는 문서 기반 질의응답 시스템
+    LLM의 원리부터 문서 기반 질의응답 시스템까지
   </p>
   <div style="margin-top: 48px; display: flex; gap: 12px;">
+    <span class="badge badge-purple">LLM 원리</span>
     <span class="badge badge-gold">기본 RAG</span>
     <span class="badge badge-blue">파이프라인 시각화</span>
     <span class="badge badge-green">RAG 챗봇</span>
@@ -422,42 +445,180 @@
   <h2>목차</h2>
   <div class="card-grid cols-2" style="max-width: 900px;">
     <div class="card">
-      <div class="icon-circle icon-red">1</div>
+      <div class="icon-circle icon-purple">1</div>
+      <h4>LLM의 원리</h4>
+      <p class="small dim">대규모 언어 모델은 어떻게 동작하는가?</p>
+    </div>
+    <div class="card">
+      <div class="icon-circle icon-red">2</div>
       <h4>LLM의 한계</h4>
       <p class="small dim">왜 RAG가 필요한가?</p>
     </div>
     <div class="card">
-      <div class="icon-circle icon-gold">2</div>
+      <div class="icon-circle icon-gold">3</div>
       <h4>RAG란?</h4>
       <p class="small dim">개념과 작동 원리</p>
     </div>
     <div class="card">
-      <div class="icon-circle icon-blue">3</div>
+      <div class="icon-circle icon-blue">4</div>
       <h4>RAG Pipeline 구조</h4>
       <p class="small dim">단계별 상세 설명</p>
     </div>
     <div class="card">
-      <div class="icon-circle icon-green">4</div>
+      <div class="icon-circle icon-green">5</div>
       <h4>RAG 챗봇</h4>
       <p class="small dim">멀티턴 대화 확장</p>
     </div>
     <div class="card">
-      <div class="icon-circle icon-purple">5</div>
+      <div class="icon-circle icon-blue">6</div>
       <h4>데모 & 아키텍처</h4>
       <p class="small dim">구현 구조와 기술 스택</p>
     </div>
-    <div class="card">
-      <div class="icon-circle icon-gold">6</div>
-      <h4>정리 & 다음 주</h4>
-      <p class="small dim">요약 및 Advanced RAG 예고</p>
+    <div class="card" style="grid-column: 1 / -1;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="icon-circle icon-gold" style="margin-bottom: 0;">7</div>
+        <div>
+          <h4 style="margin-bottom: 4px;">정리 & 다음 주</h4>
+          <p class="small dim">요약 및 Advanced RAG 예고</p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 2: LLM의 한계 ═══ -->
+<!-- ═══════════════════════════════════════════ SLIDE 2: LLM이란? ═══ -->
 <div class="slide" data-slide="2">
   <span class="section-num">01</span>
   <h3>PART 1</h3>
+  <h2>LLM이란?</h2>
+  <p style="font-size: 24px; margin-bottom: 32px;">
+    <strong>L</strong>arge <strong>L</strong>anguage <strong>M</strong>odel = 대규모 언어 모델
+  </p>
+  <div class="card-grid cols-3">
+    <div class="card">
+      <div class="icon-circle icon-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M6 10a6 6 0 0 0 12 0"/><path d="M12 16v6"/><path d="M8 22h8"/></svg></div>
+      <h4 class="purple">핵심 원리</h4>
+      <p>수조 개의 텍스트 데이터로 학습하여 <strong>"다음에 올 단어(토큰)를 예측"</strong>하는 모델</p>
+    </div>
+    <div class="card">
+      <div class="icon-circle icon-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+      <h4 class="blue">모델 규모</h4>
+      <p>수십~수천억 개의 파라미터. GPT-4o는 약 200B+, GPT-5는 더 대규모 추정</p>
+    </div>
+    <div class="card">
+      <div class="icon-circle icon-gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <h4 class="gold">할 수 있는 것</h4>
+      <p>대화, 번역, 요약, 코딩, 분석, 창작 등 범용적 자연어 처리</p>
+    </div>
+  </div>
+  <div style="margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap;">
+    <span class="badge badge-purple">GPT-4o / 5 (OpenAI)</span>
+    <span class="badge badge-blue">Claude 4 (Anthropic)</span>
+    <span class="badge badge-green">Gemini 2.5 (Google)</span>
+    <span class="badge badge-gold">LLaMA 4 (Meta)</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ SLIDE 3: 동작 원리 ═══ -->
+<div class="slide" data-slide="3">
+  <h2>LLM <span class="purple">동작 원리</span></h2>
+  <p style="margin-bottom: 28px;">핵심은 <strong>"다음 토큰 예측" (Next Token Prediction)</strong></p>
+  <div style="display: flex; gap: 32px;">
+    <div style="flex: 1;">
+      <h3 style="font-size: 18px;">1. 토큰화 (Tokenization)</h3>
+      <div class="token-flow">
+        <span class="token token-in">오늘</span>
+        <span class="token token-in">날씨</span>
+        <span class="token token-in">가</span>
+        <span class="token token-in">좋</span>
+        <span class="token token-in">으니</span>
+      </div>
+      <p class="small dim" style="margin-bottom: 24px;">텍스트를 토큰(단어 조각) 단위로 분리. 한글은 음절/형태소 단위로 분리됨.</p>
+
+      <h3 style="font-size: 18px;">2. 임베딩 (Embedding)</h3>
+      <p class="small dim" style="margin-bottom: 24px;">각 토큰을 고차원 벡터로 변환. "왕 - 남자 + 여자 = 여왕" 같은 의미 연산이 가능해짐.</p>
+
+      <h3 style="font-size: 18px;">3. Transformer 처리</h3>
+      <p class="small dim">Self-Attention으로 모든 토큰 간의 관계를 계산. "그것"이 무엇을 가리키는지 문맥에서 파악.</p>
+    </div>
+    <div style="flex: 1;">
+      <h3 style="font-size: 18px;">4. 다음 토큰 예측</h3>
+      <pre style="font-size: 15px;">
+<span class="cmt"># 입력</span>
+<span class="str">"오늘 날씨가 좋으니"</span>
+
+<span class="cmt"># 모델이 계산한 다음 토큰 확률</span>
+"산책"   → <span class="num">32%</span>
+"외출"   → <span class="num">24%</span>
+"소풍"   → <span class="num">18%</span>
+"기분이" → <span class="num">12%</span>
+ ...
+
+<span class="cmt"># Temperature = 0 → 가장 높은 확률 선택</span>
+<span class="cmt"># Temperature = 1 → 확률에 따라 랜덤 선택</span></pre>
+      <div class="card" style="margin-top: 16px; padding: 16px;">
+        <p class="small"><strong class="gold">한 번에 한 토큰씩</strong> 생성하고, 그 결과를 다시 입력에 추가하여 <strong>반복</strong>하는 방식으로 문장을 완성</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ SLIDE 4: 학습 과정 ═══ -->
+<div class="slide" data-slide="4">
+  <h2>LLM <span class="blue">학습 과정</span></h2>
+  <p style="margin-bottom: 28px;">원시 텍스트부터 대화형 AI가 되기까지</p>
+  <div class="pipeline" style="margin-bottom: 32px;">
+    <div class="pipeline-step">
+      <div class="pipeline-box" style="border-color: var(--purple); color: var(--purple); background: rgba(160,124,212,0.08);">
+        Pre-training
+      </div>
+      <div class="pipeline-label">인터넷 텍스트<br>대규모 학습</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue); background: rgba(91,155,213,0.08);">
+        SFT
+      </div>
+      <div class="pipeline-label">질문-답변 쌍으로<br>미세조정</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box" style="border-color: var(--green); color: var(--green); background: rgba(124,196,124,0.08);">
+        RLHF
+      </div>
+      <div class="pipeline-label">인간 피드백으로<br>정렬</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold); background: rgba(201,169,110,0.08);">
+        ChatGPT
+      </div>
+      <div class="pipeline-label">대화형 AI<br>완성</div>
+    </div>
+  </div>
+  <div class="card-grid cols-3">
+    <div class="card">
+      <h4 class="purple">Pre-training</h4>
+      <p>인터넷, 책, 논문 등 <strong>수조 토큰</strong>의 텍스트를 학습. "다음 단어 맞추기"만으로 언어의 패턴, 지식, 추론 능력을 습득.</p>
+      <p class="tiny" style="margin-top: 8px;">수천 대의 GPU로 수개월 학습. 비용 수천만~수억 달러.</p>
+    </div>
+    <div class="card">
+      <h4 class="blue">SFT (Supervised Fine-Tuning)</h4>
+      <p>"질문 → 이런 식으로 답변하라"는 <strong>고품질 예시</strong>를 학습. 대화 형식을 익힘.</p>
+      <p class="tiny" style="margin-top: 8px;">수만~수십만 개의 사람이 작성한 Q&A 데이터 사용.</p>
+    </div>
+    <div class="card">
+      <h4 class="green">RLHF / RLAIF</h4>
+      <p>여러 답변 중 <strong>어느 것이 더 좋은지</strong> 사람(또는 AI)이 평가. 보상 모델로 강화학습.</p>
+      <p class="tiny" style="margin-top: 8px;">안전성, 유용성, 정확성 기준으로 모델 행동을 조정.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ SLIDE 5: LLM의 한계 ═══ -->
+<div class="slide" data-slide="5">
+  <span class="section-num">02</span>
+  <h3>PART 2</h3>
   <h2>LLM은 <span class="red">만능이 아니다</span></h2>
   <div class="card-grid cols-3">
     <div class="card">
@@ -476,10 +637,17 @@
       <p>내부 문서, 사내 매뉴얼, 비공개 데이터에 대한 지식이 전혀 없음.</p>
     </div>
   </div>
+  <div class="card" style="margin-top: 24px; padding: 20px;">
+    <p style="text-align: center;">
+      <span class="dim">이 세 가지 한계는 모두 같은 근본 원인 →</span>
+      <strong class="red"> LLM은 학습 데이터에만 의존한다</strong><br>
+      <span class="dim small">다음 토큰 예측이 아무리 뛰어나도, 학습하지 않은 정보는 생성할 수 없다</span>
+    </p>
+  </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 3: 해결 방법들 ═══ -->
-<div class="slide" data-slide="3">
+<!-- ═══════════════════════════════════════════ SLIDE 6: 해결 방법들 ═══ -->
+<div class="slide" data-slide="6">
   <h2>이 문제를 어떻게 해결할까?</h2>
   <table class="compare-table">
     <thead>
@@ -512,10 +680,10 @@
   </p>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 4: RAG란? ═══ -->
-<div class="slide" data-slide="4">
-  <span class="section-num">02</span>
-  <h3>PART 2</h3>
+<!-- ═══════════════════════════════════════════ SLIDE 7: RAG란? ═══ -->
+<div class="slide" data-slide="7">
+  <span class="section-num">03</span>
+  <h3>PART 3</h3>
   <h2>RAG란 무엇인가?</h2>
   <p style="font-size: 24px; margin-bottom: 32px;">
     <strong>R</strong>etrieval-<strong>A</strong>ugmented <strong>G</strong>eneration
@@ -523,19 +691,19 @@
   <div class="card" style="max-width: 850px;">
     <p style="font-size: 20px; line-height: 2;">
       사용자의 질문을 받으면,<br>
-      <span class="gold bold">① 관련 문서를 검색</span>하고<br>
-      <span class="blue bold">② 검색 결과를 LLM에 함께 전달</span>하여<br>
-      <span class="green bold">③ 정확한 답변을 생성</span>하는 기법
+      <span class="gold bold">1. 관련 문서를 검색</span>하고<br>
+      <span class="blue bold">2. 검색 결과를 LLM에 함께 전달</span>하여<br>
+      <span class="green bold">3. 정확한 답변을 생성</span>하는 기법
     </p>
   </div>
   <p style="margin-top: 24px;">
     = <strong>"오픈북 시험"</strong>과 같은 원리.<br>
-    <span class="dim">GPT-5 시대에도 RAG는 핵심 — LLM이 기억에만 의존하지 않고, 관련 자료를 참고하여 답변한다.</span>
+    <span class="dim">LLM이 기억(파라미터)에만 의존하지 않고, 관련 자료를 참고하여 답변한다.</span>
   </p>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 5: 전체 흐름 ═══ -->
-<div class="slide" data-slide="5">
+<!-- ═══════════════════════════════════════════ SLIDE 8: 전체 흐름 ═══ -->
+<div class="slide" data-slide="8">
   <h2>RAG의 전체 흐름</h2>
   <div style="display: flex; gap: 32px; margin-top: 16px;">
     <!-- 사전 준비 단계 -->
@@ -591,10 +759,10 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 6: Pipeline 상세 ═══ -->
-<div class="slide" data-slide="6">
-  <span class="section-num">03</span>
-  <h3>PART 3</h3>
+<!-- ═══════════════════════════════════════════ SLIDE 9: Pipeline 상세 ═══ -->
+<div class="slide" data-slide="9">
+  <span class="section-num">04</span>
+  <h3>PART 4</h3>
   <h2>RAG Pipeline <span class="dim" style="font-size: 28px;">단계별 상세</span></h2>
   <div class="pipeline">
     <div class="pipeline-step">
@@ -637,8 +805,8 @@
   </p>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 7: Step 1 - Embed ═══ -->
-<div class="slide" data-slide="7">
+<!-- ═══════════════════════════════════════════ SLIDE 10: Step 1 - Embed ═══ -->
+<div class="slide" data-slide="10">
   <h2><span class="purple">Step 1.</span> 질문 임베딩</h2>
   <div style="display: flex; gap: 32px;">
     <div style="flex: 1;">
@@ -667,8 +835,8 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 8: Step 2 - Search ═══ -->
-<div class="slide" data-slide="8">
+<!-- ═══════════════════════════════════════════ SLIDE 11: Step 2 - Search ═══ -->
+<div class="slide" data-slide="11">
   <h2><span class="gold">Step 2.</span> 벡터 검색</h2>
   <div style="display: flex; gap: 32px;">
     <div style="flex: 1;">
@@ -712,8 +880,8 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 9: Step 3 - Generate ═══ -->
-<div class="slide" data-slide="9">
+<!-- ═══════════════════════════════════════════ SLIDE 12: Step 3 - Generate ═══ -->
+<div class="slide" data-slide="12">
   <h2><span class="green">Step 3.</span> LLM 생성</h2>
   <div style="display: flex; gap: 32px;">
     <div style="flex: 1;">
@@ -752,8 +920,8 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 10: 핵심 프롬프트 ═══ -->
-<div class="slide" data-slide="10">
+<!-- ═══════════════════════════════════════════ SLIDE 13: 핵심 프롬프트 ═══ -->
+<div class="slide" data-slide="13">
   <h2>핵심: <span class="gold">프롬프트 설계</span></h2>
   <p style="margin-bottom: 24px;">RAG의 품질은 프롬프트 설계에 크게 좌우된다.</p>
   <div class="card-grid cols-2">
@@ -786,10 +954,10 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 11: RAG 챗봇 ═══ -->
-<div class="slide" data-slide="11">
-  <span class="section-num">04</span>
-  <h3>PART 4</h3>
+<!-- ═══════════════════════════════════════════ SLIDE 14: RAG 챗봇 ═══ -->
+<div class="slide" data-slide="14">
+  <span class="section-num">05</span>
+  <h3>PART 5</h3>
   <h2>RAG <span class="green">챗봇</span></h2>
   <p style="margin-bottom: 24px;">단일 Q&A를 넘어, <strong>대화 흐름을 유지</strong>하는 멀티턴 챗봇으로 확장</p>
   <div style="display: flex; gap: 32px;">
@@ -830,8 +998,8 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 12: 챗봇 구조 ═══ -->
-<div class="slide" data-slide="12">
+<!-- ═══════════════════════════════════════════ SLIDE 15: 챗봇 구조 ═══ -->
+<div class="slide" data-slide="15">
   <h2>챗봇 파이프라인 구조</h2>
   <div class="pipeline" style="flex-wrap: wrap; justify-content: center;">
     <div class="pipeline-step">
@@ -874,8 +1042,8 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 13: 메시지 구조 ═══ -->
-<div class="slide" data-slide="13">
+<!-- ═══════════════════════════════════════════ SLIDE 16: 메시지 구조 ═══ -->
+<div class="slide" data-slide="16">
   <h2>챗봇: <span class="blue">메시지 구조</span></h2>
   <pre style="font-size: 16px; max-width: 800px;">
 <span class="cmt"># LLM에 보내는 전체 메시지 배열</span>
@@ -897,10 +1065,10 @@ messages = [
 ]</pre>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 14: 아키텍처 ═══ -->
-<div class="slide" data-slide="14">
-  <span class="section-num">05</span>
-  <h3>PART 5</h3>
+<!-- ═══════════════════════════════════════════ SLIDE 17: 아키텍처 ═══ -->
+<div class="slide" data-slide="17">
+  <span class="section-num">06</span>
+  <h3>PART 6</h3>
   <h2>데모 아키텍처</h2>
   <div style="display: flex; gap: 32px;">
     <div style="flex: 1;">
@@ -959,8 +1127,8 @@ messages = [
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 15: 비용/성능 ═══ -->
-<div class="slide" data-slide="15">
+<!-- ═══════════════════════════════════════════ SLIDE 18: 비용/성능 ═══ -->
+<div class="slide" data-slide="18">
   <h2>RAG 비용 & 성능</h2>
   <div class="card-grid cols-3">
     <div class="card" style="text-align: center;">
@@ -991,10 +1159,10 @@ messages = [
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 16: 지금까지의 여정 ═══ -->
-<div class="slide" data-slide="16">
-  <span class="section-num">06</span>
-  <h3>PART 6</h3>
+<!-- ═══════════════════════════════════════════ SLIDE 19: 지금까지의 여정 ═══ -->
+<div class="slide" data-slide="19">
+  <span class="section-num">07</span>
+  <h3>PART 7</h3>
   <h2>지금까지의 여정</h2>
   <div style="display: flex; gap: 16px; margin-top: 8px;">
     <div class="card" style="flex: 1; opacity: 0.5;">
@@ -1027,25 +1195,25 @@ messages = [
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 17: 정리 ═══ -->
-<div class="slide" data-slide="17">
+<!-- ═══════════════════════════════════════════ SLIDE 20: 정리 ═══ -->
+<div class="slide" data-slide="20">
   <h2>핵심 정리</h2>
   <div class="card-grid cols-2" style="max-width: 900px;">
     <div class="card">
-      <h4 class="gold">RAG = 검색 + 생성</h4>
-      <p>LLM이 외부 문서를 참고하여 답변하는 기법. GPT-5 시대에도 할루시네이션 방지와 최신 정보 활용의 핵심.</p>
+      <h4 class="purple">LLM = 다음 토큰 예측</h4>
+      <p>대규모 텍스트로 학습하여 다음 단어를 예측하는 모델. 강력하지만 학습 데이터 이후 정보는 모름.</p>
     </div>
     <div class="card">
-      <h4 class="purple">Pipeline: 3단계</h4>
+      <h4 class="gold">RAG = 검색 + 생성</h4>
+      <p>LLM이 외부 문서를 참고하여 답변하는 기법. 할루시네이션 방지와 최신 정보 활용의 핵심.</p>
+    </div>
+    <div class="card">
+      <h4 class="blue">Pipeline: 3단계</h4>
       <p>질문 임베딩 → 벡터 검색 → LLM 생성. 전체 문서가 아닌 관련 부분만 전달하여 효율적.</p>
     </div>
     <div class="card">
       <h4 class="green">RAG 챗봇</h4>
       <p>대화 히스토리를 LLM 메시지에 포함하여 멀티턴 대화 지원. 매 턴마다 새로 검색.</p>
-    </div>
-    <div class="card">
-      <h4 class="blue">이전 주차의 결합</h4>
-      <p>1주차(LLM API) + 2주차(청킹) + 3주차(임베딩/VectorDB)의 모든 기술을 연결한 완성된 파이프라인.</p>
     </div>
   </div>
   <p style="margin-top: 32px; text-align: center; font-size: 24px;">
@@ -1059,7 +1227,7 @@ messages = [
 <!-- ─── Navigation ─── -->
 <div class="nav">
   <div class="nav-info">
-    <span id="slideNum">1</span> / <span id="totalSlides">18</span>
+    <span id="slideNum">1</span> / <span id="totalSlides">21</span>
   </div>
   <div class="progress-bar">
     <div class="progress-fill" id="progressFill"></div>
