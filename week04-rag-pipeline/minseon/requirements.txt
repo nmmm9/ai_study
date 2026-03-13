@@ -1,5 +1,5 @@
-langchain
-langchain-community
+openai
+chromadb
 langchain-text-splitters
 pymupdf
 python-dotenv

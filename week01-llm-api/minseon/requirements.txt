@@ -1,2 +1,5 @@
-anthropic
+openai
 python-dotenv
+streamlit
+fastapi
+uvicorn

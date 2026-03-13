@@ -1,101 +1,17 @@
 """
-2주차 과제: Chunking - PDF/Markdown 로드 및 Recursive Character Splitting
-도메인 데이터를 의미 단위로 분할하는 파이프라인
+2주차 과제: Chunking - CLI 및 결과 출력
+
+[관심사 분리]
+  이 파일: 결과 출력 함수 + 커맨드라인 인터페이스 (CLI)
+  services/document_loader.py: 파일 형식별 텍스트 추출
+  services/chunker.py:         청킹 로직 (Recursive / Markdown 헤더)
 """
 
 import argparse
 import os
 
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import (
-    RecursiveCharacterTextSplitter,
-    MarkdownHeaderTextSplitter,
-)
-
-
-# ── 문서 로딩 ─────────────────────────────────────────
-
-def load_pdf(file_path: str) -> str:
-    """PDF 파일을 텍스트로 변환"""
-    loader = PyPDFLoader(file_path)
-    pages = loader.load()
-    text = "\n\n".join(page.page_content for page in pages)
-    print(f"  PDF 로드 완료: {len(pages)}페이지, {len(text)}자")
-    return text
-
-
-def load_markdown(file_path: str) -> str:
-    """Markdown 파일을 텍스트로 읽기"""
-    with open(file_path, "r", encoding="utf-8") as f:
-        text = f.read()
-    print(f"  Markdown 로드 완료: {len(text)}자")
-    return text
-
-
-def load_document(file_path: str) -> str:
-    """파일 확장자에 따라 적절한 로더 선택"""
-    ext = os.path.splitext(file_path)[1].lower()
-
-    if ext == ".pdf":
-        return load_pdf(file_path)
-    elif ext in (".md", ".markdown"):
-        return load_markdown(file_path)
-    elif ext == ".txt":
-        with open(file_path, "r", encoding="utf-8") as f:
-            text = f.read()
-        print(f"  텍스트 로드 완료: {len(text)}자")
-        return text
-    else:
-        raise ValueError(f"지원하지 않는 파일 형식: {ext}")
-
-
-# ── Recursive Character Splitting ─────────────────────
-
-def chunk_text(
-    text: str,
-    chunk_size: int = 500,
-    chunk_overlap: int = 50,
-) -> list[str]:
-    """
-    Recursive Character Splitting으로 텍스트를 의미 단위로 분할
-
-    구분자 우선순위:
-      1. 빈 줄 (문단 구분)
-      2. 줄바꿈
-      3. 마침표/물음표/느낌표 (문장 구분)
-      4. 공백 (단어 구분)
-      5. 빈 문자열 (글자 단위 - 최후 수단)
-    """
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        separators=["\n\n", "\n", ". ", "? ", "! ", " ", ""],
-        length_function=len,
-    )
-
-    chunks = splitter.split_text(text)
-    return chunks
-
-
-# ── Markdown 구조 기반 분할 (보너스) ──────────────────
-
-def chunk_markdown_by_headers(text: str) -> list[dict]:
-    """Markdown 헤더 구조를 활용한 분할 (메타데이터 포함)"""
-    splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=[
-            ("#", "제목"),
-            ("##", "소제목"),
-            ("###", "절"),
-        ]
-    )
-    docs = splitter.split_text(text)
-    return [
-        {
-            "content": doc.page_content,
-            "metadata": doc.metadata,
-        }
-        for doc in docs
-    ]
+from services.document_loader import load_document
+from services.chunker import chunk_text, chunk_markdown_by_headers
 
 
 # ── 결과 출력 ─────────────────────────────────────────
@@ -144,12 +60,12 @@ def main():
     )
     parser.add_argument("file", help="분할할 파일 경로 (PDF, Markdown, TXT)")
     parser.add_argument(
-        "--chunk-size", type=int, default=500,
-        help="청크 최대 글자 수 (기본값: 500)"
+        "--chunk-size", type=int, default=900,
+        help="청크 최대 글자 수 (기본값: 900)"
     )
     parser.add_argument(
-        "--chunk-overlap", type=int, default=50,
-        help="청크 간 겹침 글자 수 (기본값: 50)"
+        "--chunk-overlap", type=int, default=90,
+        help="청크 간 겹침 글자 수 (기본값: 90)"
     )
     parser.add_argument(
         "--md-headers", action="store_true",
