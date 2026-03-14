@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced RAG 기술 스택 학습 가이드</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; line-height: 1.6; }
+
+  .header { text-align: center; padding: 60px 20px 40px; background: linear-gradient(180deg, #161b22 0%, #0d1117 100%); border-bottom: 1px solid #21262d; }
+  .header .badge { display: inline-block; background: #1f6feb22; border: 1px solid #1f6feb; color: #58a6ff; padding: 4px 16px; border-radius: 20px; font-size: 12px; letter-spacing: 2px; margin-bottom: 16px; }
+  .header h1 { font-size: 2.4rem; font-weight: 700; color: #58a6ff; margin-bottom: 10px; }
+  .header p { color: #8b949e; font-size: 15px; }
+
+  nav { display: flex; justify-content: center; gap: 8px; padding: 20px; flex-wrap: wrap; background: #161b22; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #21262d; }
+  nav a { color: #8b949e; text-decoration: none; padding: 6px 16px; border-radius: 20px; font-size: 13px; border: 1px solid #21262d; transition: all 0.2s; }
+  nav a:hover { color: #58a6ff; border-color: #58a6ff; background: #1f6feb11; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
+  section { margin-bottom: 80px; }
+  .section-title { font-size: 1.4rem; font-weight: 700; color: #f0f6fc; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .section-title .num { background: #1f6feb; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .section-subtitle { color: #8b949e; font-size: 14px; margin-bottom: 24px; padding-left: 38px; }
+
+  /* Pipeline Flow */
+  .pipeline { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 10px 0 20px; }
+  .pipe-stage { background: #161b22; border: 1px solid #21262d; border-radius: 12px; padding: 20px 18px; min-width: 180px; flex: 1; position: relative; }
+  .pipe-stage:hover { border-color: #58a6ff44; }
+  .pipe-arrow { display: flex; align-items: center; padding: 0 6px; color: #30363d; font-size: 20px; flex-shrink: 0; }
+  .pipe-label { font-size: 10px; letter-spacing: 1.5px; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; }
+  .pipe-name { font-size: 14px; font-weight: 700; color: #f0f6fc; margin-bottom: 8px; }
+  .pipe-tech { font-size: 12px; color: #58a6ff; margin-bottom: 8px; }
+  .pipe-desc { font-size: 12px; color: #8b949e; line-height: 1.5; }
+  .pipe-cost { margin-top: 10px; font-size: 11px; padding: 3px 8px; border-radius: 10px; display: inline-block; }
+  .cost-low { background: #238636; color: #7ee787; }
+  .cost-mid { background: #9e6a03; color: #f0883e; }
+  .cost-high { background: #b62324; color: #ff7b72; }
+
+  /* Comparison Cards */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:700px){ .compare-grid { grid-template-columns: 1fr; } }
+  .compare-card { background: #161b22; border: 1px solid #21262d; border-radius: 12px; overflow: hidden; }
+  .compare-card.current { border-color: #238636; }
+  .compare-card.alt { border-color: #30363d; }
+  .compare-header { padding: 14px 18px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .compare-card.current .compare-header { background: #238636; color: #7ee787; }
+  .compare-card.alt .compare-header { background: #21262d; color: #8b949e; }
+  .tag-current { background: #238636; color: #7ee787; font-size: 10px; padding: 1px 6px; border-radius: 8px; }
+  .tag-alt { background: #30363d; color: #8b949e; font-size: 10px; padding: 1px 6px; border-radius: 8px; }
+  .compare-body { padding: 16px 18px; }
+  .compare-body ul { list-style: none; font-size: 13px; color: #8b949e; }
+  .compare-body ul li { padding: 4px 0; padding-left: 16px; position: relative; }
+  .compare-body ul li::before { content: "·"; position: absolute; left: 0; color: #58a6ff; }
+  .compare-card.current .compare-body ul li::before { color: #7ee787; }
+
+  /* Principle Box */
+  .principle-box { background: #161b22; border: 1px solid #21262d; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .principle-box h3 { font-size: 15px; font-weight: 700; color: #f0f6fc; margin-bottom: 12px; }
+  .principle-box p { font-size: 13px; color: #8b949e; line-height: 1.7; margin-bottom: 12px; }
+  .code-block { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 14px 16px; font-family: 'Consolas', monospace; font-size: 12px; color: #79c0ff; line-height: 1.8; overflow-x: auto; margin: 10px 0; }
+  .code-block .comment { color: #8b949e; }
+  .code-block .keyword { color: #ff7b72; }
+  .code-block .string { color: #a5d6ff; }
+  .code-block .num-val { color: #f2cc60; }
+
+  /* Formula */
+  .formula { background: #0d1117; border-left: 3px solid #1f6feb; padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 12px 0; font-family: monospace; font-size: 13px; color: #58a6ff; }
+  .formula .label { color: #8b949e; font-size: 11px; margin-bottom: 4px; }
+
+  /* Flow Diagram */
+  .flow { display: flex; flex-direction: column; gap: 4px; }
+  .flow-row { display: flex; align-items: center; gap: 8px; }
+  .flow-box { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 10px 16px; font-size: 13px; flex: 1; }
+  .flow-box.highlight { border-color: #1f6feb; background: #1f6feb11; color: #58a6ff; }
+  .flow-box.green { border-color: #238636; background: #23863611; color: #7ee787; }
+  .flow-box.orange { border-color: #9e6a03; background: #9e6a0311; color: #f0883e; }
+  .flow-box.red { border-color: #b62324; background: #b6232411; color: #ff7b72; }
+  .flow-arrow { color: #30363d; font-size: 16px; flex-shrink: 0; }
+  .flow-label { font-size: 11px; color: #8b949e; min-width: 90px; text-align: right; }
+
+  /* Attention Viz */
+  .attention-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 4px; margin: 12px 0; }
+  .att-cell { padding: 8px; border-radius: 6px; text-align: center; font-size: 11px; font-weight: 600; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #161b22; color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 12px 14px; text-align: left; border-bottom: 1px solid #21262d; }
+  td { padding: 12px 14px; border-bottom: 1px solid #21262d; color: #e6edf3; vertical-align: top; }
+  tr:hover td { background: #161b22; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .chip-blue { background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb44; }
+  .chip-green { background: #23863622; color: #7ee787; border: 1px solid #23863644; }
+  .chip-orange { background: #9e6a0322; color: #f0883e; border: 1px solid #9e6a0344; }
+  .chip-red { background: #b6232422; color: #ff7b72; border: 1px solid #b6232444; }
+
+  /* RRF Visual */
+  .rrf-container { display: grid; grid-template-columns: 1fr 1fr 30px 1fr; gap: 12px; align-items: start; }
+  .rrf-list { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; overflow: hidden; }
+  .rrf-title { background: #21262d; padding: 8px 12px; font-size: 11px; font-weight: 700; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+  .rrf-item { padding: 8px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #21262d; }
+  .rrf-rank { color: #8b949e; font-size: 11px; min-width: 20px; }
+  .rrf-doc { flex: 1; }
+  .rrf-score { color: #58a6ff; font-size: 11px; }
+  .rrf-plus { display: flex; align-items: center; justify-content: center; font-size: 24px; color: #30363d; padding-top: 40px; }
+
+  /* Highlight text */
+  .hl-blue { color: #58a6ff; }
+  .hl-green { color: #7ee787; }
+  .hl-orange { color: #f0883e; }
+  .hl-red { color: #ff7b72; }
+  .hl-purple { color: #d2a8ff; }
+
+  .divider { height: 1px; background: #21262d; margin: 40px 0; }
+  .info-box { background: #1f2937; border: 1px solid #1f6feb44; border-radius: 10px; padding: 16px 20px; margin: 16px 0; font-size: 13px; color: #93c5fd; }
+  .warn-box { background: #1c1107; border: 1px solid #9e6a0355; border-radius: 10px; padding: 16px 20px; margin: 16px 0; font-size: 13px; color: #f0883e; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">WEEK 05 · ADVANCED RAG</div>
+  <h1>내 챗봇 기술 스택 학습 가이드</h1>
+  <p>각 기술의 원리 · 흐름 · 대안과의 비교 | 청년 정책 챗봇 기준</p>
+</div>
+
+<nav>
+  <a href="#pipeline">전체 흐름</a>
+  <a href="#multiq">Multi-query</a>
+  <a href="#hybrid">Hybrid Search</a>
+  <a href="#bm25">BM25 원리</a>
+  <a href="#rrf">RRF 융합</a>
+  <a href="#rerank">Re-ranking</a>
+  <a href="#compress">Compression</a>
+  <a href="#generation">Generation</a>
+  <a href="#infra">인프라 스택</a>
+  <a href="#summary">전체 비교표</a>
+</nav>
+
+<div class="container">
+
+  <!-- ① 전체 파이프라인 -->
+  <section id="pipeline">
+    <div class="section-title"><span class="num">1</span> 전체 파이프라인 흐름</div>
+    <div class="section-subtitle">사용자 질문 한 번에 5단계가 순서대로 실행됩니다</div>
+
+    <div class="pipeline">
+      <div class="pipe-stage">
+        <div class="pipe-label">① Pre-Retrieval</div>
+        <div class="pipe-name">Multi-query<br>Generation</div>
+        <div class="pipe-tech">gpt-4o-mini + Few-Shot</div>
+        <div class="pipe-desc">질문 1개 → 검색 쿼리 3개 생성. 다양한 표현으로 검색 범위 확장.</div>
+        <div class="pipe-cost cost-low">$0.000081</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage">
+        <div class="pipe-label">② Retrieval</div>
+        <div class="pipe-name">Hybrid Search<br>BM25 + Vector</div>
+        <div class="pipe-tech">ChromaDB + rank-bm25 + RRF</div>
+        <div class="pipe-desc">키워드 검색 + 의미 검색을 RRF로 결합. 쿼리 3개 × 각각 검색.</div>
+        <div class="pipe-cost cost-low">$0.000001</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage">
+        <div class="pipe-label">③ Post-Retrieval</div>
+        <div class="pipe-name">GPT Re-ranking</div>
+        <div class="pipe-tech">gpt-4o-mini Cross-Encoder</div>
+        <div class="pipe-desc">후보 청크들을 질문과 함께 LLM이 0-10점 채점 후 재정렬.</div>
+        <div class="pipe-cost cost-mid">$0.000210</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage">
+        <div class="pipe-label">③ Post-Retrieval</div>
+        <div class="pipe-name">Context<br>Compression</div>
+        <div class="pipe-tech">gpt-4o-mini</div>
+        <div class="pipe-desc">각 청크에서 질문과 관련된 핵심 내용만 추출. 노이즈 제거.</div>
+        <div class="pipe-cost cost-high">$0.000540</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage">
+        <div class="pipe-label">④ Generation</div>
+        <div class="pipe-name">LLM 스트리밍<br>응답 생성</div>
+        <div class="pipe-tech">gpt-4o-mini SSE</div>
+        <div class="pipe-desc">압축된 컨텍스트를 기반으로 최종 답변 생성. 실시간 스트리밍.</div>
+        <div class="pipe-cost cost-high">$0.000450</div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      💡 <strong>Naive RAG와의 핵심 차이:</strong>
+      Naive RAG는 질문 → 벡터검색 → 생성 (3단계, API 1회) |
+      Advanced RAG는 질문 → 멀티쿼리 → 하이브리드검색 → 리랭킹 → 압축 → 생성 (5단계, API 5회)
+    </div>
+  </section>
+
+  <!-- ② Multi-query -->
+  <section id="multiq">
+    <div class="section-title"><span class="num">2</span> Multi-query Generation</div>
+    <div class="section-subtitle">query_service.py | 검색 범위를 넓히는 Pre-Retrieval 전략</div>
+
+    <div class="principle-box">
+      <h3>왜 필요한가?</h3>
+      <p>사람은 같은 내용을 다양하게 표현합니다. 벡터 검색은 표현 방식이 조금 달라도 매칭이 실패할 수 있습니다.</p>
+      <div class="flow">
+        <div class="flow-row">
+          <div class="flow-label">사용자 질문</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box orange">"청년 주거 지원 받으려면?"</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-label" style="padding-top:4px">LLM 생성</div>
+          <div class="flow-arrow">↓</div>
+          <div style="flex:1"></div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-label"></div>
+          <div class="flow-arrow"></div>
+          <div class="flow-box green">쿼리1: "청년 임대보증금 지원 자격 조건 소득 기준"</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-label"></div>
+          <div class="flow-arrow"></div>
+          <div class="flow-box green">쿼리2: "청년 전세 월세 대출 정책 지원 금액"</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-label"></div>
+          <div class="flow-arrow"></div>
+          <div class="flow-box green">쿼리3: "만 19-34세 주거 복지 신청 방법 포털"</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-card current">
+        <div class="compare-header"><span class="tag-current">현재 사용</span> Few-Shot Prompting</div>
+        <div class="compare-body">
+          <ul>
+            <li>예시 2-3개로 출력 형식·스타일 고정</li>
+            <li>JSON 배열로 파싱 안정성 높음</li>
+            <li>키워드 중심, 명사형 쿼리 생성</li>
+            <li>매번 일관된 3개 쿼리 출력</li>
+          </ul>
+        </div>
+      </div>
+      <div class="compare-card alt">
+        <div class="compare-header"><span class="tag-alt">대안</span> Zero-Shot Prompting</div>
+        <div class="compare-body">
+          <ul>
+            <li>규칙만 설명, 예시 없음</li>
+            <li>출력 형식이 불안정할 수 있음</li>
+            <li>질문형 쿼리 생성 가능성 있음</li>
+            <li>프롬프트는 짧지만 품질 편차 큼</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="principle-box" style="margin-top:16px">
+      <h3>Few-Shot이 패턴을 읽는 원리 (Attention)</h3>
+      <p>LLM은 이전 토큰들에 <span class="hl-blue">Attention 가중치</span>를 계산하며 다음 토큰을 예측합니다. 예시가 있으면 패턴이 명확해져 일관된 출력을 유도합니다.</p>
+      <div class="code-block">
+<span class="comment"># 현재 query_service.py의 Few-Shot 예시 구조</span>
+system_prompt = <span class="string">"""
+다음 예시처럼 검색 쿼리 3개를 JSON 배열로 생성하세요.
+
+예시1) 질문: "청년도약계좌 혜택이 뭐야?"
+      출력: ["정부기여금 금액 조건", "청년도약계좌 가입 자격 소득", "청년 저축 만기 혜택"]
+
+예시2) 질문: "대학생 장학금 받을 수 있어?"
+      출력: ["소득분위 장학금 자격 조건", "국가장학금 종류 비교", "한국장학재단 신청 방법"]
+"""</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ Hybrid Search -->
+  <section id="hybrid">
+    <div class="section-title"><span class="num">3</span> Hybrid Search</div>
+    <div class="section-subtitle">vector_store.py | BM25(키워드) + Vector(의미) 두 방식을 결합</div>
+
+    <div class="principle-box">
+      <h3>왜 하나의 검색 방법으로는 부족한가?</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+        <div>
+          <p style="color:#f0883e;font-weight:700;margin-bottom:6px">Vector Search만 쓸 때 실패</p>
+          <p>질문: <em>"LH 청년 매입임대주택"</em><br>→ 고유명사 "LH" "매입임대"를<br>벡터가 일반화해버림<br>→ 관련 없는 문서가 상위에 올 수 있음</p>
+        </div>
+        <div>
+          <p style="color:#f0883e;font-weight:700;margin-bottom:6px">BM25만 쓸 때 실패</p>
+          <p>질문: <em>"집 구하기 힘든 청년 지원"</em><br>→ "집" "구하기" 단어가 문서에 없으면<br>"주거" "임차" 와 매칭 실패<br>→ 의미는 같지만 검색 안됨</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#161b22;border:1px solid #21262d;border-radius:12px;padding:24px;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">두 방식의 동작 원리 비교</h3>
+      <table>
+        <tr>
+          <th>항목</th>
+          <th>BM25 (키워드)</th>
+          <th>Vector (의미)</th>
+        </tr>
+        <tr>
+          <td><strong>기반 기술</strong></td>
+          <td>TF-IDF 통계 (단어 빈도)</td>
+          <td>신경망 임베딩 (의미 압축)</td>
+        </tr>
+        <tr>
+          <td><strong>검색 방식</strong></td>
+          <td>단어가 문서에 있는지 확인</td>
+          <td>벡터 공간의 코사인 거리</td>
+        </tr>
+        <tr>
+          <td><strong>강점</strong></td>
+          <td>고유명사, 숫자, 정확한 키워드</td>
+          <td>동의어, 맥락, 의미적 유사성</td>
+        </tr>
+        <tr>
+          <td><strong>약점</strong></td>
+          <td>철자 변형, 동의어 처리 못함</td>
+          <td>희귀 전문용어, 정확한 숫자</td>
+        </tr>
+        <tr>
+          <td><strong>속도</strong></td>
+          <td>매우 빠름 (메모리 인덱스)</td>
+          <td>빠름 (HNSW 인덱스)</td>
+        </tr>
+        <tr>
+          <td><strong>API 필요</strong></td>
+          <td>없음 (로컬 계산)</td>
+          <td>임베딩 API 필요</td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ④ BM25 원리 -->
+  <section id="bm25">
+    <div class="section-title"><span class="num">4</span> BM25 원리</div>
+    <div class="section-subtitle">Best Match 25 | TF-IDF의 개선된 버전</div>
+
+    <div class="principle-box">
+      <h3>BM25 공식 직관적 이해</h3>
+      <div class="formula">
+        <div class="label">BM25 점수 공식</div>
+        score(d, q) = Σ IDF(q_i) × [ TF(q_i, d) × (k1 + 1) ] / [ TF(q_i, d) + k1 × (1 - b + b × |d| / avgdl) ]
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
+        <div style="background:#0d1117;border-radius:8px;padding:14px">
+          <p style="color:#58a6ff;font-weight:700;margin-bottom:6px">IDF (희귀성)</p>
+          <p style="font-size:12px;color:#8b949e">전체 문서 중 이 단어가 있는 문서가 적을수록 점수 높음.<br>"청년"은 흔하니 낮음. "LH공사"는 희귀하니 높음.</p>
+        </div>
+        <div style="background:#0d1117;border-radius:8px;padding:14px">
+          <p style="color:#7ee787;font-weight:700;margin-bottom:6px">TF (빈도) + k1</p>
+          <p style="font-size:12px;color:#8b949e">단어가 많이 나올수록 점수 높지만 k1로 상한 제한.<br>같은 단어 100번 반복해도 의미 없이 점수 오르지 않음.</p>
+        </div>
+        <div style="background:#0d1117;border-radius:8px;padding:14px">
+          <p style="color:#f0883e;font-weight:700;margin-bottom:6px">문서 길이 보정 (b)</p>
+          <p style="font-size:12px;color:#8b949e">긴 문서는 단어가 많아서 자연히 점수 높음.<br>b로 길이 차이를 보정해 공평하게 비교.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="principle-box">
+      <h3>내 코드에서 BM25가 작동하는 방식</h3>
+      <div class="code-block">
+<span class="comment"># vector_store.py</span>
+<span class="keyword">def</span> _tokenize(text):
+    <span class="comment"># 한국어: 공백·특수문자로 분리, 소문자 통일</span>
+    <span class="keyword">return</span> re.findall(<span class="string">r'\w+'</span>, text.lower())
+    <span class="comment"># "청년 주거 지원" → ["청년", "주거", "지원"]</span>
+
+<span class="keyword">def</span> _rebuild_bm25(self):
+    <span class="comment"># 문서 추가/삭제할 때마다 인덱스 재구성</span>
+    tokenized = [_tokenize(doc) <span class="keyword">for</span> doc <span class="keyword">in</span> self._bm25_docs]
+    self._bm25 = BM25Okapi(tokenized)
+    <span class="comment"># ChromaDB와 BM25 인덱스를 항상 동기화</span>
+      </div>
+      <div class="warn-box">
+        ⚠️ <strong>한국어 BM25의 한계:</strong> 형태소 분석 없이 단순 공백 분리를 사용합니다. "주거지원"과 "주거 지원"을 다른 단어로 인식할 수 있습니다. 더 정확하게 하려면 KoNLPy(Mecab) 같은 형태소 분석기를 사용해야 합니다.
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ RRF -->
+  <section id="rrf">
+    <div class="section-title"><span class="num">5</span> RRF (Reciprocal Rank Fusion)</div>
+    <div class="section-subtitle">두 검색 결과를 점수가 아닌 순위로 융합하는 알고리즘</div>
+
+    <div class="principle-box">
+      <h3>왜 점수를 그냥 더하면 안 되나?</h3>
+      <p>BM25 점수(예: 15.3, 8.2...)와 Vector 유사도(예: 0.87, 0.72...)는 <span class="hl-orange">단위와 스케일이 완전히 다릅니다.</span> 그냥 더하면 BM25 점수가 압도적으로 큽니다.</p>
+      <p>RRF는 두 결과의 <span class="hl-blue">순위(1위, 2위, 3위...)만 사용</span>해서 공정하게 합칩니다.</p>
+    </div>
+
+    <div class="formula">
+      <div class="label">RRF 공식</div>
+      RRF_score = vector_weight × 1/(k + vector_rank) + bm25_weight × 1/(k + bm25_rank)
+      <br><span style="color:#8b949e;font-size:11px">k=60 (순위 차이 완화), vector_weight=0.7, bm25_weight=0.3</span>
+    </div>
+
+    <div class="principle-box" style="margin-top:16px">
+      <h3>RRF 시각적 예시</h3>
+      <div class="rrf-container">
+        <div class="rrf-list">
+          <div class="rrf-title">Vector 순위</div>
+          <div class="rrf-item"><span class="rrf-rank">1위</span><span class="rrf-doc" style="color:#7ee787">청년 전세 보증금</span><span class="rrf-score">0.91</span></div>
+          <div class="rrf-item"><span class="rrf-rank">2위</span><span class="rrf-doc">LH 매입임대</span><span class="rrf-score">0.82</span></div>
+          <div class="rrf-item"><span class="rrf-rank">3위</span><span class="rrf-doc" style="color:#f0883e">청년 월세 지원</span><span class="rrf-score">0.79</span></div>
+          <div class="rrf-item"><span class="rrf-rank">4위</span><span class="rrf-doc">주거급여 신청</span><span class="rrf-score">0.71</span></div>
+        </div>
+        <div class="rrf-list">
+          <div class="rrf-title">BM25 순위</div>
+          <div class="rrf-item"><span class="rrf-rank">1위</span><span class="rrf-doc">LH 매입임대</span><span class="rrf-score">18.4</span></div>
+          <div class="rrf-item"><span class="rrf-rank">2위</span><span class="rrf-doc" style="color:#f0883e">청년 월세 지원</span><span class="rrf-score">14.2</span></div>
+          <div class="rrf-item"><span class="rrf-rank">3위</span><span class="rrf-doc" style="color:#7ee787">청년 전세 보증금</span><span class="rrf-score">11.8</span></div>
+          <div class="rrf-item"><span class="rrf-rank">4위</span><span class="rrf-doc">주거급여 신청</span><span class="rrf-score">9.1</span></div>
+        </div>
+        <div class="rrf-plus">+</div>
+        <div class="rrf-list">
+          <div class="rrf-title">RRF 최종 순위</div>
+          <div class="rrf-item"><span class="rrf-rank" style="color:#f2cc60">1위</span><span class="rrf-doc" style="color:#7ee787">청년 전세 보증금</span><span class="rrf-score" style="color:#f2cc60">0.7×1/61 + 0.3×1/63</span></div>
+          <div class="rrf-item"><span class="rrf-rank" style="color:#f2cc60">2위</span><span class="rrf-doc" style="color:#f0883e">청년 월세 지원</span><span class="rrf-score" style="color:#f2cc60">0.7×1/63 + 0.3×1/62</span></div>
+          <div class="rrf-item"><span class="rrf-rank" style="color:#f2cc60">3위</span><span class="rrf-doc">LH 매입임대</span><span class="rrf-score" style="color:#f2cc60">0.7×1/62 + 0.3×1/61</span></div>
+          <div class="rrf-item"><span class="rrf-rank" style="color:#f2cc60">4위</span><span class="rrf-doc">주거급여 신청</span><span class="rrf-score" style="color:#f2cc60">0.7×1/64 + 0.3×1/64</span></div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#8b949e;margin-top:12px">두 검색에서 모두 높은 순위에 있는 문서가 최종적으로 높은 점수를 받습니다. "청년 전세 보증금"은 Vector 1위 + BM25 3위 → RRF 1위.</p>
+    </div>
+  </section>
+
+  <!-- ⑥ Re-ranking -->
+  <section id="rerank">
+    <div class="section-title"><span class="num">6</span> GPT Re-ranking</div>
+    <div class="section-subtitle">reranker_service.py | 검색 결과를 LLM이 다시 채점</div>
+
+    <div class="compare-grid">
+      <div class="compare-card current">
+        <div class="compare-header"><span class="tag-current">현재 사용</span> Cross-Encoder (GPT)</div>
+        <div class="compare-body">
+          <ul>
+            <li>질문 + 문서를 함께 LLM에 입력</li>
+            <li>두 텍스트의 관계를 직접 이해</li>
+            <li>0-10점 채점 후 재정렬</li>
+            <li>정확도 높지만 API 비용 발생</li>
+          </ul>
+        </div>
+      </div>
+      <div class="compare-card alt">
+        <div class="compare-header"><span class="tag-alt">대안</span> Bi-Encoder (임베딩)</div>
+        <div class="compare-body">
+          <ul>
+            <li>질문과 문서를 각각 임베딩</li>
+            <li>코사인 유사도로 점수 계산</li>
+            <li>= 벡터 검색과 동일한 방식</li>
+            <li>빠르고 저렴하지만 정확도 낮음</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="principle-box" style="margin-top:16px">
+      <h3>Cross-Encoder가 더 정확한 이유</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <p style="color:#8b949e;font-size:13px;margin-bottom:8px"><strong style="color:#f0883e">Bi-Encoder 한계:</strong></p>
+          <div class="code-block" style="font-size:11px">
+질문: "LH 임대주택 신청 조건"  →  벡터A
+문서: "청년 주거 지원 방법"    →  벡터B
+<span class="comment"># 두 벡터를 독립적으로 생성
+# 서로를 "보지 않고" 만든 벡터끼리 비교
+# 맥락 이해 부족</span>
+          </div>
+        </div>
+        <div>
+          <p style="color:#8b949e;font-size:13px;margin-bottom:8px"><strong style="color:#7ee787">Cross-Encoder 강점:</strong></p>
+          <div class="code-block" style="font-size:11px">
+입력: "질문: LH 임대주택 신청 조건
+       문서: 청년 주거 지원 방법..."
+<span class="comment"># 질문과 문서를 함께 보고 관계 분석
+# Attention이 두 텍스트 사이에 작동
+# "이 문서가 이 질문에 얼마나 답이 되나?"</span>
+출력: <span class="num-val">7.5</span> / 10
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑦ Context Compression -->
+  <section id="compress">
+    <div class="section-title"><span class="num">7</span> Context Compression</div>
+    <div class="section-subtitle">compression_service.py | 청크에서 핵심만 추출 (가장 비용이 큼)</div>
+
+    <div class="principle-box">
+      <h3>왜 필요한가? — LLM의 "Lost in the Middle" 문제</h3>
+      <p>LLM은 긴 컨텍스트에서 <span class="hl-orange">중간 부분의 정보를 잘 잊어버리는</span> 경향이 있습니다. 관련 없는 내용을 걷어내면 LLM이 핵심에 집중합니다.</p>
+      <div class="flow" style="margin-top:12px">
+        <div class="flow-row">
+          <div class="flow-label">압축 전</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box red" style="font-size:12px">청크 전체 (300자): "청년 주거 지원 사업은 2024년도 개편으로... <span style="color:#7ee787">[핵심: 소득 6분위 이하, 보증금 5천만원 한도]</span> ...신청 방법은 복지로 홈페이지에서... 관련 문의는 주민센터..."</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-label">LLM 압축</div>
+          <div class="flow-arrow">↓</div>
+          <div style="flex:1"></div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-label">압축 후</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box green" style="font-size:12px">핵심만 (50자): "소득 6분위 이하, 보증금 5천만원 한도"</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="compare-grid" style="margin-top:16px">
+      <div class="compare-card current">
+        <div class="compare-header"><span class="tag-current">현재 사용</span> LLM 기반 압축</div>
+        <div class="compare-body">
+          <ul>
+            <li>질문을 이해하고 관련 내용 추출</li>
+            <li>의미적 압축 (문장 재구성 가능)</li>
+            <li>200자 미만 청크는 건너뜀</li>
+            <li>"없음" 반환 시 해당 청크 제거</li>
+            <li>가장 비쌈 (청크당 API 1회)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="compare-card alt">
+        <div class="compare-header"><span class="tag-alt">대안</span> 키워드 기반 압축</div>
+        <div class="compare-body">
+          <ul>
+            <li>TF-IDF로 중요 문장만 추출</li>
+            <li>원문 문장 그대로 유지</li>
+            <li>API 비용 없음, 매우 빠름</li>
+            <li>의미 이해 없이 단순 선택</li>
+            <li>품질은 LLM 방식보다 낮음</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑧ Generation -->
+  <section id="generation">
+    <div class="section-title"><span class="num">8</span> LLM 스트리밍 생성</div>
+    <div class="section-subtitle">llm_service.py | SSE로 실시간 타이핑 효과 구현</div>
+
+    <div class="principle-box">
+      <h3>스트리밍이 작동하는 방식</h3>
+      <div class="code-block">
+<span class="comment"># LLM은 토큰(단어 조각)을 하나씩 생성합니다</span>
+<span class="comment"># stream=True 옵션으로 생성되는 즉시 전송</span>
+
+<span class="keyword">for</span> chunk <span class="keyword">in</span> client.chat.completions.create(
+    model=<span class="string">"gpt-4o-mini"</span>,
+    messages=messages,
+    stream=<span class="num-val">True</span>
+):
+    token = chunk.choices[<span class="num-val">0</span>].delta.content  <span class="comment"># "청", "년", " ", "주", "거"...</span>
+    <span class="keyword">yield</span> f<span class="string">"data: {json.dumps({'type':'text','content':token})}\n\n"</span>
+    <span class="comment"># FastAPI SSE로 브라우저에 즉시 전송</span>
+      </div>
+    </div>
+
+    <div class="compare-grid" style="margin-top:16px">
+      <div class="compare-card current">
+        <div class="compare-header"><span class="tag-current">현재 사용</span> gpt-4o-mini</div>
+        <div class="compare-body">
+          <ul>
+            <li>비용: 입력 $0.15/1M, 출력 $0.60/1M</li>
+            <li>한국어 이해 우수</li>
+            <li>빠른 응답 속도</li>
+            <li>128K 컨텍스트 윈도우</li>
+          </ul>
+        </div>
+      </div>
+      <div class="compare-card alt">
+        <div class="compare-header"><span class="tag-alt">대안</span> gpt-4o (full)</div>
+        <div class="compare-body">
+          <ul>
+            <li>비용: 입력 $2.50/1M, 출력 $10.00/1M (17배)</li>
+            <li>더 높은 추론 능력</li>
+            <li>복잡한 질문에 유리</li>
+            <li>청년 정책 챗봇엔 overkill</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑨ 인프라 스택 -->
+  <section id="infra">
+    <div class="section-title"><span class="num">9</span> 인프라 기술 스택</div>
+    <div class="section-subtitle">Vector DB · Backend · Frontend 선택 이유</div>
+
+    <div style="background:#161b22;border:1px solid #21262d;border-radius:12px;padding:24px">
+      <table>
+        <tr>
+          <th>역할</th>
+          <th>현재 사용</th>
+          <th>대안</th>
+          <th>선택 이유</th>
+        </tr>
+        <tr>
+          <td><strong>Vector DB</strong></td>
+          <td><span class="chip chip-blue">ChromaDB 0.4.24</span></td>
+          <td>Pinecone, Weaviate, FAISS</td>
+          <td>로컬 실행 가능, 설치 간단, 학습용 적합</td>
+        </tr>
+        <tr>
+          <td><strong>임베딩</strong></td>
+          <td><span class="chip chip-blue">text-embedding-3-small</span></td>
+          <td>text-embedding-3-large, ada-002</td>
+          <td>비용 저렴 ($0.020/1M), 성능 충분</td>
+        </tr>
+        <tr>
+          <td><strong>BM25</strong></td>
+          <td><span class="chip chip-blue">rank-bm25</span></td>
+          <td>Elasticsearch, Whoosh</td>
+          <td>순수 Python, 추가 서버 불필요</td>
+        </tr>
+        <tr>
+          <td><strong>Backend</strong></td>
+          <td><span class="chip chip-green">FastAPI</span></td>
+          <td>Flask, Django</td>
+          <td>async 지원, SSE 스트리밍 최적, 빠름</td>
+        </tr>
+        <tr>
+          <td><strong>Frontend</strong></td>
+          <td><span class="chip chip-green">React (CDN)</span></td>
+          <td>Vue, Svelte, Vanilla JS</td>
+          <td>컴포넌트 재사용, 상태 관리 편리</td>
+        </tr>
+        <tr>
+          <td><strong>UI (대안)</strong></td>
+          <td><span class="chip chip-orange">Streamlit</span></td>
+          <td>Gradio, Panel</td>
+          <td>Python만으로 빠른 프로토타이핑</td>
+        </tr>
+        <tr>
+          <td><strong>문서 파싱</strong></td>
+          <td><span class="chip chip-blue">PyMuPDF</span></td>
+          <td>pdfplumber, pypdf</td>
+          <td>빠르고 한국어 PDF 추출 안정적</td>
+        </tr>
+        <tr>
+          <td><strong>청크 분할</strong></td>
+          <td><span class="chip chip-blue">RecursiveCharacterTextSplitter</span></td>
+          <td>SentenceSplitter, TokenSplitter</td>
+          <td>문단 경계 유지하며 청크 분할</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="principle-box" style="margin-top:16px">
+      <h3>ChromaDB 버전을 0.4.24로 고정한 이유</h3>
+      <div class="code-block">
+<span class="comment"># 최신 ChromaDB는 pydantic v2를 사용</span>
+<span class="comment"># 하지만 일부 의존성이 pydantic v1을 요구</span>
+<span class="comment"># → ConfigError: unable to infer type for attribute "chroma_server_nofile"</span>
+
+<span class="comment"># 해결: pydantic v1과 호환되는 구버전 고정</span>
+<span class="comment"># requirements.txt</span>
+chromadb==<span class="num-val">0.4.24</span>  <span class="comment"># ← 이 버전이 pydantic v1과 호환</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑩ 전체 비교표 -->
+  <section id="summary">
+    <div class="section-title"><span class="num">10</span> Naive RAG vs Advanced RAG 전체 비교</div>
+    <div class="section-subtitle">내 챗봇이 어떻게 발전했는지 한눈에</div>
+
+    <div style="background:#161b22;border:1px solid #21262d;border-radius:12px;padding:24px">
+      <table>
+        <tr>
+          <th>단계</th>
+          <th>Naive RAG (이전)</th>
+          <th>Advanced RAG (현재)</th>
+          <th>개선 효과</th>
+        </tr>
+        <tr>
+          <td><strong>쿼리 처리</strong></td>
+          <td>원본 질문 그대로 사용</td>
+          <td>Multi-query 3개 생성 (Few-Shot)</td>
+          <td>검색 범위 3배 확장</td>
+        </tr>
+        <tr>
+          <td><strong>검색 방식</strong></td>
+          <td>Vector 검색만</td>
+          <td>BM25 + Vector + RRF 융합</td>
+          <td>키워드 + 의미 모두 커버</td>
+        </tr>
+        <tr>
+          <td><strong>결과 정렬</strong></td>
+          <td>코사인 유사도 순위</td>
+          <td>GPT Cross-Encoder 재채점</td>
+          <td>실제 관련도 기준 정렬</td>
+        </tr>
+        <tr>
+          <td><strong>컨텍스트</strong></td>
+          <td>청크 전체 그대로 전달</td>
+          <td>LLM이 핵심만 압축 추출</td>
+          <td>노이즈 제거, 토큰 절약</td>
+        </tr>
+        <tr>
+          <td><strong>API 호출</strong></td>
+          <td>1회</td>
+          <td>5회</td>
+          <td>비용 3배, 품질 대폭 향상</td>
+        </tr>
+        <tr>
+          <td><strong>응답 시간</strong></td>
+          <td>~2초</td>
+          <td>~4-5초</td>
+          <td>2-3초 증가</td>
+        </tr>
+        <tr>
+          <td><strong>비용/질문</strong></td>
+          <td>~$0.00045</td>
+          <td>~$0.00128</td>
+          <td>재질문 감소로 총비용 유사</td>
+        </tr>
+        <tr>
+          <td><strong>답변 정확도</strong></td>
+          <td>보통</td>
+          <td><span class="chip chip-green">높음</span></td>
+          <td>복잡한 정책 질문에 강함</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="info-box" style="margin-top:20px">
+      🎯 <strong>핵심 인사이트:</strong>
+      Advanced RAG는 단순히 기능을 추가한 게 아니라, 검색의 각 단계에서 발생하는 약점을 보완하는 구조입니다.
+      Multi-query → 쿼리 표현의 한계 극복 | Hybrid Search → 단일 검색의 한계 극복 |
+      Re-ranking → 벡터 유사도의 한계 극복 | Compression → LLM 컨텍스트 한계 극복
+    </div>
+  </section>
+
+</div>
+
+<div style="text-align:center;padding:40px;color:#30363d;font-size:12px;border-top:1px solid #21262d">
+  Week 05 · Advanced RAG · 청년 정책 챗봇 학습 가이드
+</div>
+
+</body>
+</html>

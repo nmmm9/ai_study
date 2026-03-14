@@ -1,0 +1,737 @@
+
+/// 파이프라인성능비교 
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced RAG — 파이프라인 분석</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:       #0d0d14;
+    --bg-card:  #13131e;
+    --bg-code:  #1a1a28;
+    --border:   #252535;
+    --text:     #e2e0dd;
+    --dim:      #7a7a9a;
+    --blue:     #5b9bd5;
+    --purple:   #8b7cf8;
+    --green:    #4ade80;
+    --amber:    #fbbf24;
+    --red:      #f87171;
+    --cyan:     #22d3ee;
+    --pink:     #f472b6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  /* ── 헤더 ── */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .header .badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border: 1px solid var(--purple);
+    border-radius: 99px;
+    font-size: 11px;
+    color: var(--purple);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .header p { font-size: 14px; color: var(--dim); }
+
+  /* ── 요약 카드 ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .summary-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+  .summary-card:hover { border-color: var(--purple); }
+  .summary-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .summary-card .value {
+    font-size: 26px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+  }
+  .summary-card .label { font-size: 12px; color: var(--dim); }
+  .c-blue   { color: var(--blue);   }
+  .c-purple { color: var(--purple); }
+  .c-green  { color: var(--green);  }
+  .c-amber  { color: var(--amber);  }
+  .c-cyan   { color: var(--cyan);   }
+  .c-red    { color: var(--red);    }
+  .c-pink   { color: var(--pink);   }
+
+  /* ── 차트 레이아웃 ── */
+  .charts-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .chart-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .chart-card .sub {
+    font-size: 12px;
+    color: var(--dim);
+    margin-bottom: 20px;
+  }
+  .chart-wrap { position: relative; }
+
+  /* ── 흐름도 ── */
+  .flow-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+  }
+  .flow-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .flow-card .sub { font-size: 12px; color: var(--dim); margin-bottom: 24px; }
+
+  .flow-stages {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .flow-stage {
+    flex: 1;
+    min-width: 160px;
+    position: relative;
+  }
+  .flow-stage-inner {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 14px;
+    height: 100%;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .flow-stage-inner:hover {
+    border-color: var(--purple);
+    transform: translateY(-3px);
+  }
+  .stage-num {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .stage-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .stage-detail {
+    font-size: 11px;
+    color: var(--dim);
+    line-height: 1.6;
+  }
+  .stage-cost {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  .arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    flex-shrink: 0;
+    color: var(--dim);
+    font-size: 18px;
+  }
+
+  /* ── 비교 표 ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .compare-table th {
+    background: var(--bg-code);
+    color: var(--dim);
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tag-blue   { background: rgba(91,155,213,0.15); color: var(--blue);   }
+  .tag-purple { background: rgba(139,124,248,0.15); color: var(--purple); }
+  .tag-green  { background: rgba(74,222,128,0.15); color: var(--green);  }
+  .tag-amber  { background: rgba(251,191,36,0.15);  color: var(--amber);  }
+  .tag-red    { background: rgba(248,113,113,0.15); color: var(--red);   }
+
+  /* ── 푸터 ── */
+  .footer {
+    text-align: center;
+    margin-top: 48px;
+    font-size: 12px;
+    color: var(--dim);
+  }
+  .footer code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-card);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 헤더 ── -->
+<div class="header">
+  <div class="badge">Week 05 — Advanced RAG</div>
+  <h1>파이프라인 비용 & 성능 분석</h1>
+  <p>질문 1회 처리 기준 | 모델: gpt-4o-mini · text-embedding-3-small | 환율 1,380원/USD</p>
+</div>
+
+<!-- ── 요약 카드 ── -->
+<div class="summary-grid">
+  <div class="summary-card">
+    <div class="icon">💰</div>
+    <div class="value c-green">$0.00128</div>
+    <div class="label">질문 1회 평균 비용</div>
+  </div>
+  <div class="summary-card">
+    <div class="icon">⏱</div>
+    <div class="value c-blue">4.2s</div>
+    <div class="label">평균 응답 시간</div>
+  </div>
+  <div class="summary-card">
+    <div class="icon">🔤</div>
+    <div class="value c-purple">3,840</div>
+    <div class="label">평균 총 토큰</div>
+  </div>
+  <div class="summary-card">
+    <div class="icon">📞</div>
+    <div class="value c-amber">5회</div>
+    <div class="label">API 호출 (Naive: 1회)</div>
+  </div>
+</div>
+
+<!-- ── 차트 영역 ── -->
+<div class="charts-wrapper">
+
+  <!-- Row 1: 파이프라인 흐름도 -->
+  <div class="flow-card">
+    <h3>Advanced RAG 파이프라인 단계별 비용 흐름</h3>
+    <div class="sub">각 단계에서 소비되는 API 호출 · 토큰 · 비용 (질문 1회 기준 추정치)</div>
+    <div class="flow-stages">
+      <div class="flow-stage">
+        <div class="flow-stage-inner">
+          <div class="stage-num c-purple">① Pre-retrieval</div>
+          <div class="stage-title">Multi-query Generation</div>
+          <div class="stage-detail">
+            LLM 1회 호출<br>
+            대화 맥락 분석 후<br>
+            검색 쿼리 3개 생성
+          </div>
+          <div class="stage-cost tag-purple">$0.000081 · 0.8s</div>
+        </div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-stage">
+        <div class="flow-stage-inner">
+          <div class="stage-num c-blue">② Retrieval</div>
+          <div class="stage-title">Hybrid Search</div>
+          <div class="stage-detail">
+            임베딩 3회<br>
+            BM25 + Vector<br>
+            RRF Fusion 병합
+          </div>
+          <div class="stage-cost tag-blue">$0.000001 · 1.1s</div>
+        </div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-stage">
+        <div class="flow-stage-inner">
+          <div class="stage-num c-amber">③ Re-ranking</div>
+          <div class="stage-title">GPT Re-ranking</div>
+          <div class="stage-detail">
+            LLM 1회 호출<br>
+            후보 청크 0~10<br>
+            점수화 및 재정렬
+          </div>
+          <div class="stage-cost tag-amber">$0.000210 · 0.7s</div>
+        </div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-stage">
+        <div class="flow-stage-inner">
+          <div class="stage-num c-cyan">③ Compression</div>
+          <div class="stage-title">Context Compression</div>
+          <div class="stage-detail">
+            청크 수만큼 호출<br>
+            핵심 내용 추출<br>
+            노이즈 제거
+          </div>
+          <div class="stage-cost tag-blue" style="color:var(--cyan)">$0.000540 · 0.9s</div>
+        </div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-stage">
+        <div class="flow-stage-inner">
+          <div class="stage-num c-green">④ Generation</div>
+          <div class="stage-title">LLM 스트리밍</div>
+          <div class="stage-detail">
+            최종 LLM 1회<br>
+            정제된 컨텍스트<br>
+            스트리밍 응답
+          </div>
+          <div class="stage-cost tag-green">$0.000450 · 0.7s</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: 비용 도넛 + 시간 바 -->
+  <div class="row-2">
+    <div class="chart-card">
+      <h3>단계별 비용 분포</h3>
+      <div class="sub">질문 1회 기준 총 $0.00128 (₩1.77)</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="costDonut"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>단계별 소요 시간</h3>
+      <div class="sub">단계별 지연 분석 (초)</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="timeBar"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: 토큰 스택 + Naive vs Advanced 비교 + 검색 방법 레이더 -->
+  <div class="row-3">
+    <div class="chart-card">
+      <h3>토큰 사용량 분포</h3>
+      <div class="sub">입력/출력 토큰 (단계별)</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="tokenStack"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Naive vs Advanced RAG</h3>
+      <div class="sub">API 호출 횟수 · 비용 비교</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="naiveCompare"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>검색 방법 특성 비교</h3>
+      <div class="sub">BM25 · Vector · Hybrid</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="searchRadar"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: 누적 비용 시뮬레이션 -->
+  <div class="chart-card">
+    <h3>누적 비용 시뮬레이션</h3>
+    <div class="sub">질문 횟수 증가에 따른 누적 비용 (Naive RAG vs Advanced RAG)</div>
+    <div class="chart-wrap" style="height:220px">
+      <canvas id="cumulative"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 5: 비교 표 -->
+  <div class="chart-card">
+    <h3>파이프라인 단계별 상세 비교표</h3>
+    <div class="sub">Naive RAG (4주차) vs Advanced RAG (5주차)</div>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>단계</th>
+          <th>Naive RAG (4주차)</th>
+          <th>Advanced RAG (5주차)</th>
+          <th>API 호출</th>
+          <th>예상 비용</th>
+          <th>핵심 개선</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-purple">Pre-retrieval</span></td>
+          <td style="color:var(--dim)">원본 질문 그대로</td>
+          <td>Multi-query Generation</td>
+          <td>LLM 1회</td>
+          <td class="c-green" style="font-family:'JetBrains Mono',monospace">$0.000081</td>
+          <td>검색 커버리지 3배↑</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-blue">Retrieval</span></td>
+          <td style="color:var(--dim)">Vector 검색만</td>
+          <td>BM25 + Vector → RRF</td>
+          <td>임베딩 3회</td>
+          <td class="c-green" style="font-family:'JetBrains Mono',monospace">$0.000001</td>
+          <td>키워드 정확도 보완</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-amber">Re-ranking</span></td>
+          <td style="color:var(--dim)">유사도 순위 그대로</td>
+          <td>GPT Cross-Encoder</td>
+          <td>LLM 1회</td>
+          <td class="c-amber" style="font-family:'JetBrains Mono',monospace">$0.000210</td>
+          <td>순위 정확도 향상</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-blue" style="color:var(--cyan)">Compression</span></td>
+          <td style="color:var(--dim)">청크 원본 전달</td>
+          <td>핵심 내용 추출</td>
+          <td>LLM N회</td>
+          <td class="c-amber" style="font-family:'JetBrains Mono',monospace">$0.000540</td>
+          <td>노이즈 제거, 토큰↓</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-green">Generation</span></td>
+          <td style="color:var(--dim)">노이즈 포함 컨텍스트</td>
+          <td>정제된 컨텍스트</td>
+          <td>LLM 1회</td>
+          <td class="c-green" style="font-family:'JetBrains Mono',monospace">$0.000450</td>
+          <td>답변 품질 향상</td>
+        </tr>
+        <tr style="background:rgba(139,124,248,0.05)">
+          <td><strong>합계</strong></td>
+          <td style="color:var(--dim)">LLM 1회, 임베딩 1회</td>
+          <td><strong>LLM 4회+, 임베딩 3회</strong></td>
+          <td><strong>5~8회</strong></td>
+          <td class="c-purple" style="font-family:'JetBrains Mono',monospace"><strong>~$0.00128</strong></td>
+          <td><strong>전반적 품질 대폭 향상</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>week05-advanced-rag · minseon · gpt-4o-mini 기준 추정치 | <code>cost_tracker.py</code>로 실제 비용 자동 측정</p>
+</div>
+
+<script>
+  Chart.defaults.color = '#7a7a9a';
+  Chart.defaults.borderColor = '#252535';
+  Chart.defaults.font.family = "'Noto Sans KR', sans-serif";
+
+  const COLORS = {
+    blue:   '#5b9bd5',
+    purple: '#8b7cf8',
+    green:  '#4ade80',
+    amber:  '#fbbf24',
+    red:    '#f87171',
+    cyan:   '#22d3ee',
+    pink:   '#f472b6',
+    dim:    '#3a3a55',
+  };
+
+  // ── 1. 비용 도넛 ──────────────────────────────────────────
+  new Chart(document.getElementById('costDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Pre (Multi-query)', 'Retrieval (임베딩)', 'Re-ranking', 'Compression', 'Generation'],
+      datasets: [{
+        data: [0.000081, 0.000001, 0.000210, 0.000540, 0.000450],
+        backgroundColor: [
+          COLORS.purple,
+          COLORS.blue,
+          COLORS.amber,
+          COLORS.cyan,
+          COLORS.green,
+        ],
+        borderColor: '#13131e',
+        borderWidth: 3,
+      }],
+    },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` $${ctx.raw.toFixed(6)} (${(ctx.raw / 0.00128 * 100).toFixed(1)}%)`,
+          },
+        },
+      },
+    },
+  });
+
+  // ── 2. 시간 바 ───────────────────────────────────────────
+  new Chart(document.getElementById('timeBar'), {
+    type: 'bar',
+    data: {
+      labels: ['Pre', 'Retrieval', 'Re-ranking', 'Compression', 'Generation'],
+      datasets: [{
+        label: '소요 시간 (s)',
+        data: [0.82, 1.12, 0.68, 0.92, 0.66],
+        backgroundColor: [
+          COLORS.purple + 'cc',
+          COLORS.blue + 'cc',
+          COLORS.amber + 'cc',
+          COLORS.cyan + 'cc',
+          COLORS.green + 'cc',
+        ],
+        borderRadius: 6,
+        borderSkipped: false,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { color: '#252535' },
+          ticks: { callback: (v) => v + 's' },
+        },
+        y: { grid: { display: false } },
+      },
+    },
+  });
+
+  // ── 3. 토큰 스택 ─────────────────────────────────────────
+  new Chart(document.getElementById('tokenStack'), {
+    type: 'bar',
+    data: {
+      labels: ['Pre', 'Retrieval', 'Re-ranking', 'Compression', 'Generation'],
+      datasets: [
+        {
+          label: '입력 토큰',
+          data: [290, 30, 980, 1200, 2100],
+          backgroundColor: COLORS.blue + 'bb',
+          borderRadius: 4,
+          stack: 'stack',
+        },
+        {
+          label: '출력 토큰',
+          data: [65, 0, 95, 600, 340],
+          backgroundColor: COLORS.purple + 'bb',
+          borderRadius: 4,
+          stack: 'stack',
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } },
+      },
+      scales: {
+        x: { grid: { display: false }, stacked: true },
+        y: { grid: { color: '#252535' }, stacked: true },
+      },
+    },
+  });
+
+  // ── 4. Naive vs Advanced 비교 ─────────────────────────────
+  new Chart(document.getElementById('naiveCompare'), {
+    type: 'bar',
+    data: {
+      labels: ['API 호출 횟수', '토큰 사용량 (×100)', '비용 ($×10000)'],
+      datasets: [
+        {
+          label: 'Naive RAG',
+          data: [2, 26, 3.0],
+          backgroundColor: COLORS.dim + 'cc',
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Advanced RAG',
+          data: [7, 57, 12.8],
+          backgroundColor: COLORS.purple + 'cc',
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const labels = ['회', '토큰', '$'];
+              const mults  = [1, 100, 0.0001];
+              return ` ${ctx.dataset.label}: ${(ctx.raw * mults[ctx.dataIndex]).toFixed(ctx.dataIndex === 2 ? 4 : 0)}${labels[ctx.dataIndex]}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#252535' } },
+      },
+    },
+  });
+
+  // ── 5. 검색 방법 레이더 ───────────────────────────────────
+  new Chart(document.getElementById('searchRadar'), {
+    type: 'radar',
+    data: {
+      labels: ['키워드 정확도', '의미론적 이해', '처리 속도', '도메인 용어', '짧은 질문'],
+      datasets: [
+        {
+          label: 'BM25',
+          data: [9, 3, 9, 8, 5],
+          borderColor: COLORS.amber,
+          backgroundColor: COLORS.amber + '22',
+          pointBackgroundColor: COLORS.amber,
+          borderWidth: 2,
+        },
+        {
+          label: 'Vector',
+          data: [4, 9, 8, 4, 6],
+          borderColor: COLORS.blue,
+          backgroundColor: COLORS.blue + '22',
+          pointBackgroundColor: COLORS.blue,
+          borderWidth: 2,
+        },
+        {
+          label: 'Hybrid (RRF)',
+          data: [8, 8, 7, 7, 8],
+          borderColor: COLORS.purple,
+          backgroundColor: COLORS.purple + '33',
+          pointBackgroundColor: COLORS.purple,
+          borderWidth: 2.5,
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } },
+      },
+      scales: {
+        r: {
+          min: 0, max: 10,
+          grid: { color: '#252535' },
+          ticks: { display: false },
+          pointLabels: { font: { size: 11 }, color: '#9a9aaa' },
+          angleLines: { color: '#252535' },
+        },
+      },
+    },
+  });
+
+  // ── 6. 누적 비용 시뮬레이션 ──────────────────────────────
+  const queries = Array.from({ length: 20 }, (_, i) => i + 1);
+  new Chart(document.getElementById('cumulative'), {
+    type: 'line',
+    data: {
+      labels: queries.map(q => `${q}회`),
+      datasets: [
+        {
+          label: 'Naive RAG',
+          data: queries.map(q => +(q * 0.00030).toFixed(5)),
+          borderColor: COLORS.dim,
+          backgroundColor: COLORS.dim + '22',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2,
+        },
+        {
+          label: 'Advanced RAG',
+          data: queries.map(q => +(q * 0.00128).toFixed(5)),
+          borderColor: COLORS.purple,
+          backgroundColor: COLORS.purple + '22',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2.5,
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: $${ctx.raw.toFixed(5)} (₩${(ctx.raw * 1380).toFixed(2)})`,
+          },
+        },
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          grid: { color: '#252535' },
+          ticks: { callback: (v) => '$' + v.toFixed(4) },
+        },
+      },
+      interaction: { mode: 'index', intersect: false },
+    },
+  });
+</script>
+</body>
+</html>
