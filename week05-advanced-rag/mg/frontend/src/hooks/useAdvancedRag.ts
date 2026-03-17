@@ -5,7 +5,7 @@ import type {
   SampleInfo,
   CollectionItem,
   EmbedResult,
-  CompareResult,
+  RagResponse,
   RagMode,
 } from "@/types/rag";
 
@@ -21,17 +21,14 @@ export function useAdvancedRag() {
 
   const [collections, setCollections] = useState<CollectionItem[]>([]);
 
-  const [modeA, setModeA] = useState<RagMode>("basic");
-  const [modeB, setModeB] = useState<RagMode>("advanced");
+  // Per-mode results
+  const [results, setResults] = useState<Record<string, RagResponse>>({});
+  const [runningModes, setRunningModes] = useState<Set<string>>(new Set());
+  const [currentQuestion, setCurrentQuestion] = useState("");
 
-  const [compareResult, setCompareResult] = useState<CompareResult | null>(
-    null
-  );
-  const [isComparing, setIsComparing] = useState(false);
-
-  // Reset results when document changes
   useEffect(() => {
-    setCompareResult(null);
+    setResults({});
+    setCurrentQuestion("");
   }, [document]);
 
   // ─── Samples ───
@@ -52,7 +49,7 @@ export function useAdvancedRag() {
       const data = await res.json();
       setDocument(data.content);
       setEmbedResult(null);
-      setCompareResult(null);
+      setResults({});
     } catch {
       /* ignore */
     }
@@ -81,7 +78,7 @@ export function useAdvancedRag() {
         total_time_ms: 0,
         embed_cost: 0,
       });
-      setCompareResult(null);
+      setResults({});
     },
     []
   );
@@ -92,7 +89,7 @@ export function useAdvancedRag() {
         await fetch(`${API}/api/collections/${name}`, { method: "DELETE" });
         if (embedResult?.collection_name === name) {
           setEmbedResult(null);
-          setCompareResult(null);
+          setResults({});
         }
         fetchCollections();
       } catch {
@@ -124,15 +121,15 @@ export function useAdvancedRag() {
     }
   }, [document, fetchCollections]);
 
-  // ─── Compare ───
+  // ─── Run single mode ───
 
-  const compare = useCallback(
-    async (question: string) => {
+  const runMode = useCallback(
+    async (mode: RagMode, question: string) => {
       if (!embedResult) return;
-      setIsComparing(true);
-      setCompareResult(null);
+      setCurrentQuestion(question);
+      setRunningModes((prev) => new Set(prev).add(mode));
       try {
-        const res = await fetch(`${API}/api/compare`, {
+        const res = await fetch(`${API}/api/rag`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -140,20 +137,23 @@ export function useAdvancedRag() {
             collection_name: embedResult.collection_name,
             top_k: 5,
             model: selectedModel,
-            mode_a: modeA,
-            mode_b: modeB,
+            mode,
           }),
         });
-        if (!res.ok) throw new Error("Compare failed");
-        const data: CompareResult = await res.json();
-        setCompareResult(data);
+        if (!res.ok) throw new Error("RAG failed");
+        const data: RagResponse = await res.json();
+        setResults((prev) => ({ ...prev, [mode]: data }));
       } catch {
         /* ignore */
       } finally {
-        setIsComparing(false);
+        setRunningModes((prev) => {
+          const next = new Set(prev);
+          next.delete(mode);
+          return next;
+        });
       }
     },
-    [embedResult, selectedModel, modeA, modeB]
+    [embedResult, selectedModel]
   );
 
   return {
@@ -161,10 +161,6 @@ export function useAdvancedRag() {
     setDocument,
     selectedModel,
     setSelectedModel,
-    modeA,
-    setModeA,
-    modeB,
-    setModeB,
     samples,
     fetchSamples,
     loadSample,
@@ -175,8 +171,10 @@ export function useAdvancedRag() {
     fetchCollections,
     selectCollection,
     deleteCollection,
-    compareResult,
-    isComparing,
-    compare,
+    results,
+    runningModes,
+    currentQuestion,
+    setCurrentQuestion,
+    runMode,
   };
 }

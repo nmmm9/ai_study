@@ -10,38 +10,16 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --bg: #0a0a0f;
-    --bg-card: #12121a;
-    --bg-code: #1a1a28;
-    --text: #e8e6e3;
-    --text-dim: #9a9a9a;
-    --gold: #C9A96E;
-    --gold-dim: #a08550;
-    --blue: #5b9bd5;
-    --green: #7cc47c;
-    --red: #d47c7c;
-    --purple: #a07cd4;
-    --orange: #d4a07c;
-    --stroke: #2a2a3a;
+    --bg: #0a0a0f; --bg-card: #12121a; --bg-code: #1a1a28;
+    --text: #e8e6e3; --text-dim: #9a9a9a;
+    --gold: #C9A96E; --gold-dim: #a08550;
+    --blue: #5b9bd5; --green: #7cc47c; --red: #d47c7c;
+    --purple: #a07cd4; --orange: #d4a07c; --stroke: #2a2a3a;
   }
 
-  body {
-    font-family: 'Noto Sans KR', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    overflow: hidden;
-    height: 100vh;
-  }
-
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; }
   .slide-container { width: 100vw; height: 100vh; position: relative; }
-
-  .slide {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; justify-content: center;
-    padding: 60px 100px;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.5s ease;
-  }
+  .slide { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 60px 100px; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
   .slide.active { opacity: 1; pointer-events: auto; }
 
   h1 { font-size: 52px; font-weight: 900; line-height: 1.3; letter-spacing: -1px; }
@@ -52,56 +30,30 @@
   ul { list-style: none; }
   ul li::before { content: "→"; color: var(--gold); font-weight: 500; margin-right: 12px; }
 
-  .gold { color: var(--gold); }
-  .blue { color: var(--blue); }
-  .green { color: var(--green); }
-  .red { color: var(--red); }
-  .purple { color: var(--purple); }
-  .orange { color: var(--orange); }
-  .dim { color: var(--text-dim); }
-  .bright { color: var(--text); }
-  .bold { font-weight: 700; }
-  .small { font-size: 16px; }
-  .tiny { font-size: 14px; color: var(--text-dim); }
+  .gold { color: var(--gold); } .blue { color: var(--blue); } .green { color: var(--green); }
+  .red { color: var(--red); } .purple { color: var(--purple); } .orange { color: var(--orange); }
+  .dim { color: var(--text-dim); } .bright { color: var(--text); } .bold { font-weight: 700; }
+  .small { font-size: 16px; } .tiny { font-size: 14px; color: var(--text-dim); }
   strong { font-weight: 700; color: var(--text); }
 
-  code {
-    font-family: 'JetBrains Mono', monospace;
-    background: var(--bg-code); padding: 2px 8px; border-radius: 4px;
-    font-size: 0.85em; color: var(--gold);
-  }
-
-  pre {
-    background: var(--bg-code); border: 1px solid var(--stroke); border-radius: 12px;
-    padding: 24px; overflow-x: auto;
-    font-family: 'JetBrains Mono', monospace; font-size: 16px; line-height: 1.7; color: var(--text-dim);
-  }
-  pre .kw { color: var(--purple); }
-  pre .fn { color: var(--blue); }
-  pre .str { color: var(--green); }
-  pre .cmt { color: #555; font-style: italic; }
-  pre .num { color: var(--orange); }
+  code { font-family: 'JetBrains Mono', monospace; background: var(--bg-code); padding: 2px 8px; border-radius: 4px; font-size: 0.85em; color: var(--gold); }
 
   .card { background: var(--bg-card); border: 1px solid var(--stroke); border-radius: 16px; padding: 28px; }
   .card-grid { display: grid; gap: 20px; }
   .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
   .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-  .card-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
   .card h4 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
   .card p { font-size: 17px; line-height: 1.7; }
 
-  .pipeline { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 32px 0; }
+  .pipeline { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 32px 0; flex-wrap: wrap; }
   .pipeline-step { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .pipeline-box {
-    padding: 16px 28px; border-radius: 12px; font-size: 18px; font-weight: 500;
-    border: 2px solid; text-align: center; min-width: 130px;
-  }
+  .pipeline-box { padding: 16px 24px; border-radius: 12px; font-size: 17px; font-weight: 500; border: 2px solid; text-align: center; min-width: 110px; }
   .pipeline-arrow { font-size: 24px; color: var(--text-dim); }
   .pipeline-label { font-size: 12px; color: var(--text-dim); text-align: center; max-width: 130px; }
 
   .compare-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
-  .compare-table th, .compare-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--stroke); font-size: 18px; }
-  .compare-table th { font-weight: 500; color: var(--gold); font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
+  .compare-table th, .compare-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--stroke); font-size: 17px; }
+  .compare-table th { font-weight: 500; color: var(--gold); font-size: 15px; text-transform: uppercase; letter-spacing: 1px; }
   .compare-table td { color: var(--text-dim); font-weight: 300; }
 
   .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; }
@@ -111,12 +63,7 @@
   .badge-purple { background: rgba(160,124,212,0.15); color: var(--purple); }
   .badge-red { background: rgba(212,124,124,0.15); color: var(--red); }
 
-  .nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 40px; background: rgba(10,10,15,0.9);
-    backdrop-filter: blur(10px); border-top: 1px solid var(--stroke); z-index: 100;
-  }
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: rgba(10,10,15,0.9); backdrop-filter: blur(10px); border-top: 1px solid var(--stroke); z-index: 100; }
   .nav-info { font-size: 14px; color: var(--text-dim); font-weight: 300; }
   .nav-info span { color: var(--gold); font-weight: 500; }
   .progress-bar { flex: 1; height: 3px; background: var(--stroke); margin: 0 32px; border-radius: 2px; overflow: hidden; }
@@ -132,888 +79,431 @@
   .icon-green { background: rgba(124,196,124,0.12); color: var(--green); }
   .icon-red { background: rgba(212,124,124,0.12); color: var(--red); }
   .icon-purple { background: rgba(160,124,212,0.12); color: var(--purple); }
-  .icon-orange { background: rgba(212,160,124,0.12); color: var(--orange); }
 
-  /* ─── Week 05 specific ─── */
-  .vs-divider {
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px; font-weight: 900; color: var(--gold); padding: 0 16px;
-  }
-
-  .gap-viz {
-    display: flex; align-items: center; gap: 12px; margin: 20px 0;
-    padding: 20px; background: var(--bg-card); border: 1px solid var(--stroke); border-radius: 12px;
-  }
-
-  .gap-dot {
-    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
-  }
-
-  .gap-line {
-    flex: 1; height: 2px; position: relative;
-  }
-
-  .gap-line-inner {
-    position: absolute; inset: 0; border-top: 2px dashed var(--text-dim);
-  }
-
-  .score-bar {
-    height: 28px; border-radius: 6px; display: flex; align-items: center; padding: 0 12px;
-    font-size: 13px; font-weight: 500; font-family: 'JetBrains Mono', monospace;
-  }
+  .ex { background: rgba(201,169,110,0.05); border: 1px solid rgba(201,169,110,0.15); border-radius: 12px; padding: 20px; margin: 16px 0; font-size: 19px; line-height: 1.9; }
 </style>
 </head>
 <body>
 
 <div class="slide-container" id="slides">
 
-<!-- ═══════════════════════════════════════════ SLIDE 0: Title ═══ -->
+<!-- ═══ 0: 표지 ═══ -->
 <div class="slide" data-slide="0">
   <div class="glow" style="background: var(--gold); top: -100px; left: -100px;"></div>
-  <p class="dim" style="font-size: 16px; margin-bottom: 16px; letter-spacing: 4px;">WEEK 05 · 2026.03</p>
+  <p class="dim" style="font-size: 16px; margin-bottom: 16px; letter-spacing: 4px;">WEEK 05</p>
   <h1>
     <span class="gold">Advanced</span> RAG<br>
-    <span class="dim" style="font-size: 36px; font-weight: 300;">HyDE + Reranking으로 검색 품질 향상</span>
+    <span class="dim" style="font-size: 36px; font-weight: 300;">검색을 더 똑똑하게 만드는 7가지 방법</span>
   </h1>
   <p style="margin-top: 32px; font-size: 20px;">
-    Basic vs Advanced RAG 비교 데모
+    같은 질문, 같은 문서 → 검색 전략만 바꾸면 답변 품질이 달라진다
   </p>
-  <div style="margin-top: 48px; display: flex; gap: 12px;">
+  <div style="margin-top: 48px; display: flex; gap: 12px; flex-wrap: wrap;">
+    <span class="badge badge-blue">Basic</span>
     <span class="badge badge-purple">HyDE</span>
-    <span class="badge badge-green">Reranking</span>
-    <span class="badge badge-gold">비교 분석</span>
-    <span class="badge badge-blue">파이프라인 시각화</span>
+    <span class="badge badge-green">Rerank</span>
+    <span class="badge badge-gold">Advanced</span>
+    <span class="badge badge-gold">Hybrid</span>
+    <span class="badge badge-blue">Multi-Query</span>
+    <span class="badge badge-purple">Self-RAG</span>
+    <span class="badge badge-red">CRAG</span>
+    <span class="badge badge-gold">Adaptive</span>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 1: 목차 ═══ -->
+<!-- ═══ 1: RAG란 ═══ -->
 <div class="slide" data-slide="1">
-  <h2>목차</h2>
-  <div class="card-grid cols-4" style="max-width: 1100px;">
-    <div class="card">
-      <div class="icon-circle icon-gold">1</div>
-      <h4>Basic RAG 복습</h4>
-      <p class="small dim">한계점과 개선 방향</p>
-    </div>
-    <div class="card">
-      <div class="icon-circle icon-purple">2</div>
-      <h4>HyDE</h4>
-      <p class="small dim">가상 문서 임베딩</p>
-    </div>
-    <div class="card">
-      <div class="icon-circle icon-green">3</div>
-      <h4>Reranking</h4>
-      <p class="small dim">LLM 리랭킹</p>
-    </div>
-    <div class="card">
-      <div class="icon-circle icon-orange">4</div>
-      <h4>추가 기법</h4>
-      <p class="small dim">Hybrid, Multi-Query, Self-RAG, CRAG, Adaptive</p>
-    </div>
-    <div class="card">
-      <div class="icon-circle icon-blue">5</div>
-      <h4>구현</h4>
-      <p class="small dim">9가지 파이프라인</p>
-    </div>
-    <div class="card">
-      <div class="icon-circle icon-red">6</div>
-      <h4>비교 데모</h4>
-      <p class="small dim">아무 2개 모드 비교</p>
-    </div>
-    <div class="card">
-      <div class="icon-circle icon-gold">7</div>
-      <h4>회고</h4>
-      <p class="small dim">배운 점 + 다음 주</p>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 2: PART 1 — Basic RAG 복습 ═══ -->
-<div class="slide" data-slide="2">
-  <div class="section-num">01</div>
-  <h3>PART 1 — Basic RAG 복습</h3>
-  <h2>4주차에 만든 것</h2>
+  <h2>RAG = <span class="gold">검색</span> + <span class="green">생성</span></h2>
+  <p style="font-size: 24px; margin-bottom: 24px;">LLM한테 문서를 주고 답변하게 하는 것</p>
   <div class="pipeline">
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">Embed</div>
-      <div class="pipeline-label">질문을 벡터로 변환</div>
+      <div class="pipeline-box" style="border-color: var(--text); color: var(--text);">질문</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">Search</div>
-      <div class="pipeline-label">ChromaDB 벡터 검색</div>
+      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">문서에서 관련 부분 검색</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">Generate</div>
-      <div class="pipeline-label">LLM 답변 생성</div>
+      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">검색 결과 기반으로 LLM이 답변</div>
     </div>
   </div>
-  <p style="text-align: center; margin-top: 24px;">
-    질문을 임베딩 → 유사한 문서 청크 검색 → 컨텍스트와 함께 LLM에 전달
-  </p>
-  <p class="tiny" style="text-align: center; margin-top: 16px;">
-    단순하고 명확하지만... <strong class="gold">개선할 수 있는 부분이 있다</strong>
-  </p>
+  <div class="ex">
+    <strong>핵심:</strong> LLM이 자기 지식만으로 답하면 <strong class="red">할루시네이션</strong>(거짓말)을 한다.<br>
+    실제 문서를 찾아서 그 내용 기반으로 답하면 → <strong class="green">정확한 답변</strong>.<br><br>
+    그런데... <strong class="gold">검색을 얼마나 잘 하느냐</strong>에 따라 답변 품질이 완전히 달라진다.
+  </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 3: Basic RAG 한계 ═══ -->
-<div class="slide" data-slide="3">
-  <div class="section-num">01</div>
-  <h3>PART 1 — Basic RAG 복습</h3>
+<!-- ═══ 2: Basic RAG 한계 ═══ -->
+<div class="slide" data-slide="2">
   <h2>Basic RAG의 <span class="red">한계</span></h2>
   <div class="card-grid cols-3">
     <div class="card">
-      <div class="icon-circle icon-red">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      </div>
+      <div class="icon-circle icon-red">1</div>
       <h4 class="red">의미 격차</h4>
-      <p>질문은 <strong>"~란 무엇인가?"</strong> 형태<br>문서는 <strong>"~는 ~이다"</strong> 형태<br><br>임베딩 벡터의 방향이 다르다</p>
+      <p class="small">질문: <strong>"~란 무엇인가?"</strong> (의문문)<br>문서: <strong>"~는 ~이다"</strong> (서술문)<br><br>같은 내용인데 표현이 달라서 매칭이 안 됨</p>
     </div>
     <div class="card">
-      <div class="icon-circle icon-red">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18M3 8h18M3 12h12M3 16h8"/></svg>
-      </div>
-      <h4 class="red">순서 의존</h4>
-      <p>벡터 유사도 점수만으로 순위 결정<br><br>코사인 유사도가 높아도<br><strong>실제로 관련 없을 수 있음</strong></p>
+      <div class="icon-circle icon-red">2</div>
+      <h4 class="red">검색 순위 한계</h4>
+      <p class="small">코사인 유사도만으로 순위를 매기면<br>실제로 관련 없는 문서가<br>상위에 올 수 있음</p>
     </div>
     <div class="card">
-      <div class="icon-circle icon-red">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      </div>
-      <h4 class="red">정밀도 부족</h4>
-      <p>Top-5만 가져오면<br>좋은 청크를 놓칠 수 있음<br><br><strong>검색 범위가 좁다</strong></p>
+      <div class="icon-circle icon-red">3</div>
+      <h4 class="red">검색 범위 한계</h4>
+      <p class="small">상위 5개만 가져오면<br>6번째에 있는 좋은 문서를<br>놓칠 수 있음</p>
     </div>
   </div>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 4: Advanced RAG 개요 ═══ -->
-<div class="slide" data-slide="4">
-  <div class="section-num">01</div>
-  <h3>PART 1 — Basic RAG 복습</h3>
-  <h2>그래서 <span class="gold">Advanced RAG</span></h2>
-  <div class="card-grid cols-2" style="max-width: 900px;">
-    <div class="card" style="border-color: var(--purple);">
-      <h4 class="purple">HyDE</h4>
-      <p>Hypothetical Document Embeddings</p>
-      <p class="small" style="margin-top: 12px;">의미 격차 문제를 해결<br>→ 질문 대신 <strong>가상 답변</strong>을 임베딩</p>
-    </div>
-    <div class="card" style="border-color: var(--green);">
-      <h4 class="green">Reranking</h4>
-      <p>LLM 기반 검색 결과 재정렬</p>
-      <p class="small" style="margin-top: 12px;">순서 의존 + 정밀도 문제 해결<br>→ <strong>넓게 검색</strong>하고 LLM이 <strong>재평가</strong></p>
-    </div>
-  </div>
-  <p style="margin-top: 32px; text-align: center;">
-    이 두 기법을 결합하면 → <strong class="gold">Advanced RAG</strong>
+  <p style="margin-top: 24px; text-align: center;">
+    이 <strong class="red">3가지 문제</strong>를 각각 다른 방법으로 해결하는 게 <strong class="gold">Advanced RAG</strong>
   </p>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 5: PART 2 — HyDE 정의 ═══ -->
+<!-- ═══ 3: 9가지 한눈에 ═══ -->
+<div class="slide" data-slide="3">
+  <h2><span class="gold">9가지</span> 파이프라인</h2>
+  <table class="compare-table" style="font-size: 15px;">
+    <thead>
+      <tr><th>#</th><th>이름</th><th>한 줄 설명</th><th>해결하는 문제</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td><span class="blue bold">Basic</span></td><td>질문을 임베딩해서 검색</td><td>기준선 (baseline)</td></tr>
+      <tr><td>2</td><td><span class="purple bold">HyDE</span></td><td>가상 답변을 만들어서 검색</td><td>의미 격차</td></tr>
+      <tr><td>3</td><td><span class="green bold">Rerank</span></td><td>넓게 검색 후 LLM이 재정렬</td><td>검색 순위 + 범위</td></tr>
+      <tr><td>4</td><td><span class="gold bold">Advanced</span></td><td>HyDE + Rerank 결합</td><td>의미 격차 + 순위</td></tr>
+      <tr><td>5</td><td><span class="orange bold">Hybrid</span></td><td>벡터 검색 + 키워드 검색 병합</td><td>키워드 누락</td></tr>
+      <tr><td>6</td><td><span class="blue bold">Multi-Query</span></td><td>질문을 3가지로 변형해서 검색</td><td>검색 다양성</td></tr>
+      <tr><td>7</td><td><span class="purple bold">Self-RAG</span></td><td>답변 후 스스로 품질 평가</td><td>할루시네이션</td></tr>
+      <tr><td>8</td><td><span class="red bold">CRAG</span></td><td>검색 결과가 별로면 재검색</td><td>검색 실패</td></tr>
+      <tr><td>9</td><td><span class="gold bold">Adaptive</span></td><td>질문 복잡도에 따라 자동 선택</td><td>비용 최적화</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══ 4: Basic ═══ -->
+<div class="slide" data-slide="4">
+  <div class="section-num">01</div>
+  <h2><span class="blue">Basic RAG</span></h2>
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">질문 임베딩</div>
+      <div class="pipeline-label">질문 → 벡터</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">벡터 검색</div>
+      <div class="pipeline-label">유사한 문서 Top-5</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">LLM 답변</div>
+      <div class="pipeline-label">검색된 문서 기반</div>
+    </div>
+  </div>
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h4 class="green">장점</h4>
+      <p class="small">가장 빠르고 저렴<br>구현이 단순<br>대부분의 간단한 질문에 충분</p>
+    </div>
+    <div class="card">
+      <h4 class="red">한계</h4>
+      <p class="small">질문과 문서의 표현이 다르면 놓침<br>코사인 유사도 순서에만 의존<br>상위 5개 밖의 좋은 문서를 놓칠 수 있음</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 5: HyDE ═══ -->
 <div class="slide" data-slide="5">
   <div class="section-num">02</div>
   <div class="glow" style="background: var(--purple); top: -50px; right: -100px;"></div>
-  <h3>PART 2 — HyDE</h3>
-  <h2><span class="purple">HyDE</span>란?</h2>
-  <p style="font-size: 24px; margin-bottom: 32px;">
-    <strong>H</strong>ypothetical <strong>D</strong>ocument <strong>E</strong>mbeddings
-  </p>
-  <div class="card" style="max-width: 800px; border-color: var(--purple);">
-    <p style="font-size: 20px; line-height: 2;">
-      질문을 그대로 임베딩하지 않고,<br>
-      LLM이 <strong class="purple">가상의 답변</strong>을 먼저 생성한 뒤<br>
-      그 가상 답변을 임베딩하여 검색한다.
-    </p>
-    <p class="small dim" style="margin-top: 16px;">
-      Gao et al., 2022 — "Precise Zero-Shot Dense Retrieval without Relevance Labels"
-    </p>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 6: HyDE 동작 원리 ═══ -->
-<div class="slide" data-slide="6">
-  <div class="section-num">02</div>
-  <h3>PART 2 — HyDE</h3>
-  <h2>HyDE <span class="purple">동작 원리</span></h2>
+  <h2><span class="purple">HyDE</span> — 가상 문서 임베딩</h2>
+  <p style="margin-bottom: 16px;">질문 대신 <strong class="purple">LLM이 만든 가상의 답변</strong>을 임베딩해서 검색</p>
   <div class="pipeline">
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--text-dim); color: var(--text);">질문</div>
-      <div class="pipeline-label">"Transformer란?"</div>
+      <div class="pipeline-box" style="border-color: var(--purple); color: var(--purple); background: rgba(160,124,212,0.08);">LLM이 가상 답변 생성</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--purple); color: var(--purple); background: rgba(160,124,212,0.08);">HyDE 생성</div>
-      <div class="pipeline-label">LLM이 가상 답변 작성</div>
+      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">가상 답변 임베딩</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">Embed</div>
-      <div class="pipeline-label">가상 답변을 임베딩</div>
+      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">검색</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">Search</div>
-      <div class="pipeline-label">벡터 검색</div>
+      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">답변</div>
     </div>
   </div>
-  <div class="card-grid cols-2" style="margin-top: 24px;">
-    <div class="card">
-      <h4>질문 (원본)</h4>
-      <p class="small">"Transformer의 핵심 메커니즘은 무엇인가?"</p>
-      <p class="tiny" style="margin-top: 8px;">→ 의문문 형태의 벡터</p>
-    </div>
-    <div class="card" style="border-color: var(--purple);">
-      <h4 class="purple">가상 답변 (HyDE)</h4>
-      <p class="small">"Transformer는 Self-Attention 메커니즘을 사용하여 입력 시퀀스의 모든 위치를 동시에 참조합니다..."</p>
-      <p class="tiny" style="margin-top: 8px;">→ <strong class="purple">서술문 형태의 벡터 (문서와 유사!)</strong></p>
-    </div>
+  <div class="ex">
+    <strong>왜 효과적인가?</strong><br>
+    질문: "RAG란 무엇인가?" → <strong class="red">의문문 벡터</strong><br>
+    가상 답변: "RAG는 검색 증강 생성으로, 외부 문서를 검색하여..." → <strong class="purple">서술문 벡터</strong><br>
+    문서도 서술문이니까 → <strong class="green">서술문끼리 매칭이 더 잘 됨</strong>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 7: HyDE 효과 ═══ -->
-<div class="slide" data-slide="7">
-  <div class="section-num">02</div>
-  <h3>PART 2 — HyDE</h3>
-  <h2>왜 <span class="purple">효과적</span>인가?</h2>
-  <div style="max-width: 800px;">
-    <p style="margin-bottom: 24px;">벡터 공간에서의 거리 비교:</p>
-    <div class="gap-viz">
-      <div class="gap-dot" style="background: var(--red);"></div>
-      <span class="small" style="min-width: 80px;">질문 벡터</span>
-      <div class="gap-line"><div class="gap-line-inner"></div></div>
-      <span class="small red bold" style="min-width: 60px;">먼 거리</span>
-      <div class="gap-line"><div class="gap-line-inner"></div></div>
-      <span class="small" style="min-width: 80px;">문서 벡터</span>
-      <div class="gap-dot" style="background: var(--blue);"></div>
-    </div>
-    <div class="gap-viz" style="border-color: var(--purple);">
-      <div class="gap-dot" style="background: var(--purple);"></div>
-      <span class="small" style="min-width: 80px;">HyDE 벡터</span>
-      <div class="gap-line" style="max-width: 80px;"><div class="gap-line-inner"></div></div>
-      <span class="small purple bold" style="min-width: 60px;">가까움!</span>
-      <div class="gap-line" style="max-width: 80px;"><div class="gap-line-inner"></div></div>
-      <span class="small" style="min-width: 80px;">문서 벡터</span>
-      <div class="gap-dot" style="background: var(--blue);"></div>
-    </div>
-    <p class="small dim" style="margin-top: 24px;">
-      가상 답변은 <strong>서술문 형태</strong>이므로 실제 문서와 의미적으로 더 가깝다.<br>
-      → 코사인 유사도가 높아져 더 관련성 높은 청크가 검색된다.
-    </p>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 8: PART 3 — Reranking 정의 ═══ -->
-<div class="slide" data-slide="8">
+<!-- ═══ 6: Rerank ═══ -->
+<div class="slide" data-slide="6">
   <div class="section-num">03</div>
   <div class="glow" style="background: var(--green); bottom: -100px; left: -50px;"></div>
-  <h3>PART 3 — Reranking</h3>
-  <h2><span class="green">Reranking</span>이란?</h2>
-  <div class="card" style="max-width: 800px; border-color: var(--green);">
-    <p style="font-size: 20px; line-height: 2;">
-      벡터 검색 결과를 <strong>더 넓게</strong> 가져온 뒤,<br>
-      LLM이 각 청크의 <strong class="green">실제 관련성</strong>을 평가하여<br>
-      순서를 재정렬하는 기법.
-    </p>
-  </div>
-  <div style="margin-top: 32px;">
-    <p>왜 필요한가?</p>
-    <ul style="margin-top: 12px;">
-      <li>코사인 유사도는 <strong>"의미적 거리"</strong>만 측정 — 실제 관련성과 다를 수 있음</li>
-      <li>LLM은 질문과 문서를 <strong>읽고 이해</strong>하여 관련성을 판단</li>
-      <li>Top-5 대신 <strong>Top-20을 검색</strong>하고, 그 중 진짜 좋은 5개를 선별</li>
-    </ul>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 9: Reranker 동작 원리 ═══ -->
-<div class="slide" data-slide="9">
-  <div class="section-num">03</div>
-  <h3>PART 3 — Reranking</h3>
-  <h2>LLM Reranker <span class="green">동작 원리</span></h2>
-  <div class="pipeline" style="flex-wrap: wrap; gap: 16px;">
+  <h2><span class="green">Reranking</span> — LLM이 검색 결과 재정렬</h2>
+  <p style="margin-bottom: 16px;">넓게 검색(Top-20)한 뒤, LLM이 <strong class="green">실제 관련성을 점수(0~10)로 평가</strong>해서 재정렬</p>
+  <div class="pipeline">
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">Embed</div>
-      <div class="pipeline-label">질문 임베딩</div>
+      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">임베딩</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">Wide Search</div>
-      <div class="pipeline-label">Top-K × 4 = 20개</div>
+      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">Top-20 검색</div>
+      <div class="pipeline-label">넓게 가져오기</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--green); color: var(--green); background: rgba(124,196,124,0.08);">LLM Rerank</div>
-      <div class="pipeline-label">0~10점 평가</div>
+      <div class="pipeline-box" style="border-color: var(--green); color: var(--green); background: rgba(124,196,124,0.08);">LLM 리랭킹</div>
+      <div class="pipeline-label">각 문서에 0~10점</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
       <div class="pipeline-box" style="border-color: var(--text); color: var(--text);">Top-5 선택</div>
-      <div class="pipeline-label">상위 5개만</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">답변</div>
     </div>
   </div>
-  <div class="card" style="margin-top: 16px;">
-    <h4>LLM 응답 (JSON)</h4>
-    <pre style="margin-top: 12px;"><span class="cmt">// response_format: { type: "json_object" }</span>
-{
-  <span class="str">"results"</span>: [
-    { <span class="str">"index"</span>: <span class="num">0</span>, <span class="str">"score"</span>: <span class="num">9</span> },  <span class="cmt">// 매우 관련</span>
-    { <span class="str">"index"</span>: <span class="num">1</span>, <span class="str">"score"</span>: <span class="num">3</span> },  <span class="cmt">// 약간 관련</span>
-    { <span class="str">"index"</span>: <span class="num">2</span>, <span class="str">"score"</span>: <span class="num">8</span> },  <span class="cmt">// 관련 있음</span>
-    ...
-  ]
-}</pre>
+  <div class="ex">
+    <strong>핵심:</strong> 코사인 유사도는 "벡터 거리"만 보지만, LLM은 문서를 <strong>읽고 이해</strong>해서 판단한다.<br>
+    <span class="red">주의:</span> 처음 20개에 포함 안 된 문서는 살릴 수 없음 → 넓게 검색하는 게 중요
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 10: Reranker 한계 ═══ -->
-<div class="slide" data-slide="10">
-  <div class="section-num">03</div>
-  <h3>PART 3 — Reranking</h3>
-  <h2>Reranker의 <span class="red">한계</span></h2>
-  <div class="card" style="border-color: var(--red); max-width: 800px;">
-    <h4 class="red">초기 검색에 없으면 복구 불가능</h4>
-    <p style="margin-top: 12px;">
-      Reranker는 이미 검색된 결과만 <strong>재정렬</strong>한다.<br>
-      초기 벡터 검색에서 아예 포함되지 않은 좋은 청크는 살릴 수 없다.
-    </p>
-  </div>
-  <div style="margin-top: 32px;">
-    <p class="bold">보완 방법:</p>
-    <div class="card-grid cols-3" style="margin-top: 16px;">
-      <div class="card">
-        <h4 class="gold">넓은 초기 검색</h4>
-        <p class="small">Top-K × 4로 후보군을 넓힘<br>(5개 → 20개)</p>
-      </div>
-      <div class="card">
-        <h4 class="blue">Hybrid Search</h4>
-        <p class="small">벡터 + 키워드(BM25) 검색을 결합<br><span class="tiny">(이번 데모에서는 미구현)</span></p>
-      </div>
-      <div class="card">
-        <h4 class="purple">HyDE 결합</h4>
-        <p class="small">HyDE로 검색 품질을 먼저 높인 뒤<br>Reranking으로 정밀도 보강</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 11: PART 4 — Hybrid Search ═══ -->
-<div class="slide" data-slide="11">
+<!-- ═══ 7: Hybrid ═══ -->
+<div class="slide" data-slide="7">
   <div class="section-num">04</div>
-  <div class="glow" style="background: var(--orange); top: -100px; right: -100px;"></div>
-  <h3>PART 4 — 추가 기법</h3>
-  <h2><span class="orange">Hybrid Search</span></h2>
-  <p style="margin-bottom: 24px;">벡터 검색 + BM25 키워드 검색 → <strong>RRF 병합</strong></p>
-  <div class="pipeline">
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">Embed</div>
-    </div>
-    <div class="pipeline-arrow">→</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">Vector</div>
-    </div>
-    <div class="pipeline-arrow">+</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--orange); color: var(--orange);">BM25</div>
-    </div>
-    <div class="pipeline-arrow">→</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">RRF</div>
-    </div>
-    <div class="pipeline-arrow">→</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">Generate</div>
-    </div>
-  </div>
-  <div class="card-grid cols-2" style="margin-top: 16px;">
+  <h2><span class="orange">Hybrid Search</span> — 벡터 + 키워드 동시 검색</h2>
+  <div class="card-grid cols-2" style="margin-bottom: 20px;">
     <div class="card">
-      <h4 class="blue">벡터 검색</h4>
-      <p class="small">의미적으로 유사한 청크 검색<br><span class="tiny">"자동차 성능" → "차량 속도 향상"도 찾음</span></p>
+      <h4 class="blue">벡터 검색 (의미 기반)</h4>
+      <p class="small">"RAG 파이프라인" 검색 →<br>"검색 증강 생성 구조"도 찾아줌</p>
+      <p class="tiny" style="margin-top: 8px;">의미가 비슷하면 찾음<br>하지만 "ChromaDB" 같은 고유명사는 놓칠 수 있음</p>
     </div>
     <div class="card">
-      <h4 class="orange">BM25 키워드 검색</h4>
-      <p class="small">단어가 일치하는 청크 검색<br><span class="tiny">"Transformer" → 정확히 그 단어 포함</span></p>
+      <h4 class="orange">BM25 검색 (키워드 기반)</h4>
+      <p class="small">"ChromaDB" 검색 →<br>정확히 그 단어가 있는 문서만 찾음</p>
+      <p class="tiny" style="margin-top: 8px;">단어가 정확히 일치해야 찾음<br>"벡터 데이터베이스"로는 못 찾음</p>
     </div>
   </div>
-  <p class="tiny" style="margin-top: 12px; text-align: center;">
-    <strong>RRF (Reciprocal Rank Fusion)</strong>: 두 순위를 1/(k+rank)로 합산 → 양쪽에서 높은 문서가 최종 상위
+  <p style="text-align: center;">
+    <strong class="gold">Hybrid = 둘 다 검색하고 RRF로 병합</strong><br>
+    <span class="small dim">의미도 맞고 + 키워드도 맞는 문서가 상위로 올라옴</span>
   </p>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 12: Multi-Query ═══ -->
-<div class="slide" data-slide="12">
-  <div class="section-num">04</div>
-  <h3>PART 4 — 추가 기법</h3>
-  <h2><span class="blue">Multi-Query</span> RAG</h2>
-  <p style="margin-bottom: 24px;">질문을 3가지 관점으로 변형 → 각각 검색 → 합산</p>
+<!-- ═══ 8: Multi-Query ═══ -->
+<div class="slide" data-slide="8">
+  <div class="section-num">05</div>
+  <h2><span class="blue">Multi-Query</span> — 질문을 다양하게 바꿔서 검색</h2>
+  <p style="margin-bottom: 16px;">LLM이 원래 질문을 <strong class="blue">3가지 다른 표현</strong>으로 변형 → 각각 검색 → 합산</p>
   <div class="card" style="max-width: 800px; border-color: var(--blue);">
-    <h4>원래 질문</h4>
-    <p class="small">"Transformer의 핵심 메커니즘은?"</p>
+    <h4>원래 질문: "RAG에서 검색 품질을 높이는 방법은?"</h4>
     <div style="margin-top: 16px; border-top: 1px solid var(--stroke); padding-top: 16px;">
-      <h4 class="blue">LLM이 생성한 변형</h4>
-      <p class="small">1. "Transformer 아키텍처에서 가장 중요한 구성 요소는?"</p>
-      <p class="small">2. "Self-Attention이 Transformer에서 하는 역할은?"</p>
-      <p class="small">3. "Transformer가 RNN보다 뛰어난 이유는?"</p>
+      <h4 class="blue">LLM이 만든 변형</h4>
+      <p class="small">1. "RAG 파이프라인의 retrieval 성능을 개선하는 기법은?"</p>
+      <p class="small">2. "벡터 검색 결과의 정확도를 높이려면?"</p>
+      <p class="small">3. "LLM 기반 질의응답에서 문서 검색 최적화 방법은?"</p>
     </div>
   </div>
-  <p class="tiny" style="margin-top: 16px;">
-    4개 질문 × 각각 검색 → 중복 제거 → 다양한 관점의 소스 확보 → 더 풍부한 답변
+  <p style="margin-top: 16px;">
+    4번 검색 → 중복 제거 → <strong class="blue">다양한 표현으로 작성된 문서까지 발견</strong>
   </p>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 13: Self-RAG ═══ -->
-<div class="slide" data-slide="13">
-  <div class="section-num">04</div>
-  <h3>PART 4 — 추가 기법</h3>
-  <h2><span class="purple">Self-RAG</span></h2>
-  <p style="margin-bottom: 20px;">LLM이 스스로 판단하고, 평가하고, 교정한다</p>
-  <div class="pipeline" style="flex-wrap: wrap; gap: 12px;">
+<!-- ═══ 9: Self-RAG ═══ -->
+<div class="slide" data-slide="9">
+  <div class="section-num">06</div>
+  <div class="glow" style="background: var(--purple); top: -100px; right: -100px;"></div>
+  <h2><span class="purple">Self-RAG</span> — 스스로 평가하고 교정</h2>
+  <p style="margin-bottom: 16px;">답변을 생성한 뒤 LLM이 <strong class="purple">스스로 품질을 평가</strong>하고, 부족하면 재생성</p>
+  <div class="pipeline" style="gap: 12px;">
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--purple); color: var(--purple);">Judge</div>
-      <div class="pipeline-label">검색 필요?</div>
+      <div class="pipeline-box" style="border-color: var(--purple); color: var(--purple);">검색 필요?</div>
+      <div class="pipeline-label">LLM이 판단</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">Search</div>
+      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">검색+생성</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">Generate</div>
+      <div class="pipeline-box" style="border-color: var(--purple); color: var(--purple); background: rgba(160,124,212,0.08);">자가 평가</div>
+      <div class="pipeline-label">점수 0~10</div>
     </div>
     <div class="pipeline-arrow">→</div>
     <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">Evaluate</div>
-      <div class="pipeline-label">점수/근거 평가</div>
-    </div>
-    <div class="pipeline-arrow">→</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--red); color: var(--red);">Regenerate?</div>
-      <div class="pipeline-label">점수 < 6이면</div>
+      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">6점 이상 → 통과</div>
     </div>
   </div>
   <div class="card-grid cols-3" style="margin-top: 16px;">
     <div class="card">
-      <h4 class="purple">1. 검색 판단</h4>
-      <p class="small">이 질문에 외부 문서가 필요한가?</p>
+      <h4 class="purple">평가 기준 1</h4>
+      <p class="small">답변이 검색된 문서에<br><strong>근거하고 있는가?</strong></p>
     </div>
     <div class="card">
-      <h4 class="gold">2. 자체 평가</h4>
-      <p class="small">답변이 문서에 근거하는가?<br>점수: 0~10</p>
+      <h4 class="purple">평가 기준 2</h4>
+      <p class="small">질문에 <strong>정확히 답하고 있는가?</strong><br>빗나간 답변은 아닌가?</p>
     </div>
     <div class="card">
-      <h4 class="red">3. 재생성</h4>
-      <p class="small">품질 미달 시 피드백 반영하여 재생성</p>
+      <h4 class="red">6점 미만이면?</h4>
+      <p class="small">피드백을 반영해서<br><strong>답변을 재생성</strong></p>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 14: CRAG ═══ -->
-<div class="slide" data-slide="14">
-  <div class="section-num">04</div>
-  <h3>PART 4 — 추가 기법</h3>
-  <h2><span class="red">CRAG</span> — Corrective RAG</h2>
-  <p style="margin-bottom: 20px;">검색된 문서가 부족하면? → <strong>쿼리를 교정하고 재검색</strong></p>
-  <div class="pipeline" style="flex-wrap: wrap; gap: 12px;">
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--blue); color: var(--blue);">Search</div>
-    </div>
-    <div class="pipeline-arrow">→</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">Evaluate</div>
-      <div class="pipeline-label">문서 품질 판단</div>
-    </div>
-    <div class="pipeline-arrow">→</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--orange); color: var(--orange);">Refine</div>
-      <div class="pipeline-label">쿼리 수정</div>
-    </div>
-    <div class="pipeline-arrow">→</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--gold); color: var(--gold);">Re-search</div>
-    </div>
-    <div class="pipeline-arrow">→</div>
-    <div class="pipeline-step">
-      <div class="pipeline-box" style="border-color: var(--green); color: var(--green);">Generate</div>
-    </div>
-  </div>
-  <div class="card-grid cols-3" style="margin-top: 16px;">
+<!-- ═══ 10: CRAG ═══ -->
+<div class="slide" data-slide="10">
+  <div class="section-num">07</div>
+  <h2><span class="red">CRAG</span> — 검색 결과가 별로면 다시 찾기</h2>
+  <p style="margin-bottom: 16px;">Self-RAG가 <strong>답변</strong>을 평가한다면, CRAG는 <strong class="red">검색된 문서 자체</strong>를 평가</p>
+  <div class="card-grid cols-3" style="margin-bottom: 20px;">
     <div class="card" style="border-color: var(--green);">
       <h4 class="green">CORRECT</h4>
-      <p class="small">문서가 충분 → 바로 생성</p>
+      <p class="small">검색된 문서가<br>질문에 답하기 충분함<br>→ <strong>바로 답변 생성</strong></p>
     </div>
     <div class="card" style="border-color: var(--gold);">
       <h4 class="gold">AMBIGUOUS</h4>
-      <p class="small">부분적 → 쿼리 수정 후 재검색</p>
+      <p class="small">부분적으로 관련 있지만<br>충분하지 않음<br>→ <strong>쿼리 수정 후 재검색</strong></p>
     </div>
     <div class="card" style="border-color: var(--red);">
       <h4 class="red">INCORRECT</h4>
-      <p class="small">관련 없음 → 완전히 다른 쿼리로 재검색</p>
+      <p class="small">검색된 문서가<br>질문과 거의 관련 없음<br>→ <strong>완전히 다른 쿼리로 재검색</strong></p>
     </div>
   </div>
-  <p class="tiny" style="margin-top: 12px;">
-    Self-RAG는 <strong>답변</strong>을 평가, CRAG는 <strong>검색된 문서</strong>를 평가 — 평가 대상이 다르다
-  </p>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 15: Adaptive RAG ═══ -->
-<div class="slide" data-slide="15">
-  <div class="section-num">04</div>
-  <h3>PART 4 — 추가 기법</h3>
-  <h2><span class="gold">Adaptive RAG</span></h2>
-  <p style="margin-bottom: 20px;">질문 복잡도에 따라 <strong>파이프라인을 자동 선택</strong></p>
-  <div class="card" style="max-width: 800px; border-color: var(--gold);">
-    <table class="compare-table" style="margin-top: 0;">
-      <thead>
-        <tr><th>복잡도</th><th>예시</th><th>선택되는 파이프라인</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><span class="badge badge-green">SIMPLE</span></td>
-          <td>"Transformer란 무엇인가?"</td>
-          <td class="green">Basic RAG (빠르고 저렴)</td>
-        </tr>
-        <tr>
-          <td><span class="badge badge-gold">MODERATE</span></td>
-          <td>"RNN과 Transformer의 차이는?"</td>
-          <td class="gold">Rerank RAG (정밀도 향상)</td>
-        </tr>
-        <tr>
-          <td><span class="badge badge-red">COMPLEX</span></td>
-          <td>"Transformer를 적용할 때 고려사항은?"</td>
-          <td class="purple">Advanced RAG (HyDE + Rerank)</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="tiny" style="margin-top: 16px; text-align: center;">
-    모든 질문에 최고급 파이프라인을 쓸 필요 없다 → <strong>비용/시간 최적화</strong>
-  </p>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 16: PART 5 — 아키텍처 ═══ -->
-<div class="slide" data-slide="16">
-  <div class="section-num">05</div>
-  <div class="glow" style="background: var(--blue); top: -100px; right: -100px;"></div>
-  <h3>PART 5 — 구현</h3>
-  <h2>전체 <span class="blue">아키텍처</span></h2>
-  <div class="card-grid cols-2">
-    <div class="card">
-      <h4 class="blue">Frontend (Next.js :3000)</h4>
-      <pre style="font-size: 13px; padding: 16px; line-height: 1.6; border: none;">
-DocumentInput     문서 입력
-CollectionPanel   임베딩 관리
-ModeSelector      Left/Right 모드 선택
-QuestionInput     질문 입력
-CompareView       비교 결과
-  ├─ PipelineViz  단계 시각화 (14색상)
-  └─ AnswerCard   답변 + 모드별 미리보기</pre>
-    </div>
-    <div class="card">
-      <h4 class="gold">Backend (FastAPI :8000)</h4>
-      <pre style="font-size: 13px; padding: 16px; line-height: 1.6; border: none;">
-basic_pipeline      Basic RAG
-advanced_pipeline   HyDE/Rerank/Advanced
-hybrid_search       벡터+BM25+RRF
-multi_query_service 질문변형+다중검색
-self_rag_pipeline   자체평가+재생성
-crag_pipeline       검색교정+재검색
-adaptive_pipeline   복잡도→라우팅</pre>
-    </div>
-  </div>
-  <p class="tiny" style="margin-top: 16px; text-align: center;">
-    <code>POST /api/compare</code> → <code>mode_a</code>, <code>mode_b</code>로 아무 2개 모드 동시 비교
-  </p>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 17: 9가지 파이프라인 ═══ -->
-<div class="slide" data-slide="17">
-  <div class="section-num">05</div>
-  <h3>PART 5 — 구현</h3>
-  <h2><span class="gold">9가지</span> 파이프라인 모드</h2>
-  <table class="compare-table" style="font-size: 16px;">
-    <thead>
-      <tr><th>Mode</th><th>핵심</th><th>단계</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><span class="badge badge-blue">basic</span></td><td>Embed → Search → Generate</td><td>3</td></tr>
-      <tr><td><span class="badge badge-purple">hyde</span></td><td>가상 문서 임베딩 검색</td><td>4</td></tr>
-      <tr><td><span class="badge badge-green">rerank</span></td><td>Wide Search → LLM 리랭킹</td><td>4</td></tr>
-      <tr><td><span class="badge badge-gold">advanced</span></td><td>HyDE + Rerank 결합</td><td>5</td></tr>
-      <tr><td><span class="badge" style="background:rgba(212,160,124,0.15);color:var(--orange);">hybrid</span></td><td>벡터 + BM25 + RRF</td><td>5</td></tr>
-      <tr><td><span class="badge badge-blue">multi_query</span></td><td>질문 변형 × 4 검색</td><td>4</td></tr>
-      <tr><td><span class="badge badge-purple">self_rag</span></td><td>자체 평가 + 재생성</td><td>5~6</td></tr>
-      <tr><td><span class="badge badge-red">crag</span></td><td>검색 품질 교정</td><td>4~6</td></tr>
-      <tr><td><span class="badge badge-gold">adaptive</span></td><td>복잡도 → 자동 라우팅</td><td>4~6</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 18: Compare 엔드포인트 ═══ -->
-<div class="slide" data-slide="18">
-  <div class="section-num">05</div>
-  <h3>PART 5 — 구현</h3>
-  <h2>Compare <span class="gold">동시 실행</span></h2>
-  <pre style="max-width: 800px;">
-<span class="cmt"># POST /api/compare — 아무 2개 모드 비교</span>
-<span class="kw">async def</span> <span class="fn">compare</span>(req: CompareRequest):
-    runner_a = _RUNNERS[req.<span class="str">mode_a</span>]  <span class="cmt"># e.g. "self_rag"</span>
-    runner_b = _RUNNERS[req.<span class="str">mode_b</span>]  <span class="cmt"># e.g. "crag"</span>
-    a, b = <span class="kw">await</span> asyncio.<span class="fn">gather</span>(
-        <span class="fn">runner_a</span>(req.question, req.collection_name),
-        <span class="fn">runner_b</span>(req.question, req.collection_name),
-    )
-    <span class="kw">return</span> CompareResponse(basic=a, advanced=b)</pre>
-  <p class="tiny" style="margin-top: 16px; text-align: center;">
-    9가지 모드 중 아무 2개를 선택하여 동시 비교 — 36가지 조합 가능
-  </p>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 19: 핵심 코드 — HyDE ═══ -->
-<div class="slide" data-slide="19">
-  <div class="section-num">05</div>
-  <h3>PART 5 — 구현</h3>
-  <h2>핵심 코드: <span class="purple">hyde_service.py</span></h2>
-  <pre>
-HYDE_SYSTEM = (
-    <span class="str">"다음 질문에 대한 가상의 답변을 작성하세요. "</span>
-    <span class="str">"실제 문서에 있을 법한 정보성 텍스트를 2-3문장으로 작성하세요. "</span>
-    <span class="str">"확실하지 않은 내용은 포함하지 마세요."</span>
-)
-
-<span class="kw">async def</span> <span class="fn">generate_hypothetical</span>(question, model=<span class="str">"gpt-4o-mini"</span>):
-    <span class="kw">return await</span> <span class="fn">ask_short</span>(
-        system_prompt=HYDE_SYSTEM,
-        user_prompt=question,
-        model=model,
-        temperature=<span class="num">0.7</span>,   <span class="cmt"># 약간의 창의성</span>
-        max_tokens=<span class="num">200</span>,     <span class="cmt"># 2-3문장이면 충분</span>
-    )</pre>
-  <p class="tiny" style="margin-top: 12px;">
-    temperature 0.7로 다양한 표현의 가상 답변 생성 → max_tokens 200으로 비용 제한
-  </p>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 20: 핵심 코드 — Reranker ═══ -->
-<div class="slide" data-slide="20">
-  <div class="section-num">05</div>
-  <h3>PART 5 — 구현</h3>
-  <h2>핵심 코드: <span class="green">reranker_service.py</span></h2>
-  <pre style="font-size: 15px;">
-<span class="kw">async def</span> <span class="fn">rerank</span>(question, chunks, top_n=<span class="num">5</span>):
-    <span class="cmt"># 1. 각 청크를 LLM에게 보여주고 점수 요청</span>
-    chunk_texts = <span class="str">"\n\n"</span>.join(
-        f<span class="str">"[청크 {i}] {c['text'][:300]}"</span>
-        <span class="kw">for</span> i, c <span class="kw">in</span> enumerate(chunks)
-    )
-    content = <span class="kw">await</span> <span class="fn">ask_json</span>(RERANK_SYSTEM, user_msg)
-
-    <span class="cmt"># 2. JSON 파싱 → 점수 매핑</span>
-    data = json.<span class="fn">loads</span>(content)  <span class="cmt"># {"results": [{"index":0,"score":8}, ...]}</span>
-
-    <span class="cmt"># 3. 점수순 정렬 → 상위 top_n개 반환</span>
-    ranked = <span class="fn">sorted</span>(chunks, key=<span class="kw">lambda</span> c: c[<span class="str">"rerank_score"</span>], reverse=<span class="num">True</span>)
-    <span class="kw">return</span> ranked[:top_n]</pre>
-  <p class="tiny" style="margin-top: 12px;">
-    <code>response_format: json_object</code>로 안정적 JSON 응답 → 파싱 실패 시 원본 순서 유지 (fallback)
-  </p>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 21: PART 6 — 데모 화면 ═══ -->
-<div class="slide" data-slide="21">
-  <div class="section-num">06</div>
-  <div class="glow" style="background: var(--orange); bottom: -100px; right: -100px;"></div>
-  <h3>PART 6 — 비교 데모</h3>
-  <h2>데모 <span class="orange">화면 구성</span></h2>
-  <div class="card-grid cols-2">
-    <div class="card">
-      <h4>상단: 입력 영역</h4>
-      <p class="small">
-        1. 문서 입력 (샘플 선택 or 직접 입력)<br>
-        2. 임베딩 저장 → 컬렉션 생성<br>
-        3. 질문 입력 → Compare 실행
-      </p>
-    </div>
-    <div class="card">
-      <h4>하단: 비교 결과</h4>
-      <p class="small">
-        1. Summary Bar — 시간/비용/소스 차이<br>
-        2. Pipeline 시각화 — 단계별 색상 구분<br>
-        3. Answer Cards — 답변 나란히 비교
-      </p>
-    </div>
-  </div>
-  <div style="margin-top: 24px; display: flex; gap: 16px; align-items: center; justify-content: center;">
-    <div class="card" style="flex: 1; text-align: center; border-color: var(--blue);">
-      <p class="blue bold">Basic RAG</p>
-      <p class="small dim">3단계 파이프라인</p>
-      <p class="small dim">기본 답변</p>
-    </div>
-    <div class="vs-divider">VS</div>
-    <div class="card" style="flex: 1; text-align: center; border-color: var(--gold);">
-      <p class="gold bold">Advanced RAG</p>
-      <p class="small dim">5단계 파이프라인</p>
-      <p class="small dim">HyDE 미리보기 + Rerank 점수</p>
-    </div>
+  <div class="ex">
+    <strong>Self-RAG vs CRAG 차이:</strong><br>
+    Self-RAG: <strong>"내 답변이 맞나?"</strong> → 답변을 평가<br>
+    CRAG: <strong>"내가 찾은 문서가 맞나?"</strong> → 검색 결과를 평가
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 22: Basic vs Advanced 비교 ═══ -->
-<div class="slide" data-slide="22">
-  <div class="section-num">06</div>
-  <h3>PART 6 — 비교 데모</h3>
-  <h2>Basic vs Advanced <span class="gold">비교</span></h2>
+<!-- ═══ 11: Adaptive ═══ -->
+<div class="slide" data-slide="11">
+  <div class="section-num">08</div>
+  <h2><span class="gold">Adaptive RAG</span> — 질문 난이도별 자동 선택</h2>
+  <p style="margin-bottom: 16px;">LLM이 질문의 복잡도를 판단해서 <strong class="gold">적절한 파이프라인을 자동으로 선택</strong></p>
   <table class="compare-table">
     <thead>
-      <tr>
-        <th>항목</th>
-        <th><span class="blue">Basic RAG</span></th>
-        <th><span class="gold">Advanced RAG</span></th>
-      </tr>
+      <tr><th>복잡도</th><th>질문 예시</th><th>선택되는 파이프라인</th></tr>
     </thead>
     <tbody>
       <tr>
-        <td>검색 방식</td>
-        <td>질문 임베딩 → 코사인 유사도</td>
-        <td>가상 답변 임베딩 → 코사인 유사도</td>
+        <td><span class="badge badge-green">SIMPLE</span></td>
+        <td>"임베딩이란?"</td>
+        <td class="blue">Basic RAG — 빠르고 저렴하면 충분</td>
       </tr>
       <tr>
-        <td>검색 범위</td>
-        <td>Top-5</td>
-        <td>Top-20 → Rerank → Top-5</td>
+        <td><span class="badge badge-gold">MODERATE</span></td>
+        <td>"HyDE와 Reranking의 차이?"</td>
+        <td class="green">Rerank RAG — 비교 질문은 정밀도 필요</td>
       </tr>
       <tr>
-        <td>LLM 호출</td>
-        <td>1회 (Generate)</td>
-        <td>3회 (HyDE + Rerank + Generate)</td>
+        <td><span class="badge badge-red">COMPLEX</span></td>
+        <td>"대규모 문서에서 검색 품질과 비용을 모두 최적화하려면?"</td>
+        <td class="gold">Advanced RAG — 복잡한 추론 필요</td>
       </tr>
-      <tr>
-        <td>소요 시간</td>
-        <td class="green">빠름 (~2초)</td>
-        <td class="orange">느림 (~5초)</td>
-      </tr>
-      <tr>
-        <td>비용</td>
-        <td class="green">저렴</td>
-        <td class="orange">약 3배</td>
-      </tr>
-      <tr>
-        <td>검색 품질</td>
-        <td class="orange">벡터 유사도 의존</td>
-        <td class="green">의미 이해 기반</td>
-      </tr>
+    </tbody>
+  </table>
+  <p class="tiny" style="margin-top: 16px; text-align: center;">
+    핵심: 간단한 질문에 비싼 파이프라인을 쓸 필요 없다 → <strong>비용/시간 최적화</strong>
+  </p>
+</div>
+
+<!-- ═══ 12: 비교표 ═══ -->
+<div class="slide" data-slide="12">
+  <h2>전체 <span class="gold">비교</span></h2>
+  <table class="compare-table" style="font-size: 15px;">
+    <thead>
+      <tr><th>기법</th><th>속도</th><th>비용</th><th>품질</th><th>해결하는 문제</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="blue bold">Basic</td><td class="green">빠름</td><td class="green">저렴</td><td>보통</td><td>기준선 — 단순 질문에 충분</td></tr>
+      <tr><td class="purple bold">HyDE</td><td>보통</td><td>보통</td><td class="green">높음</td><td>질문↔문서 표현 방식 차이</td></tr>
+      <tr><td class="green bold">Rerank</td><td>보통</td><td>보통</td><td class="green">높음</td><td>검색 순위의 부정확성</td></tr>
+      <tr><td class="gold bold">Advanced</td><td class="red">느림</td><td class="red">비쌈</td><td class="green bold">최고</td><td>의미 격차 + 순위 문제 동시 해결</td></tr>
+      <tr><td class="orange bold">Hybrid</td><td class="green">빠름</td><td class="green">저렴</td><td class="green">높음</td><td>키워드/고유명사 누락</td></tr>
+      <tr><td class="blue bold">Multi-Query</td><td class="red">느림</td><td>보통</td><td class="green">높음</td><td>단일 질문의 검색 한계</td></tr>
+      <tr><td class="purple bold">Self-RAG</td><td class="red">느림</td><td class="red">비쌈</td><td class="green bold">최고</td><td>할루시네이션 방지</td></tr>
+      <tr><td class="red bold">CRAG</td><td class="red">느림</td><td class="red">비쌈</td><td class="green bold">최고</td><td>검색 실패 대응</td></tr>
+      <tr><td class="gold bold">Adaptive</td><td class="green">상황별</td><td class="green">상황별</td><td class="green">상황별</td><td>비용/시간 최적화</td></tr>
     </tbody>
   </table>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 23: 소스 변화 ═══ -->
-<div class="slide" data-slide="23">
-  <div class="section-num">06</div>
-  <h3>PART 6 — 비교 데모</h3>
-  <h2>검색 결과 <span class="gold">변화 예시</span></h2>
-  <div class="card-grid cols-2">
+<!-- ═══ 13: 언제 뭘 쓸까 ═══ -->
+<div class="slide" data-slide="13">
+  <h2>언제 <span class="gold">뭘 쓸까?</span></h2>
+  <div class="card-grid cols-2" style="max-width: 900px;">
     <div class="card">
-      <h4 class="blue">Basic RAG 소스</h4>
-      <div style="margin-top: 12px;">
-        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-          <span class="tiny" style="min-width: 40px;">#1</span>
-          <div class="score-bar" style="width: 85%; background: rgba(91,155,213,0.2); color: var(--blue);">유사도 0.85</div>
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-          <span class="tiny" style="min-width: 40px;">#2</span>
-          <div class="score-bar" style="width: 78%; background: rgba(91,155,213,0.15); color: var(--blue);">유사도 0.78</div>
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-          <span class="tiny" style="min-width: 40px;">#3</span>
-          <div class="score-bar" style="width: 72%; background: rgba(91,155,213,0.1); color: var(--blue);">유사도 0.72</div>
-        </div>
-      </div>
-      <p class="tiny" style="margin-top: 8px;">코사인 유사도 순서 = 최종 순서</p>
-    </div>
-    <div class="card" style="border-color: var(--gold);">
-      <h4 class="gold">Advanced RAG 소스</h4>
-      <div style="margin-top: 12px;">
-        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-          <span class="tiny" style="min-width: 40px;">#7</span>
-          <div class="score-bar" style="width: 90%; background: rgba(124,196,124,0.2); color: var(--green);">rerank 0.90</div>
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-          <span class="tiny" style="min-width: 40px;">#1</span>
-          <div class="score-bar" style="width: 80%; background: rgba(124,196,124,0.15); color: var(--green);">rerank 0.80</div>
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-          <span class="tiny" style="min-width: 40px;">#12</span>
-          <div class="score-bar" style="width: 70%; background: rgba(124,196,124,0.1); color: var(--green);">rerank 0.70</div>
-        </div>
-      </div>
-      <p class="tiny" style="margin-top: 8px;">HyDE + Rerank → <strong class="gold">순서가 완전히 달라짐</strong></p>
-    </div>
-  </div>
-  <p class="tiny" style="text-align: center; margin-top: 16px;">
-    Basic에서 3위였던 #7이 Advanced에서 <strong class="green">1위</strong>로! 넓은 검색(#12) + 의미 기반 재평가의 효과
-  </p>
-</div>
-
-<!-- ═══════════════════════════════════════════ SLIDE 24: PART 7 — 회고 ═══ -->
-<div class="slide" data-slide="24">
-  <div class="section-num">07</div>
-  <div class="glow" style="background: var(--red); top: -100px; left: -100px;"></div>
-  <h3>PART 7 — 회고</h3>
-  <h2>배운 점</h2>
-  <div class="card-grid cols-3">
-    <div class="card">
-      <div class="icon-circle icon-purple">1</div>
-      <h4>1세대 → 2세대 RAG</h4>
-      <p class="small">HyDE/Rerank은 1세대 개선<br>Self-RAG/CRAG는 <strong>스스로 판단</strong>하는 2세대</p>
+      <h4 class="red">"검색은 되는데 엉뚱한 게 나와"</h4>
+      <p class="small" style="margin-top: 8px;">
+        → <strong class="purple">HyDE</strong>: 질문과 문서의 표현이 다를 때<br>
+        → <strong class="green">Rerank</strong>: 순서가 이상할 때<br>
+        → <strong class="gold">Advanced</strong>: 둘 다일 때
+      </p>
     </div>
     <div class="card">
-      <div class="icon-circle icon-green">2</div>
-      <h4>평가 대상의 차이</h4>
-      <p class="small">Self-RAG: <strong>답변</strong> 품질 평가<br>CRAG: <strong>검색 문서</strong> 품질 평가</p>
+      <h4 class="red">"좋은 문서가 아예 안 나와"</h4>
+      <p class="small" style="margin-top: 8px;">
+        → <strong class="orange">Hybrid</strong>: 특정 용어/이름을 놓칠 때<br>
+        → <strong class="blue">Multi-Query</strong>: 질문 표현이 제한적일 때<br>
+        → <strong class="red">CRAG</strong>: 검색 자체가 실패할 때
+      </p>
     </div>
     <div class="card">
-      <div class="icon-circle icon-gold">3</div>
-      <h4>Adaptive = 실용</h4>
-      <p class="small">모든 질문에 최고급 불필요<br>→ 복잡도별 자동 라우팅</p>
+      <h4 class="red">"답변을 신뢰할 수 없어"</h4>
+      <p class="small" style="margin-top: 8px;">
+        → <strong class="purple">Self-RAG</strong>: AI가 스스로 답변 품질을 평가+교정
+      </p>
+    </div>
+    <div class="card">
+      <h4 class="red">"매번 어떤 기법 쓸지 고르기 귀찮아"</h4>
+      <p class="small" style="margin-top: 8px;">
+        → <strong class="gold">Adaptive</strong>: AI가 질문 난이도 판단해서 자동 선택
+      </p>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ SLIDE 25: 마무리 ═══ -->
-<div class="slide" data-slide="25">
-  <div class="glow" style="background: var(--gold); bottom: -100px; right: -100px;"></div>
-  <h2>마무리</h2>
-  <div class="card-grid cols-2" style="max-width: 800px;">
+<!-- ═══ 14: 핵심 메시지 ═══ -->
+<div class="slide" data-slide="14">
+  <div class="glow" style="background: var(--gold); top: -100px; left: -100px;"></div>
+  <h2>핵심 정리</h2>
+  <div class="card-grid cols-2" style="max-width: 900px;">
+    <div class="card" style="border-color: var(--purple);">
+      <h4>1. 검색 품질 = 답변 품질</h4>
+      <p class="small">LLM이 아무리 똑똑해도<br>잘못된 문서를 주면 잘못 답한다<br><strong class="purple">좋은 검색이 좋은 답변을 만든다</strong></p>
+    </div>
     <div class="card" style="border-color: var(--gold);">
-      <h4 class="gold">이번 주 핵심</h4>
-      <p class="small">
-        <strong>9가지 RAG 기법</strong> 비교 데모<br><br>
-        1세대: HyDE, Rerank, Hybrid, Multi-Query<br>
-        2세대: Self-RAG, CRAG, Adaptive<br>
-        → 품질/비용/시간 Trade-off 체험
-      </p>
+      <h4>2. 만능 기법은 없다</h4>
+      <p class="small">빠름 ↔ 정확, 저렴 ↔ 고품질<br>항상 Trade-off가 존재<br><strong class="gold">상황에 맞게 선택하는 게 핵심</strong></p>
     </div>
-    <div class="card">
-      <h4>다음 주 예고</h4>
-      <p class="small">
-        <strong class="blue">6주차: Streamlit UI</strong><br><br>
-        Streamlit을 활용한<br>
-        인터랙티브 RAG 데모 구축
-      </p>
+    <div class="card" style="border-color: var(--green);">
+      <h4>3. AI가 스스로 판단하기 시작</h4>
+      <p class="small">Basic~Rerank: 시키는 대로 실행<br>Self-RAG/CRAG: <strong class="green">스스로 판단하고 교정</strong><br>→ Agentic RAG로 진화하는 중</p>
     </div>
-  </div>
-  <div style="margin-top: 48px; display: flex; gap: 12px; flex-wrap: wrap;">
-    <span class="badge badge-purple">HyDE = 의미 격차 해소</span>
-    <span class="badge badge-green">Self-RAG = 자체 평가</span>
-    <span class="badge badge-red">CRAG = 검색 교정</span>
-    <span class="badge badge-gold">Adaptive = 자동 라우팅</span>
+    <div class="card" style="border-color: var(--blue);">
+      <h4>4. 기법은 레고처럼 조합 가능</h4>
+      <p class="small">HyDE + Rerank = Advanced<br>Hybrid + Self-RAG도 가능<br><strong class="blue">필요한 블록만 골라서 조립</strong></p>
+    </div>
   </div>
 </div>
 
 </div><!-- /slide-container -->
 
-<!-- Navigation -->
 <div class="nav">
   <div class="nav-info">
-    <span id="slideNum">1</span> / <span id="totalSlides">26</span>
+    <span id="slideNum">1</span> / <span id="totalSlides">15</span>
   </div>
   <div class="progress-bar">
     <div class="progress-fill" id="progressFill"></div>
@@ -1027,7 +517,6 @@ HYDE_SYSTEM = (
   const slides = document.querySelectorAll('.slide');
   const totalSlides = slides.length;
   let current = 0;
-
   document.getElementById('totalSlides').textContent = totalSlides;
 
   function showSlide(n) {
@@ -1036,32 +525,22 @@ HYDE_SYSTEM = (
     current = n;
     slides[current].classList.add('active');
     document.getElementById('slideNum').textContent = current + 1;
-    document.getElementById('progressFill').style.width =
-      ((current + 1) / totalSlides * 100) + '%';
+    document.getElementById('progressFill').style.width = ((current + 1) / totalSlides * 100) + '%';
   }
 
   showSlide(0);
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight' || e.key === ' ') {
-      e.preventDefault();
-      showSlide(current + 1);
-    } else if (e.key === 'ArrowLeft') {
-      showSlide(current - 1);
-    } else if (e.key === 'Home') {
-      showSlide(0);
-    } else if (e.key === 'End') {
-      showSlide(totalSlides - 1);
-    }
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); showSlide(current + 1); }
+    else if (e.key === 'ArrowLeft') { showSlide(current - 1); }
+    else if (e.key === 'Home') { showSlide(0); }
+    else if (e.key === 'End') { showSlide(totalSlides - 1); }
   });
 
   document.addEventListener('click', (e) => {
     if (e.target.closest('.nav')) return;
-    if (e.clientX > window.innerWidth / 2) {
-      showSlide(current + 1);
-    } else {
-      showSlide(current - 1);
-    }
+    if (e.clientX > window.innerWidth / 2) showSlide(current + 1);
+    else showSlide(current - 1);
   });
 </script>
 
