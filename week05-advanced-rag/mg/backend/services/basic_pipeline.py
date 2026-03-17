@@ -6,17 +6,7 @@ Question → Embed → Vector Search → LLM Generate
 from services.embedding_service import embed_single
 from services import vector_store
 from services.llm_service import ask_with_context
-
-SYSTEM_PROMPT = (
-    "다음 문서를 참고하여 질문에 답변하세요. "
-    "문서에 없는 내용은 '문서에 해당 정보가 없습니다'라고 답하세요."
-)
-
-
-def _format_context(chunks: list[dict]) -> str:
-    return "\n\n".join(
-        f"[{i + 1}] {c['text']}" for i, c in enumerate(chunks)
-    )
+from services.rag_utils import SYSTEM_PROMPT, format_context, chunks_from_results
 
 
 async def run_basic_rag(
@@ -38,10 +28,7 @@ async def run_basic_rag(
 
     # Step 2: Vector search
     results, search_ms = vector_store.search(collection_name, query_emb, top_k)
-    chunks = [
-        {"index": r.index, "text": r.text, "score": round(r.score, 4)}
-        for r in results
-    ]
+    chunks = chunks_from_results(results)
     steps.append({
         "name": "search",
         "label": "벡터 검색",
@@ -50,7 +37,7 @@ async def run_basic_rag(
     })
 
     # Step 3: Generate
-    context = _format_context(chunks)
+    context = format_context(chunks)
     llm_result = await ask_with_context(
         question, context, model, system_prompt=SYSTEM_PROMPT
     )

@@ -34,6 +34,11 @@ from services.advanced_pipeline import (
     run_rerank_rag,
     run_advanced_rag,
 )
+from services.hybrid_search import run_hybrid_rag
+from services.multi_query_service import run_multi_query_rag
+from services.self_rag_pipeline import run_self_rag
+from services.crag_pipeline import run_crag
+from services.adaptive_pipeline import run_adaptive_rag
 from data.samples import SAMPLES
 
 app = FastAPI(title="Advanced RAG Demo")
@@ -153,6 +158,11 @@ _RUNNERS = {
     "hyde": run_hyde_rag,
     "rerank": run_rerank_rag,
     "advanced": run_advanced_rag,
+    "hybrid": run_hybrid_rag,
+    "multi_query": run_multi_query_rag,
+    "self_rag": run_self_rag,
+    "crag": run_crag,
+    "adaptive": run_adaptive_rag,
 }
 
 
@@ -166,6 +176,13 @@ def _to_response(result: dict) -> RagResponse:
         total_tokens=result["total_tokens"],
         mode=result.get("mode", "basic"),
         hyde_query=result.get("hyde_query"),
+        generated_queries=result.get("generated_queries"),
+        self_eval=result.get("self_eval"),
+        corrective_action=result.get("corrective_action"),
+        eval_verdict=result.get("eval_verdict"),
+        selected_pipeline=result.get("selected_pipeline"),
+        complexity=result.get("complexity"),
+        classify_reason=result.get("classify_reason"),
     )
 
 
@@ -180,27 +197,25 @@ async def rag(req: RagRequest):
             model=req.model,
         )
         return _to_response(result)
-    except Exception as e:
-        raise HTTPException(500, detail=str(e))
+    except Exception:
+        raise HTTPException(500, detail="RAG 파이프라인 실행 중 오류가 발생했습니다")
 
 
-# ─── Compare (basic vs advanced, run simultaneously) ───
+# ─── Compare (any two modes, run simultaneously) ───
 
 
 @app.post("/api/compare", response_model=CompareResponse)
 async def compare(req: CompareRequest):
+    runner_a = _RUNNERS.get(req.mode_a, run_basic_rag)
+    runner_b = _RUNNERS.get(req.mode_b, run_advanced_rag)
     try:
-        basic_result, advanced_result = await asyncio.gather(
-            run_basic_rag(
-                req.question, req.collection_name, req.top_k, req.model
-            ),
-            run_advanced_rag(
-                req.question, req.collection_name, req.top_k, req.model
-            ),
+        result_a, result_b = await asyncio.gather(
+            runner_a(req.question, req.collection_name, req.top_k, req.model),
+            runner_b(req.question, req.collection_name, req.top_k, req.model),
         )
         return CompareResponse(
-            basic=_to_response(basic_result),
-            advanced=_to_response(advanced_result),
+            basic=_to_response(result_a),
+            advanced=_to_response(result_b),
         )
-    except Exception as e:
-        raise HTTPException(500, detail=str(e))
+    except Exception:
+        raise HTTPException(500, detail="Compare 실행 중 오류가 발생했습니다")

@@ -8,3 +8,4 @@ langchain-text-splitters
 tiktoken
 chromadb
 scikit-learn
+rank-bm25

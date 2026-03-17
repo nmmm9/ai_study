@@ -52,7 +52,7 @@ async def ask_with_context(
     cost = _calc_cost(usage, model)
 
     return LLMResponse(
-        answer=response.choices[0].message.content,
+        answer=response.choices[0].message.content or "",
         prompt_tokens=usage.prompt_tokens,
         completion_tokens=usage.completion_tokens,
         total_tokens=usage.total_tokens,
@@ -86,7 +86,7 @@ async def ask_json(
     usage = response.usage
     cost = round(_calc_cost(usage, model), 6)
 
-    return response.choices[0].message.content, elapsed_ms, cost
+    return response.choices[0].message.content or "{}", elapsed_ms, cost
 
 
 async def ask_short(
@@ -113,4 +113,4 @@ async def ask_short(
     usage = response.usage
     cost = round(_calc_cost(usage, model), 6)
 
-    return response.choices[0].message.content, elapsed_ms, cost
+    return response.choices[0].message.content or "", elapsed_ms, cost

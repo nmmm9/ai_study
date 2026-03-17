@@ -73,6 +73,13 @@ class RagResponse(BaseModel):
     total_tokens: int
     mode: str
     hyde_query: str | None = None
+    generated_queries: list[str] | None = None
+    self_eval: dict | None = None
+    corrective_action: str | None = None
+    eval_verdict: str | None = None
+    selected_pipeline: str | None = None
+    complexity: str | None = None
+    classify_reason: str | None = None
 
 
 class CompareRequest(BaseModel):
@@ -80,6 +87,8 @@ class CompareRequest(BaseModel):
     collection_name: str
     top_k: int = 5
     model: str = "gpt-4o-mini"
+    mode_a: str = "basic"
+    mode_b: str = "advanced"
 
 
 class CompareResponse(BaseModel):

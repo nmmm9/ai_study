@@ -6,6 +6,7 @@ import type {
   CollectionItem,
   EmbedResult,
   CompareResult,
+  RagMode,
 } from "@/types/rag";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -19,6 +20,9 @@ export function useAdvancedRag() {
   const [isEmbedding, setIsEmbedding] = useState(false);
 
   const [collections, setCollections] = useState<CollectionItem[]>([]);
+
+  const [modeA, setModeA] = useState<RagMode>("basic");
+  const [modeB, setModeB] = useState<RagMode>("advanced");
 
   const [compareResult, setCompareResult] = useState<CompareResult | null>(
     null
@@ -136,6 +140,8 @@ export function useAdvancedRag() {
             collection_name: embedResult.collection_name,
             top_k: 5,
             model: selectedModel,
+            mode_a: modeA,
+            mode_b: modeB,
           }),
         });
         if (!res.ok) throw new Error("Compare failed");
@@ -147,7 +153,7 @@ export function useAdvancedRag() {
         setIsComparing(false);
       }
     },
-    [embedResult, selectedModel]
+    [embedResult, selectedModel, modeA, modeB]
   );
 
   return {
@@ -155,6 +161,10 @@ export function useAdvancedRag() {
     setDocument,
     selectedModel,
     setSelectedModel,
+    modeA,
+    setModeA,
+    modeB,
+    setModeB,
     samples,
     fetchSamples,
     loadSample,

@@ -7,15 +7,16 @@ import AnswerCard from "./AnswerCard";
 interface Props {
   result: CompareResult | null;
   isLoading: boolean;
+  labelA: string;
+  labelB: string;
 }
 
-export default function CompareView({ result, isLoading }: Props) {
+export default function CompareView({ result, isLoading, labelA, labelB }: Props) {
   if (!result && !isLoading) return null;
 
-  const basicSteps = result?.basic.steps ?? null;
-  const advancedSteps = result?.advanced.steps ?? null;
+  const stepsA = result?.basic.steps ?? null;
+  const stepsB = result?.advanced.steps ?? null;
 
-  // Summary comparison
   const showSummary = result && !isLoading;
   const timeDiff = showSummary
     ? result.advanced.timing.total_ms - result.basic.timing.total_ms
@@ -66,12 +67,12 @@ export default function CompareView({ result, isLoading }: Props) {
       {/* Pipeline comparison */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="mb-2 text-xs text-pearl-muted">Basic Pipeline</p>
-          <PipelineViz steps={basicSteps} isLoading={isLoading} />
+          <p className="mb-2 text-xs text-pearl-muted">{labelA} Pipeline</p>
+          <PipelineViz steps={stepsA} isLoading={isLoading} />
         </div>
         <div>
-          <p className="mb-2 text-xs text-pearl-muted">Advanced Pipeline</p>
-          <PipelineViz steps={advancedSteps} isLoading={isLoading} />
+          <p className="mb-2 text-xs text-pearl-muted">{labelB} Pipeline</p>
+          <PipelineViz steps={stepsB} isLoading={isLoading} />
         </div>
       </div>
 
@@ -81,11 +82,13 @@ export default function CompareView({ result, isLoading }: Props) {
           result={result?.basic ?? null}
           isLoading={isLoading}
           variant="basic"
+          label={labelA}
         />
         <AnswerCard
           result={result?.advanced ?? null}
           isLoading={isLoading}
           variant="advanced"
+          label={labelB}
         />
       </div>
     </div>

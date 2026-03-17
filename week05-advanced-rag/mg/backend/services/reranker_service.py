@@ -60,10 +60,12 @@ async def rerank(
         for i in range(len(chunks)):
             score_map[i] = len(chunks) - i
 
-    # Attach rerank scores
-    for i, chunk in enumerate(chunks):
-        chunk["rerank_score"] = round(score_map.get(i, 0) / 10.0, 4)
+    # Build scored copies (avoid mutating caller's list)
+    scored = [
+        {**chunk, "rerank_score": round(score_map.get(i, 0) / 10.0, 4)}
+        for i, chunk in enumerate(chunks)
+    ]
 
     # Sort by rerank score descending
-    ranked = sorted(chunks, key=lambda c: c.get("rerank_score", 0), reverse=True)
+    ranked = sorted(scored, key=lambda c: c.get("rerank_score", 0), reverse=True)
     return ranked[:top_n], elapsed_ms, cost

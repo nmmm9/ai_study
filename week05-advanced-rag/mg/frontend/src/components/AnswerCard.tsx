@@ -6,23 +6,23 @@ interface Props {
   result: RagResponse | null;
   isLoading: boolean;
   variant: "basic" | "advanced";
+  label?: string;
 }
 
 const VARIANT_STYLES = {
   basic: {
     border: "border-pearl-muted/20",
     badge: "bg-pearl/10 text-pearl-dim",
-    label: "Basic RAG",
   },
   advanced: {
     border: "border-gold/30",
     badge: "bg-gold/15 text-gold",
-    label: "Advanced RAG",
   },
 };
 
-export default function AnswerCard({ result, isLoading, variant }: Props) {
+export default function AnswerCard({ result, isLoading, variant, label }: Props) {
   const style = VARIANT_STYLES[variant];
+  const displayLabel = label ?? (variant === "basic" ? "Basic RAG" : "Advanced RAG");
 
   return (
     <div
@@ -31,7 +31,7 @@ export default function AnswerCard({ result, isLoading, variant }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stroke px-5 py-3">
         <span className={`rounded-lg px-2.5 py-1 text-xs font-medium ${style.badge}`}>
-          {style.label}
+          {displayLabel}
         </span>
         {result && (
           <div className="flex gap-3 text-[11px] text-pearl-muted">
@@ -60,6 +60,61 @@ export default function AnswerCard({ result, isLoading, variant }: Props) {
                 </p>
                 <p className="text-xs leading-relaxed text-pearl-muted line-clamp-3">
                   {result.hyde_query}
+                </p>
+              </div>
+            )}
+
+            {/* Multi-Query preview */}
+            {result.generated_queries && result.generated_queries.length > 0 && (
+              <div className="mb-4 rounded-xl border border-info/20 bg-info/5 p-3">
+                <p className="mb-1 text-[11px] font-medium text-info">
+                  생성된 질문 변형
+                </p>
+                {result.generated_queries.map((q, i) => (
+                  <p key={i} className="text-xs leading-relaxed text-pearl-muted">
+                    {i + 1}. {q}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* Self-RAG eval */}
+            {result.self_eval && (
+              <div className="mb-4 rounded-xl border border-gold/20 bg-gold/5 p-3">
+                <p className="mb-1 text-[11px] font-medium text-gold">
+                  자체 평가: {result.self_eval.score}/10
+                  {result.self_eval.grounded ? " (근거 기반)" : " (근거 부족)"}
+                </p>
+                <p className="text-xs leading-relaxed text-pearl-muted line-clamp-2">
+                  {result.self_eval.feedback}
+                </p>
+              </div>
+            )}
+
+            {/* CRAG verdict */}
+            {result.eval_verdict && (
+              <div className={`mb-4 rounded-xl border p-3 ${
+                result.eval_verdict === "CORRECT"
+                  ? "border-good/20 bg-good/5"
+                  : result.eval_verdict === "AMBIGUOUS"
+                    ? "border-gold/20 bg-gold/5"
+                    : "border-red-400/20 bg-red-400/5"
+              }`}>
+                <p className={`text-[11px] font-medium ${
+                  result.eval_verdict === "CORRECT" ? "text-good"
+                    : result.eval_verdict === "AMBIGUOUS" ? "text-gold" : "text-red-400"
+                }`}>
+                  문서 품질: {result.eval_verdict}
+                  {result.corrective_action && ` → 교정 수행`}
+                </p>
+              </div>
+            )}
+
+            {/* Adaptive routing */}
+            {result.complexity && result.selected_pipeline && (
+              <div className="mb-4 rounded-xl border border-purple/20 bg-purple/5 p-3">
+                <p className="text-[11px] font-medium text-purple">
+                  복잡도: {result.complexity} → {result.selected_pipeline} 파이프라인 선택
                 </p>
               </div>
             )}

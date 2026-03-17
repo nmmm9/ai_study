@@ -8,6 +8,15 @@ const STEP_COLORS: Record<string, string> = {
   search: "border-gold/50 bg-gold/8 text-gold",
   rerank: "border-good/50 bg-good/8 text-good",
   generate: "border-pearl/30 bg-pearl/5 text-pearl-dim",
+  bm25: "border-orange-400/50 bg-orange-400/8 text-orange-400",
+  rrf: "border-gold/50 bg-gold/8 text-gold",
+  multi_query: "border-info/50 bg-info/8 text-info",
+  judge: "border-purple/50 bg-purple/8 text-purple",
+  evaluate: "border-gold/50 bg-gold/8 text-gold",
+  regenerate: "border-good/50 bg-good/8 text-good",
+  refine: "border-orange-400/50 bg-orange-400/8 text-orange-400",
+  re_search: "border-gold/50 bg-gold/8 text-gold",
+  classify: "border-purple/50 bg-purple/8 text-purple",
 };
 
 function formatTime(ms: number): string {

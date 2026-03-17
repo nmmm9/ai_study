@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useAdvancedRag } from "@/hooks/useAdvancedRag";
+import { RAG_MODES } from "@/types/rag";
 import DocumentInput from "@/components/DocumentInput";
 import CollectionPanel from "@/components/CollectionPanel";
 import QuestionInput from "@/components/QuestionInput";
@@ -13,6 +14,10 @@ export default function Home() {
     setDocument,
     selectedModel,
     setSelectedModel,
+    modeA,
+    setModeA,
+    modeB,
+    setModeB,
     samples,
     fetchSamples,
     loadSample,
@@ -33,6 +38,9 @@ export default function Home() {
     fetchCollections();
   }, [fetchSamples, fetchCollections]);
 
+  const modeALabel = RAG_MODES.find((m) => m.value === modeA)?.label ?? modeA;
+  const modeBLabel = RAG_MODES.find((m) => m.value === modeB)?.label ?? modeB;
+
   return (
     <div className="relative min-h-screen bg-base">
       {/* Ambient glow */}
@@ -51,7 +59,7 @@ export default function Home() {
               Advanced RAG
             </h1>
             <p className="mt-0.5 text-[11px] tracking-wide text-pearl-muted">
-              Basic vs Advanced RAG 비교 데모 — HyDE + Reranking
+              9가지 RAG 파이프라인 비교 데모
             </p>
           </div>
           <select
@@ -87,41 +95,64 @@ export default function Home() {
           onDelete={deleteCollection}
         />
 
+        {/* Mode selector */}
+        {!!embedResult && (
+          <div className="rounded-xl border border-stroke bg-base-50 p-5">
+            <p className="mb-3 text-xs font-medium text-pearl-dim">
+              비교할 파이프라인 선택
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="mb-1 block text-[10px] uppercase tracking-wider text-pearl-muted">
+                  Left
+                </label>
+                <select
+                  value={modeA}
+                  onChange={(e) => setModeA(e.target.value as typeof modeA)}
+                  disabled={isComparing}
+                  className="w-full appearance-none rounded-lg border border-stroke bg-base-100 px-3 py-2 text-sm text-pearl-dim transition-all hover:border-stroke-hover focus:border-gold-dim focus:outline-none disabled:opacity-30"
+                >
+                  {RAG_MODES.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label} — {m.desc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <span className="mt-5 text-lg font-bold text-gold">VS</span>
+              <div className="flex-1">
+                <label className="mb-1 block text-[10px] uppercase tracking-wider text-pearl-muted">
+                  Right
+                </label>
+                <select
+                  value={modeB}
+                  onChange={(e) => setModeB(e.target.value as typeof modeB)}
+                  disabled={isComparing}
+                  className="w-full appearance-none rounded-lg border border-stroke bg-base-100 px-3 py-2 text-sm text-pearl-dim transition-all hover:border-stroke-hover focus:border-gold-dim focus:outline-none disabled:opacity-30"
+                >
+                  {RAG_MODES.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label} — {m.desc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
         <QuestionInput
           onSubmit={compare}
           disabled={isComparing}
           hasCollection={!!embedResult}
         />
 
-        {/* Method info */}
-        {!!embedResult && !compareResult && !isComparing && (
-          <div className="rounded-xl border border-stroke bg-base-50 p-5">
-            <p className="mb-3 text-xs font-medium text-pearl-dim">
-              비교 방식
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg border border-pearl-muted/20 bg-base-100 p-4">
-                <p className="mb-1 text-sm font-medium text-pearl-dim">
-                  Basic RAG
-                </p>
-                <p className="text-xs text-pearl-muted">
-                  질문 임베딩 → 벡터 검색 (Top-5) → LLM 생성
-                </p>
-              </div>
-              <div className="rounded-lg border border-gold/30 bg-gold/5 p-4">
-                <p className="mb-1 text-sm font-medium text-gold">
-                  Advanced RAG (HyDE + Reranking)
-                </p>
-                <p className="text-xs text-pearl-muted">
-                  HyDE 생성 → 가상 문서 임베딩 → 벡터 검색 (Top-20) → LLM
-                  리랭킹 → Top-5 → LLM 생성
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <CompareView result={compareResult} isLoading={isComparing} />
+        <CompareView
+          result={compareResult}
+          isLoading={isComparing}
+          labelA={modeALabel}
+          labelB={modeBLabel}
+        />
       </main>
     </div>
   );
