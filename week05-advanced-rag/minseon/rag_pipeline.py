@@ -35,6 +35,7 @@ from services.embedding_service import embed_texts, EMBEDDING_MODEL
 from services.vector_store import VectorStore
 from services.llm_service import stream_response, CHAT_MODEL
 from services.query_service import generate_queries
+from services.query_classifier import classify_query
 from services.reranker_service import rerank
 from services.compression_service import compress_context
 from services.cost_tracker import CostTracker
@@ -49,14 +50,20 @@ _WEEK04_DATA = os.path.join(os.path.dirname(__file__), "..", "..", "week04-rag-p
 DATA_DIR = _WEEK05_DATA if os.path.exists(_WEEK05_DATA) and os.listdir(_WEEK05_DATA) else _WEEK04_DATA
 
 # ── 시스템 프롬프트 ────────────────────────────────────────────
-_BASE_RULES = """
-## 답변 규칙
-1. 반드시 아래 [참고 문서]에 있는 내용만 근거로 사용하세요.
-2. 각 정보 뒤에 반드시 **[출처: 파일명]** 형식으로 출처를 표시하세요.
-3. 문서에 없는 내용은 "해당 정보는 보유 문서에서 찾을 수 없습니다"라고 안내하세요.
-4. 금액·나이·기간 등 수치 정보는 문서 내용을 정확하게 전달하세요.
-5. 이전 대화 내용도 참고하여 자연스러운 대화를 이어가세요.
-6. 신청 방법 안내 시 반드시 공식 신청 링크를 [신청하기](URL) 형식으로 포함하세요.
+SYSTEM_PROMPT_TEMPLATE = """당신은 청년 정책 전문 AI 상담사 '청년도우미'입니다.
+청년을 위한 정부 지원 정책(주거·취업·금융·교육·복지)을 아래 참고 문서에 기반해 정확하고 친절하게 안내합니다.
+
+## 답변 방식
+- 사용자의 상황을 파악해 관련 정책을 먼저 제시하고, 자격 조건 → 지원 내용 → 신청 방법 순으로 구체적으로 설명하세요.
+- 참고 문서에 관련 정책이 여러 개라면 모두 나열해 비교해주세요.
+- 이전 대화 내용을 반드시 참고해 자연스럽게 이어서 답변하세요.
+
+## 답변 규칙 (반드시 준수)
+1. 반드시 아래 [참고 문서]에 있는 내용만 근거로 사용하세요. 추측하지 마세요.
+2. 금액·나이·기간·소득 기준 등 수치는 문서에 명시된 그대로만 전달하세요. 임의로 계산하거나 변형하지 마세요.
+3. 문서에 없는 내용은 반드시 "해당 정보는 보유 문서에서 확인되지 않습니다. 공식 기관에 문의하세요."라고 답하세요.
+4. 각 정보 뒤에 반드시 **[출처: 파일명]** 형식으로 출처를 표시하세요.
+5. 신청 방법 안내 시 반드시 공식 신청 링크를 [신청하기](URL) 형식으로 포함하세요.
    주요 신청 포털:
    - 복지로(복지 전반): https://www.bokjiro.go.kr
    - 청년포털(청년 정책 통합): https://www.youthcenter.go.kr
@@ -64,25 +71,21 @@ _BASE_RULES = """
    - 워크넷(취업 지원): https://www.work.go.kr
    - 한국장학재단(국가장학금): https://www.kosaf.go.kr
    - 청년도약계좌·청년희망적금: https://ylaccount.kinfa.or.kr
+6. 여러 정책이 해당될 경우 표(markdown table)로 비교해 제시하세요.
+7. 답변 마지막에 사용자가 추가로 확인할 만한 관련 질문을 1~2개 제안하세요.
+8. 청년정책과 관련없는 내용을 물어봤을땐 관련없는 내용입니다라고 대답하세요. 
 
 ## 참고 문서
 {context}
 """
 
-SYSTEM_PROMPT_TEMPLATE = (
-    "당신은 청년 정책 전문 AI 상담사 '청년도우미'입니다.\n"
-    "청년을 위한 정부 지원 정책(주거·취업·금융·교육·복지)을 아래 참고 문서에 기반해 정확하고 친절하게 안내합니다.\n\n"
-    "## 답변 방식\n"
-    "- 사용자의 상황을 파악해 관련 정책을 먼저 제시하고, 자격 조건 → 지원 내용 → 신청 방법 순으로 구체적으로 설명하세요.\n"
-    "- 참고 문서에 관련 정책이 여러 개라면 모두 나열해 비교해주세요.\n"
-    "- 이전 대화 내용을 반드시 참고해 자연스럽게 이어서 답변하세요.\n"
-    + _BASE_RULES
-)
-
 SYSTEM_PROMPT_NO_DOC = """당신은 청년 정책 전문 AI 상담사 '청년도우미'입니다.
+
 현재 인덱싱된 문서에서 관련 내용을 찾지 못했습니다.
-일반적인 지식으로 최선을 다해 답변하되, 정확한 정보를 위해 공식 기관 확인을 권장해주세요.
-한국어로 답변합니다."""
+임의로 정보를 만들어내지 말고, 아래와 같이 안내하세요:
+- 어떤 공식 기관에서 확인할 수 있는지 알려주세요.
+- 관련 공식 포털 링크를 [바로가기](URL) 형식으로 제공하세요.
+- 한국어로 답변합니다."""
 
 
 class AdvancedRagPipeline:
@@ -98,6 +101,7 @@ class AdvancedRagPipeline:
         self.conversation: list[dict] = []
 
         # UI 시각화용 중간 결과 저장
+        self._last_query_type: str = "single"
         self._last_queries: list[str] = []
         self._last_candidates: list[dict] = []
         self._last_hits: list[dict] = []
@@ -140,7 +144,17 @@ class AdvancedRagPipeline:
     # ── Pre-retrieval ─────────────────────────────────────────
 
     def _generate_queries(self, user_message: str, tracker: CostTracker) -> list[str]:
-        """[Pre-retrieval] Multi-query Generation"""
+        """
+        [Pre-retrieval] 질문 유형 분류 후 검색 전략 결정
+
+        single → 원본 질문 1개만 사용 (API 절약)
+        multi  → Multi-query Generation (3개 쿼리로 확장)
+        """
+        query_type = classify_query(user_message, tracker=tracker)
+        self._last_query_type = query_type
+
+        if query_type == "single":
+            return [user_message]
         return generate_queries(user_message, self.conversation, tracker=tracker)
 
     # ── Retrieval ─────────────────────────────────────────────

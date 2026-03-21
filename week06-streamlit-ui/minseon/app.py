@@ -1,13 +1,14 @@
 """
-6주차: Streamlit UI + 세션 관리 + 웹 기반 RAG 서비스
+6주차: Streamlit UI + 세션 관리 + 웹 기반 RAG 서비스 (데모용)
 
 [5주차 대비 추가된 기능]
   1. 멀티 세션: 대화 여러 개를 독립적으로 관리 (생성·전환·삭제)
   2. 세션 영속: sessions.json에 자동 저장 → 서버 재시작 후에도 대화 유지
   3. 세션 이름 변경: 인라인 편집
   4. 대화 내보내기: 세션 내용을 마크다운 파일로 다운로드
-  5. 파일 업로드 개선: 드래그앤드롭 + 진행 상태 표시
+  5. 파일 업로드: 드래그앤드롭 + 진행 상태 표시
   6. 누적 비용 대시보드: 세션별 비용 비교 탭
+  7. 파이프라인 구조 탭: 단계별 실행 결과 시각화
 
 [세션 전환 원리]
   전환 전: 현재 messages + rag.conversation → SessionManager에 저장
@@ -44,7 +45,11 @@ def _render_source_cards(hits: list[dict]):
         sim       = hit["similarity"]
         chunk_idx = hit["metadata"]["chunk_index"]
         badge     = " 🗜️" if hit.get("compressed") else ""
-        items.append(f'<span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:2px 7px;font-size:10px;color:#64748b;margin-right:4px;">{source}{badge} {sim:.0%} #{chunk_idx}</span>')
+        items.append(
+            f'<span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;'
+            f'padding:2px 7px;font-size:10px;color:#64748b;margin-right:4px;">'
+            f'{source}{badge} {sim:.0%} #{chunk_idx}</span>'
+        )
     tooltip_content = "".join(items)
     st.markdown(
         f'''<div style="margin-top:4px;position:relative;display:inline-block;">
@@ -110,17 +115,9 @@ st.markdown("""
     padding: 10px 14px; margin-bottom: 6px;
     background: white; cursor: pointer;
   }
-  .session-card.active {
-    border-color: #2563eb; background: #eff6ff;
-  }
+  .session-card.active { border-color: #2563eb; background: #eff6ff; }
   .session-name { font-weight: 700; font-size: 14px; color: #111827; }
   .session-meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
-  .cost-badge {
-    display: inline-block;
-    background: #f0fdf4; border: 1px solid #86efac;
-    border-radius: 6px; padding: 2px 8px;
-    font-size: 11px; color: #166534; font-weight: 600;
-  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -128,34 +125,32 @@ st.markdown("""
 # ── 세션 상태 초기화 ───────────────────────────────────────────
 
 def _init_state():
-    if "sm" not in st.session_state:
+    if "sm"           not in st.session_state:
         st.session_state.sm = SessionManager(SESSIONS_PATH)
-    if "rag" not in st.session_state:
+    if "rag"          not in st.session_state:
         st.session_state.rag = AdvancedRagPipeline()
-    if "active_sid" not in st.session_state:
+    if "active_sid"   not in st.session_state:
         st.session_state.active_sid = None
-    if "messages" not in st.session_state:
+    if "messages"     not in st.session_state:
         st.session_state.messages = []
     if "auto_indexed" not in st.session_state:
         st.session_state.auto_indexed = False
-    if "rename_sid" not in st.session_state:
+    if "rename_sid"   not in st.session_state:
         st.session_state.rename_sid = None
 
 
 _init_state()
 
-sm: SessionManager       = st.session_state.sm
+sm:  SessionManager      = st.session_state.sm
 rag: AdvancedRagPipeline = st.session_state.rag
 
 
 # ── 세션 전환 ──────────────────────────────────────────────────
 
 def switch_session(new_sid: str):
-    """현재 세션 저장 후 새 세션으로 전환"""
     cur = st.session_state.active_sid
     if cur:
         sm.save_messages(cur, st.session_state.messages, rag.conversation)
-
     session = sm.get(new_sid)
     st.session_state.messages = list(session["messages"])
     rag.conversation = list(session["conversation"])
@@ -163,7 +158,6 @@ def switch_session(new_sid: str):
 
 
 def new_session():
-    """새 세션 생성 후 전환"""
     cur = st.session_state.active_sid
     if cur:
         sm.save_messages(cur, st.session_state.messages, rag.conversation)
@@ -204,7 +198,6 @@ with st.sidebar:
 
     # ── 세션 목록 ──────────────────────────────────────────────
     st.markdown("### 💬 대화 목록")
-
     if st.button("＋ 새 대화", use_container_width=True, type="primary"):
         new_session()
         st.rerun()
@@ -221,7 +214,6 @@ with st.sidebar:
         col_main, col_act = st.columns([5, 1])
 
         with col_main:
-            # 이름 수정 모드
             if st.session_state.rename_sid == sid:
                 new_name = st.text_input(
                     "이름 변경", value=session["name"],
@@ -272,73 +264,62 @@ with st.sidebar:
 
     st.divider()
 
-    # ── 관리자 모드 (기본 숨김) ────────────────────────────────
-    with st.expander("🔧 관리자 설정", expanded=False):
-        admin_pw = st.text_input("관리자 비밀번호", type="password", key="admin_pw")
-        is_admin = admin_pw == "admin1234"
+    # ── 문서 관리 ──────────────────────────────────────────────
+    st.markdown("### 📂 문서 관리")
+    uploaded = st.file_uploader(
+        "MD / TXT / PDF 업로드",
+        type=["md", "txt", "pdf"],
+        label_visibility="visible",
+    )
+    if uploaded:
+        if st.button("인덱싱 시작", type="primary", use_container_width=True):
+            import tempfile
+            suffix = os.path.splitext(uploaded.name)[1]
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(uploaded.read())
+                tmp_path = tmp.name
+            with st.spinner(f"'{uploaded.name}' 처리 중..."):
+                result = rag.index_document(tmp_path, source_name=uploaded.name)
+            os.remove(tmp_path)
+            st.success(f"완료! {result['chunks']}개 청크 ({result['chars']:,}자)")
+            st.rerun()
 
-        if is_admin:
-            st.success("관리자 모드 활성화")
+    sources = rag.get_indexed_sources()
+    if sources:
+        for src in sources:
+            c1, c2 = st.columns([3, 1])
+            c1.markdown(f"**{src['source']}**  \n`{src['chunks']}청크`")
+            if c2.button("삭제", key=f"delsrc_{src['source']}", use_container_width=True):
+                rag.delete_source(src["source"])
+                st.rerun()
+    else:
+        st.caption("인덱싱된 문서 없음")
 
-            # 문서 관리
-            st.markdown("#### 📂 문서 관리")
-            uploaded = st.file_uploader(
-                "MD / TXT / PDF 업로드",
-                type=["md", "txt", "pdf"],
-                label_visibility="visible",
-            )
-            if uploaded:
-                if st.button("인덱싱 시작", type="primary", use_container_width=True):
-                    import tempfile
-                    suffix = os.path.splitext(uploaded.name)[1]
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                        tmp.write(uploaded.read())
-                        tmp_path = tmp.name
-                    with st.spinner(f"'{uploaded.name}' 처리 중..."):
-                        result = rag.index_document(tmp_path, source_name=uploaded.name)
-                    os.remove(tmp_path)
-                    st.success(f"완료! {result['chunks']}개 청크 ({result['chars']:,}자)")
-                    st.rerun()
+    st.divider()
 
-            sources = rag.get_indexed_sources()
-            if sources:
-                for src in sources:
-                    c1, c2 = st.columns([3, 1])
-                    c1.markdown(f"**{src['source']}**  \n`{src['chunks']}청크`")
-                    if c2.button("삭제", key=f"delsrc_{src['source']}", use_container_width=True):
-                        rag.delete_source(src["source"])
-                        st.rerun()
-            else:
-                st.caption("인덱싱된 문서 없음")
+    # ── 검색 설정 ──────────────────────────────────────────────
+    st.markdown("### ⚙️ 검색 설정")
+    top_k           = st.slider("top-k", 1, 8, 5)
+    threshold       = st.slider("유사도 임계값", 0.0, 1.0, 0.2, step=0.05)
+    max_per_source  = st.slider("문서당 최대 청크", 1, 3, 2)
+    use_compression = st.checkbox("Context Compression", value=True)
+    show_sources    = st.checkbox("출처 카드 표시", value=True)
+    show_pipeline   = st.checkbox("파이프라인 단계 표시", value=False)
 
-            st.markdown("#### ⚙️ 검색 설정")
-            top_k          = st.slider("top-k", 1, 8, 5)
-            threshold      = st.slider("유사도 임계값", 0.0, 1.0, 0.2, step=0.05)
-            max_per_source = st.slider("문서당 최대 청크", 1, 3, 2)
-            use_compression = st.checkbox("Context Compression", value=True)
-            show_sources   = st.checkbox("출처 카드 표시", value=True)
-            show_pipeline  = st.checkbox("파이프라인 단계 표시", value=False)
+    st.divider()
 
-            st.markdown("#### 📊 통계")
-            stats = rag.get_stats()
-            c1, c2 = st.columns(2)
-            c1.metric("문서", f"{stats['total_documents']}개")
-            c2.metric("청크", f"{stats['total_chunks']}개")
-        else:
-            # 관리자 아닐 때 기본값 고정
-            top_k           = 5
-            threshold       = 0.2
-            max_per_source  = 2
-            use_compression = True
-            show_sources    = True
-            show_pipeline   = False
-            sources         = rag.get_indexed_sources()
+    # ── 통계 ───────────────────────────────────────────────────
+    st.markdown("### 📊 통계")
+    stats = rag.get_stats()
+    c1, c2 = st.columns(2)
+    c1.metric("문서", f"{stats['total_documents']}개")
+    c2.metric("청크", f"{stats['total_chunks']}개")
 
     active_session = sm.get(st.session_state.active_sid)
     if active_session:
         usd = active_session["total_cost_usd"]
         st.markdown(
-            f"<span style='font-size:13px;font-weight:700;color:#166534'>"
+            f"<span style='font-size:13px;font-weight:700;color:#166534;'>"
             f"세션 비용: ${usd:.5f} (₩{usd*1380:.1f})</span>",
             unsafe_allow_html=True,
         )
@@ -370,16 +351,11 @@ with st.sidebar:
 active_session = sm.get(st.session_state.active_sid)
 session_name   = active_session["name"] if active_session else "대화"
 
-if st.session_state.get("admin_pw") == "admin1234":
-    tab_chat, tab_dashboard, tab_pipeline = st.tabs([
-        f"💬 {session_name}",
-        "📊 비용 대시보드",
-        "⚙️ 파이프라인 구조",
-    ])
-else:
-    tab_chat = st.container()
-    tab_dashboard = None
-    tab_pipeline  = None
+tab_chat, tab_dashboard, tab_pipeline = st.tabs([
+    f"💬 {session_name}",
+    "📊 비용 대시보드",
+    "⚙️ 파이프라인 구조",
+])
 
 
 # ════════════════════════════════════════════════════════════════
@@ -389,18 +365,15 @@ else:
 with tab_chat:
     st.header(f"💬 {session_name}")
 
-
     if not sources:
         st.info("왼쪽 사이드바에서 문서를 업로드하거나, data/ 폴더에 파일을 넣고 재시작하세요.")
 
-    # 이전 대화 출력
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
             if msg.get("hits") and show_sources:
-                _render_source_cards(msg["hits"]) if "hits" in msg else None
+                _render_source_cards(msg["hits"])
 
-    # ── 사용자 입력 ─────────────────────────────────────────────
     user_input = st.chat_input(
         "질문을 입력하세요... (예: 청년도약계좌 자격이 뭐야?)" if sources
         else "먼저 사이드바에서 문서를 업로드하세요",
@@ -408,18 +381,15 @@ with tab_chat:
     )
 
     if user_input:
-        # 첫 번째 질문이면 세션 이름 자동 지정
         if len(st.session_state.messages) == 0:
             words = user_input.replace("?", "").replace("？", "").strip()
             auto_name = words[:20] + ("…" if len(words) > 20 else "")
             sm.rename(st.session_state.active_sid, auto_name)
 
-        # 사용자 메시지 추가
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
             st.write(user_input)
 
-        # AI 응답 스트리밍
         with st.chat_message("assistant"):
             full_response = st.write_stream(
                 rag.chat_stream(
@@ -435,24 +405,20 @@ with tab_chat:
         cost_summary = rag._last_cost_summary
         usage_result = rag._last_usage
 
-        # 출처 카드
         if hits_result and show_sources:
             with st.chat_message("assistant"):
                 _render_source_cards(hits_result)
                 _render_cost_badge(cost_summary)
 
-        # 파이프라인 단계
         if show_pipeline:
             _render_pipeline(rag)
 
-        # 메시지 저장
         st.session_state.messages.append({
             "role":    "assistant",
             "content": full_response,
             "hits":    hits_result,
         })
 
-        # 세션 데이터 업데이트
         sm.add_cost(
             st.session_state.active_sid,
             cost_summary.get("total_cost_usd", 0),
@@ -467,44 +433,47 @@ with tab_chat:
 
 
 # ════════════════════════════════════════════════════════════════
-# 탭 2, 3: 관리자 전용
+# 탭 2: 비용 대시보드
 # ════════════════════════════════════════════════════════════════
 
-if tab_dashboard is not None:
-    with tab_dashboard:
-        st.header("📊 세션별 비용 대시보드")
-        all_sessions = sm.list()
-        if not all_sessions:
-            st.info("대화를 시작하면 비용이 여기에 표시됩니다.")
-        else:
-            total_usd = sum(s["total_cost_usd"] for s in all_sessions)
-            total_in  = sum(s["total_tokens"]["input"] for s in all_sessions)
-            total_out = sum(s["total_tokens"]["output"] for s in all_sessions)
-            total_q   = sum(len([m for m in s["messages"] if m["role"] == "user"]) for s in all_sessions)
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("전체 누적 비용", f"${total_usd:.5f}")
-            c2.metric("원화 환산",      f"₩{total_usd*1380:.1f}")
-            c3.metric("총 질문 수",     f"{total_q}개")
-            c4.metric("총 토큰",        f"{total_in+total_out:,}")
-            st.divider()
-            st.subheader("세션별 상세")
-            for s in all_sessions:
-                q_count = len([m for m in s["messages"] if m["role"] == "user"])
-                avg     = s["total_cost_usd"] / q_count if q_count else 0
-                is_cur  = "👈 현재" if s["id"] == st.session_state.active_sid else ""
-                with st.expander(f"**{s['name']}** {is_cur}  —  ${s['total_cost_usd']:.5f}"):
-                    cc1, cc2, cc3, cc4 = st.columns(4)
-                    cc1.metric("질문 수",     f"{q_count}개")
-                    cc2.metric("총 비용",     f"${s['total_cost_usd']:.5f}")
-                    cc3.metric("질문당 평균", f"${avg:.5f}")
-                    cc4.metric("원화",        f"₩{s['total_cost_usd']*1380:.1f}")
-                    tok = s["total_tokens"]
-                    st.caption(f"입력: {tok['input']:,} / 출력: {tok['output']:,} / 생성일: {s['created_at'][:10]}")
+with tab_dashboard:
+    st.header("📊 세션별 비용 대시보드")
+    all_sessions = sm.list()
+    if not all_sessions:
+        st.info("대화를 시작하면 비용이 여기에 표시됩니다.")
+    else:
+        total_usd = sum(s["total_cost_usd"] for s in all_sessions)
+        total_in  = sum(s["total_tokens"]["input"] for s in all_sessions)
+        total_out = sum(s["total_tokens"]["output"] for s in all_sessions)
+        total_q   = sum(len([m for m in s["messages"] if m["role"] == "user"]) for s in all_sessions)
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("전체 누적 비용", f"${total_usd:.5f}")
+        c2.metric("원화 환산",      f"₩{total_usd*1380:.1f}")
+        c3.metric("총 질문 수",     f"{total_q}개")
+        c4.metric("총 토큰",        f"{total_in+total_out:,}")
+        st.divider()
+        st.subheader("세션별 상세")
+        for s in all_sessions:
+            q_count = len([m for m in s["messages"] if m["role"] == "user"])
+            avg     = s["total_cost_usd"] / q_count if q_count else 0
+            is_cur  = "👈 현재" if s["id"] == st.session_state.active_sid else ""
+            with st.expander(f"**{s['name']}** {is_cur}  —  ${s['total_cost_usd']:.5f}"):
+                cc1, cc2, cc3, cc4 = st.columns(4)
+                cc1.metric("질문 수",     f"{q_count}개")
+                cc2.metric("총 비용",     f"${s['total_cost_usd']:.5f}")
+                cc3.metric("질문당 평균", f"${avg:.5f}")
+                cc4.metric("원화",        f"₩{s['total_cost_usd']*1380:.1f}")
+                tok = s["total_tokens"]
+                st.caption(f"입력: {tok['input']:,} / 출력: {tok['output']:,} / 생성일: {s['created_at'][:10]}")
 
-if tab_pipeline is not None:
-    with tab_pipeline:
-        st.header("⚙️ Advanced RAG 파이프라인 구조")
-        st.markdown("""
+
+# ════════════════════════════════════════════════════════════════
+# 탭 3: 파이프라인 구조
+# ════════════════════════════════════════════════════════════════
+
+with tab_pipeline:
+    st.header("⚙️ Advanced RAG 파이프라인 구조")
+    st.markdown("""
 ```
 질문 → classify → single/multi
   ↓
@@ -517,16 +486,20 @@ if tab_pipeline is not None:
 ④ Generation: LLM 스트리밍
 ```
 """)
-        st.divider()
-        st.subheader("6주차 추가 기능")
-        st.markdown("""
+    st.divider()
+    st.subheader("6주차 추가 기능")
+    st.markdown("""
 | 기능 | 설명 |
 |---|---|
 | **멀티 세션** | 여러 대화 독립 관리, 자유롭게 전환 |
 | **세션 영속** | sessions.json 자동 저장 |
-| **관리자 모드** | 문서 관리·검색 설정 숨김 |
 | **비용 대시보드** | 세션별 비용·토큰 비교 |
 | **싱글홉/멀티홉** | 질문 유형 자동 분류 |
+| **파이프라인 탭** | 단계별 실행 결과 시각화 |
 """)
-
-
+    st.divider()
+    st.subheader("마지막 실행 결과")
+    if rag._last_cost_summary:
+        _render_pipeline(rag)
+    else:
+        st.info("질문을 입력하면 여기에 파이프라인 실행 결과가 표시됩니다.")

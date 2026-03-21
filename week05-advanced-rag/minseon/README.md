@@ -9,9 +9,10 @@
 - 주요 로직 설명:
 - 코드 실행 방법:
 
-# 
+# 코드 실행 (서버시작)
 cd c:\Users\user\ai_study\week05-advanced-rag\minseon\fastapi-react\backend
 uvicorn server:app --reload
+
 
 
 

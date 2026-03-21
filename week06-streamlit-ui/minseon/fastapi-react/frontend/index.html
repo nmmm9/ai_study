@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>청년도우미 Advanced RAG v2</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; height: 100vh; display: flex; }
+
+    /* ── 사이드바 ── */
+    .sidebar { width: 300px; min-width: 300px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; overflow-y: auto; padding: 20px 16px; gap: 12px; }
+    .sidebar h2 { font-size: 17px; font-weight: 700; color: #111827; }
+    .sidebar .caption { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    hr { border: none; border-top: 1px solid #e5e7eb; }
+    .sidebar-section h3 { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+
+    /* 세션 카드 */
+    .session-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
+    .session-card:hover { border-color: #93c5fd; background: #f8faff; }
+    .session-card.active { border-color: #2563eb; background: #eff6ff; }
+    .session-card .s-name { font-size: 13px; font-weight: 700; color: #111827; }
+    .session-card.active .s-name { color: #1d4ed8; }
+    .session-card .s-meta { font-size: 11px; color: #6b7280; margin-top: 3px; }
+    .session-actions { display: flex; gap: 4px; margin-top: 6px; }
+    .session-actions button { flex: 1; padding: 3px; font-size: 11px; border: 1px solid #e5e7eb; background: white; border-radius: 5px; cursor: pointer; }
+    .session-actions button:hover { background: #f3f4f6; }
+    .session-actions button.danger { border-color: #fca5a5; color: #ef4444; }
+    .session-actions button.danger:hover { background: #fef2f2; }
+
+    /* 문서 */
+    .source-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; background: #f9fafb; border-radius: 8px; margin-bottom: 5px; }
+    .source-item .src-name { font-size: 12px; font-weight: 600; color: #374151; }
+    .source-item .src-cnt  { font-size: 11px; color: #6b7280; }
+    .source-item .del-btn  { padding: 3px 8px; font-size: 11px; border: 1px solid #fca5a5; background: white; color: #ef4444; border-radius: 6px; cursor: pointer; }
+    .source-item .del-btn:hover { background: #fef2f2; }
+
+    /* 슬라이더 */
+    .slider-group { margin-bottom: 10px; }
+    .slider-group label { font-size: 12px; color: #374151; font-weight: 600; display: block; margin-bottom: 3px; }
+    .slider-group input[type="range"] { width: 100%; accent-color: #2563eb; }
+    .check-group { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 12px; color: #374151; cursor: pointer; }
+    .check-group input { accent-color: #2563eb; }
+
+    /* 버튼 */
+    .btn-primary { width: 100%; padding: 9px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-sm { width: 100%; padding: 8px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; cursor: pointer; color: #374151; }
+    .btn-sm:hover { background: #e5e7eb; }
+
+    /* 통계 */
+    .stat-row { display: flex; gap: 8px; }
+    .stat-box { flex: 1; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; text-align: center; }
+    .stat-box .lbl { font-size: 11px; color: #6b7280; }
+    .stat-box .val { font-size: 18px; font-weight: 700; color: #111827; }
+
+    /* ── 메인 ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* 탭 */
+    .tabs { display: flex; border-bottom: 2px solid #e5e7eb; background: white; padding: 0 24px; }
+    .tab { padding: 14px 18px; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+    .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .tab:hover:not(.active) { color: #374151; }
+    .tab-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .tab-panel.active { display: flex; }
+
+    /* ── 챗봇 ── */
+    .messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+    .empty { text-align: center; color: #9ca3af; font-size: 14px; margin-top: 60px; }
+    .message { display: flex; flex-direction: column; max-width: 82%; }
+    .message.user { align-self: flex-end; align-items: flex-end; }
+    .message.assistant { align-self: flex-start; align-items: flex-start; }
+    .msg-label { font-size: 11px; color: #9ca3af; margin-bottom: 4px; font-weight: 600; }
+    .msg-bubble { padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.7; word-break: break-word; }
+    .message.user .msg-bubble { background: #2563eb; color: white; border-bottom-right-radius: 4px; white-space: pre-wrap; }
+    .message.assistant .msg-bubble { background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px; }
+    .message.assistant .msg-bubble p { margin: 0 0 8px; }
+    .message.assistant .msg-bubble p:last-child { margin-bottom: 0; }
+    .message.assistant .msg-bubble h1,.message.assistant .msg-bubble h2,.message.assistant .msg-bubble h3 { font-size: 14px; font-weight: 700; margin: 12px 0 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+    .message.assistant .msg-bubble ul,.message.assistant .msg-bubble ol { padding-left: 18px; margin: 4px 0 8px; }
+    .message.assistant .msg-bubble li { margin-bottom: 3px; }
+    .message.assistant .msg-bubble strong { font-weight: 700; color: #1f2937; }
+    .message.assistant .msg-bubble code { background: #e5e7eb; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+    .message.assistant .msg-bubble table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+    .message.assistant .msg-bubble th,.message.assistant .msg-bubble td { border: 1px solid #d1d5db; padding: 7px 12px; }
+    .message.assistant .msg-bubble th { background: #e0e7ff; font-weight: 700; color: #1e3a8a; }
+    .cursor { display: inline-block; animation: blink 0.8s infinite; color: #6b7280; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* 비용 패널 */
+    .cost-panel { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .cost-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .cost-chip.money  { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .cost-chip.time   { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+    .cost-chip.tokens { background: #faf5ff; border: 1px solid #c4b5fd; color: #5b21b6; }
+    .cost-detail { width: 100%; background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 11px; }
+    .cost-detail table { width: 100%; border-collapse: collapse; }
+    .cost-detail th { text-align: left; color: #6b7280; font-weight: 600; padding: 3px 6px; border-bottom: 1px solid #e5e7eb; }
+    .cost-detail td { color: #374151; padding: 3px 6px; }
+    .cost-detail tr:nth-child(even) td { background: #f3f4f6; }
+
+    /* 파이프라인 */
+    .pipeline-panel { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; margin-top: 6px; font-size: 12px; width: 100%; max-width: 600px; }
+    .pl-title { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 10px; }
+    .pl-stage { margin-bottom: 8px; }
+    .pl-stage-header { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #4b5563; margin-bottom: 4px; font-size: 12px; }
+    .pl-badge { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+    .pl-badge.pre  { background: #e0e7ff; color: #3730a3; }
+    .pl-badge.ret  { background: #d1fae5; color: #065f46; }
+    .pl-badge.post { background: #fef3c7; color: #92400e; }
+    .pl-badge.gen  { background: #f3f4f6; color: #374151; }
+    .pl-query-list { display: flex; flex-direction: column; gap: 3px; padding-left: 8px; }
+    .pl-query-item { font-size: 11px; color: #6b7280; border-left: 2px solid #c7d2fe; padding-left: 6px; }
+    .pl-stat { font-size: 11px; color: #6b7280; padding-left: 8px; }
+
+    /* 출처 */
+    .source-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .src-chip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 99px; font-size: 10px; background: transparent; border: 1px solid #e5e7eb; color: #9ca3af; cursor: pointer; transition: all 0.15s; }
+    .src-chip:hover { border-color: #6b7280; color: #6b7280; background: #f9fafb; }
+    .src-chip.compressed { border-color: #a5b4fc; color: #6366f1; }
+    .src-chip-detail { margin-top: 5px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; font-size: 11px; color: #374151; line-height: 1.6; white-space: pre-wrap; }
+
+    /* 입력 */
+    .input-area { display: flex; gap: 10px; padding: 16px 24px; border-top: 1px solid #e5e7eb; background: white; }
+    .input-area input { flex: 1; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; outline: none; transition: border-color 0.15s; }
+    .input-area input:focus { border-color: #2563eb; }
+    .input-area input:disabled { background: #f9fafb; }
+    .send-btn { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .send-btn:hover:not(:disabled) { background: #1d4ed8; }
+    .send-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* 대시보드 */
+    .dashboard { flex: 1; overflow-y: auto; padding: 24px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .metric-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; text-align: center; }
+    .metric-card .m-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+    .metric-card .m-value { font-size: 22px; font-weight: 700; color: #111827; }
+    .metric-card .m-sub   { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+    .session-cost-row { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; }
+    .session-cost-row .sc-name { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 6px; }
+    .session-cost-row .sc-stats { display: flex; gap: 16px; font-size: 12px; color: #6b7280; }
+
+    /* 신청 링크 */
+    .apply-btn { display: inline-flex; align-items: center; gap: 4px; background: #2563eb; color: white !important; text-decoration: none; border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 700; transition: background 0.15s; margin: 3px 2px; }
+    .apply-btn:hover { background: #1d4ed8; }
+    .apply-btn::after { content: " →"; }
+    .chat-link { display: inline-flex; align-items: center; gap: 3px; color: #2563eb; text-decoration: none; font-weight: 600; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 1px 7px; font-size: 13px; }
+    .chat-link:hover { background: #dbeafe; }
+
+    /* 이름 수정 인풋 */
+    .rename-input { width: 100%; padding: 5px 8px; border: 1px solid #2563eb; border-radius: 6px; font-size: 13px; outline: none; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
+    const API = "http://localhost:8000";
+
+    // ── 마크다운 ───────────────────────────────────────────────
+    (function setupMarked() {
+      const renderer = new marked.Renderer();
+      renderer.link = ({ href, title, text }) => {
+        if (/신청/.test(text))
+          return `<a href="${href}" target="_blank" rel="noopener" class="apply-btn">${text}</a>`;
+        return `<a href="${href}" target="_blank" rel="noopener" class="chat-link">${text} ↗</a>`;
+      };
+      marked.use({ renderer, breaks: true, gfm: true });
+    })();
+
+    function renderMd(text) {
+      let html = marked.parse(text);
+      html = html
+        .replace(/<li>\[x\]/gi, '<li><input type="checkbox" checked disabled>')
+        .replace(/<li>\[ \]/g,  '<li><input type="checkbox" disabled>');
+      return html;
+    }
+
+    // ── 비용 패널 ──────────────────────────────────────────────
+    function CostPanel({ cost }) {
+      const [open, setOpen] = useState(false);
+      if (!cost || !cost.total_cost_usd) return null;
+      const usd = cost.total_cost_usd;
+      const krw = cost.total_cost_krw;
+      const sec = cost.total_elapsed;
+      const tok = (cost.total_input_tokens || 0) + (cost.total_output_tokens || 0);
+      const byStage = cost.by_stage || {};
+      const LABELS = {
+        pre: "Pre-retrieval", embedding: "임베딩", reranking: "Re-ranking",
+        compression: "Compression", generation: "Generation",
+      };
+      return (
+        <div>
+          <div className="cost-panel">
+            <span className="cost-chip money" onClick={() => setOpen(!open)}>
+              💰 ${usd.toFixed(5)} (₩{krw.toFixed(2)})
+            </span>
+            <span className="cost-chip time">⏱ {sec.toFixed(1)}s</span>
+            <span className="cost-chip tokens">🔤 {tok.toLocaleString()} 토큰</span>
+          </div>
+          {open && (
+            <div className="cost-detail">
+              <table>
+                <thead><tr><th>단계</th><th>시간</th><th>입력</th><th>출력</th><th>비용</th></tr></thead>
+                <tbody>
+                  {Object.entries(byStage).map(([stage, s]) => (
+                    <tr key={stage}>
+                      <td>{LABELS[stage] || stage}</td>
+                      <td>{(s.elapsed || 0).toFixed(2)}s</td>
+                      <td>{(s.input_tokens || 0).toLocaleString()}</td>
+                      <td>{(s.output_tokens || 0).toLocaleString()}</td>
+                      <td>${(s.cost_usd || 0).toFixed(6)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{fontWeight:700, borderTop:"2px solid #e5e7eb"}}>
+                    <td>합계</td><td>{sec.toFixed(2)}s</td>
+                    <td>{(cost.total_input_tokens||0).toLocaleString()}</td>
+                    <td>{(cost.total_output_tokens||0).toLocaleString()}</td>
+                    <td>${usd.toFixed(6)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── 파이프라인 패널 ────────────────────────────────────────
+    function PipelinePanel({ pipeline }) {
+      if (!pipeline) return null;
+      const { pre, retrieval, post } = pipeline;
+      return (
+        <div className="pipeline-panel">
+          <div className="pl-title">🔬 Advanced RAG 파이프라인</div>
+          {pre && (
+            <div className="pl-stage">
+              <div className="pl-stage-header">
+                <span className="pl-badge pre">Pre</span>
+                Multi-query ({pre.query_type === "single" ? "싱글홉" : "멀티홉"})
+              </div>
+              <div className="pl-query-list">
+                {pre.queries.map((q, i) => (
+                  <div className="pl-query-item" key={i}>쿼리 {i+1}: {q}</div>
+                ))}
+              </div>
+            </div>
+          )}
+          {retrieval && (
+            <div className="pl-stage">
+              <div className="pl-stage-header">
+                <span className="pl-badge ret">Retrieval</span>
+                Hybrid Search (BM25 + Vector)
+              </div>
+              <div className="pl-stat">
+                {retrieval.queries_used}개 쿼리 → <strong>{retrieval.count}개</strong> 후보
+              </div>
+            </div>
+          )}
+          {post && (
+            <div className="pl-stage">
+              <div className="pl-stage-header">
+                <span className="pl-badge post">Post</span>
+                Re-ranking + Compression
+              </div>
+              <div className="pl-stat">
+                Re-ranking → <strong>{post.reranked}개</strong> 선별
+                {post.compressed > 0 && ` | 🗜️ ${post.compressed}개 압축`}
+              </div>
+            </div>
+          )}
+          <div className="pl-stage">
+            <div className="pl-stage-header">
+              <span className="pl-badge gen">Gen</span>
+              LLM 스트리밍 응답
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── 출처 칩 ────────────────────────────────────────────────
+    function SourceChip({ hit, index }) {
+      const [open, setOpen] = useState(false);
+      return (
+        <div>
+          <span
+            className={`src-chip${hit.compressed ? " compressed" : ""}`}
+            onClick={() => setOpen(!open)}
+          >
+            {hit.compressed ? "🗜️" : ""}{index + 1} {hit.source.replace(/\.[^.]+$/, "")}
+          </span>
+          {open && (
+            <div className="src-chip-detail">
+              <div style={{fontWeight:600, marginBottom:4, fontSize:11, color:"#6b7280"}}>
+                {hit.source} · 유사도 {(hit.similarity * 100).toFixed(0)}%
+                {hit.compressed ? " · 압축됨" : ""}
+              </div>
+              {hit.content}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── 세션 카드 ──────────────────────────────────────────────
+    function SessionCard({ session, isActive, onSwitch, onRename, onDelete }) {
+      const [editing, setEditing] = useState(false);
+      const [name, setName] = useState(session.name);
+      const msgCount = (session.messages || []).filter(m => m.role === "user").length;
+
+      const save = async () => {
+        await fetch(`${API}/sessions/${session.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        setEditing(false);
+        onRename();
+      };
+
+      return (
+        <div className={`session-card ${isActive ? "active" : ""}`} onClick={() => !editing && onSwitch(session.id)}>
+          {editing ? (
+            <div onClick={e => e.stopPropagation()}>
+              <input
+                className="rename-input"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && save()}
+                autoFocus
+              />
+              <div style={{display:"flex", gap:4}}>
+                <button style={{flex:1,padding:"3px",fontSize:11,border:"1px solid #2563eb",background:"#eff6ff",color:"#2563eb",borderRadius:5,cursor:"pointer"}} onClick={save}>저장</button>
+                <button style={{flex:1,padding:"3px",fontSize:11,border:"1px solid #e5e7eb",background:"white",borderRadius:5,cursor:"pointer"}} onClick={() => { setEditing(false); setName(session.name); }}>취소</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="s-name">{isActive ? "▶ " : ""}{session.name}</div>
+              <div className="s-meta">질문 {msgCount}개 · ${(session.total_cost_usd || 0).toFixed(5)}</div>
+              <div className="session-actions" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setEditing(true)}>✏️ 이름변경</button>
+                <button className="danger" onClick={() => onDelete(session.id)}>🗑 삭제</button>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // ── 사이드바 ───────────────────────────────────────────────
+    function Sidebar({ sessions, activeId, sources, stats, settings, onSettingsChange, onSessionSwitch, onSessionCreate, onSessionDelete, onSessionRename, onSourceDelete, onReset }) {
+      return (
+        <div className="sidebar">
+          <div>
+            <h2>🤖 청년도우미</h2>
+            <div className="caption">6주차: FastAPI + React · 세션 관리</div>
+          </div>
+          <hr />
+
+          <div className="sidebar-section">
+            <h3>💬 대화 목록</h3>
+            <button className="btn-primary" onClick={onSessionCreate} style={{marginBottom:8}}>＋ 새 대화</button>
+            {sessions.map(s => (
+              <SessionCard
+                key={s.id} session={s} isActive={s.id === activeId}
+                onSwitch={onSessionSwitch} onRename={onSessionRename} onDelete={onSessionDelete}
+              />
+            ))}
+          </div>
+          <hr />
+
+          <div className="sidebar-section">
+            <h3>📂 인덱싱된 문서</h3>
+            {sources.length === 0
+              ? <div style={{fontSize:12, color:"#9ca3af"}}>인덱싱 중...</div>
+              : sources.map(s => (
+                  <div className="source-item" key={s.source}>
+                    <div>
+                      <div className="src-name">{s.source}</div>
+                      <div className="src-cnt">{s.chunks}개 청크</div>
+                    </div>
+                    <button className="del-btn" onClick={() => onSourceDelete(s.source)}>삭제</button>
+                  </div>
+                ))
+            }
+          </div>
+          <hr />
+
+          <div className="sidebar-section">
+            <h3>⚙️ 검색 설정</h3>
+            {[
+              {key:"top_k",          label:`top-k: ${settings.top_k}`,           min:1, max:8, step:1},
+              {key:"threshold",      label:`임계값: ${settings.threshold}`,        min:0, max:1, step:0.05},
+              {key:"max_per_source", label:`문서당 최대: ${settings.max_per_source}`, min:1, max:3, step:1},
+            ].map(s => (
+              <div className="slider-group" key={s.key}>
+                <label>{s.label}</label>
+                <input type="range" min={s.min} max={s.max} step={s.step}
+                  value={settings[s.key]}
+                  onChange={e => onSettingsChange(s.key, s.step < 1 ? parseFloat(e.target.value) : parseInt(e.target.value))}
+                />
+              </div>
+            ))}
+            <label className="check-group">
+              <input type="checkbox" checked={settings.use_compression}
+                onChange={e => onSettingsChange("use_compression", e.target.checked)} />
+              Context Compression
+            </label>
+          </div>
+          <hr />
+
+          <div className="sidebar-section">
+            <h3>📊 통계</h3>
+            <div className="stat-row">
+              <div className="stat-box"><div className="lbl">문서</div><div className="val">{stats.total_documents}</div></div>
+              <div className="stat-box"><div className="lbl">청크</div><div className="val">{stats.total_chunks}</div></div>
+            </div>
+          </div>
+          <hr />
+          <button className="btn-sm" onClick={onReset}>대화 초기화</button>
+        </div>
+      );
+    }
+
+    // ── 챗봇 탭 ───────────────────────────────────────────────
+    function ChatTab({ activeSession, sources, settings }) {
+      const [messages, setMessages] = useState([]);
+      const [input, setInput]       = useState("");
+      const [loading, setLoading]   = useState(false);
+      const [showPipeline, setShowPipeline] = useState(true);
+      const bottomRef = useRef(null);
+
+      useEffect(() => {
+        if (activeSession) {
+          setMessages(activeSession.messages || []);
+        }
+      }, [activeSession?.id]);
+
+      useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+      const send = async () => {
+        if (!input.trim() || loading || !activeSession || sources.length === 0) return;
+        const text = input.trim();
+        setInput("");
+        const newMsg = { role: "assistant", content: "", hits: [], pipeline: {}, cost: null };
+        setMessages(prev => [...prev, { role: "user", content: text }, newMsg]);
+        setLoading(true);
+
+        try {
+          const res = await fetch(`${API}/chat/stream`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: activeSession.id, message: text, ...settings }),
+          });
+          const reader  = res.body.getReader();
+          const decoder = new TextDecoder();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const lines = decoder.decode(value).split("\n");
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "pipeline") {
+                setMessages(prev => {
+                  const u = [...prev];
+                  const last = { ...u[u.length-1] };
+                  last.pipeline = { ...last.pipeline, [data.stage]: data };
+                  u[u.length-1] = last;
+                  return u;
+                });
+              }
+              if (data.type === "text") {
+                setMessages(prev => {
+                  const u = [...prev];
+                  u[u.length-1] = { ...u[u.length-1], content: u[u.length-1].content + data.content };
+                  return u;
+                });
+              }
+              if (data.type === "hits") {
+                setMessages(prev => {
+                  const u = [...prev];
+                  u[u.length-1] = { ...u[u.length-1], hits: data.hits };
+                  return u;
+                });
+              }
+              if (data.type === "cost") {
+                setMessages(prev => {
+                  const u = [...prev];
+                  u[u.length-1] = { ...u[u.length-1], cost: data };
+                  return u;
+                });
+              }
+            }
+          }
+        } catch (err) {
+          setMessages(prev => {
+            const u = [...prev];
+            u[u.length-1] = { ...u[u.length-1], content: `오류: ${err.message}` };
+            return u;
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <>
+          <div style={{padding:"8px 24px",background:"white",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
+            <label style={{fontSize:12,color:"#374151",display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+              <input type="checkbox" checked={showPipeline} onChange={e => setShowPipeline(e.target.checked)} style={{accentColor:"#2563eb"}} />
+              파이프라인 단계 표시
+            </label>
+          </div>
+          <div className="messages">
+            {messages.length === 0 && (
+              <div className="empty">
+                {sources.length === 0 ? "서버가 인덱싱 중입니다. 잠시 후 새로고침하세요." : "질문을 입력하세요."}
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.role}`}>
+                <div className="msg-label">{msg.role === "user" ? "나" : "AI"}</div>
+                <div className="msg-bubble">
+                  {msg.role === "user" ? msg.content : (
+                    <span dangerouslySetInnerHTML={{ __html: renderMd(msg.content) }} />
+                  )}
+                  {msg.role === "assistant" && loading && i === messages.length - 1 && (
+                    <span className="cursor">▌</span>
+                  )}
+                </div>
+                {msg.role === "assistant" && showPipeline && Object.keys(msg.pipeline || {}).length > 0 && (
+                  <PipelinePanel pipeline={msg.pipeline} />
+                )}
+                {msg.role === "assistant" && msg.cost && <CostPanel cost={msg.cost} />}
+                {msg.role === "assistant" && msg.hits && msg.hits.length > 0 && (
+                  <div className="source-chips">
+                    {msg.hits.map((h, j) => <SourceChip key={j} hit={h} index={j} />)}
+                  </div>
+                )}
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+          <div className="input-area">
+            <input
+              type="text" value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+              placeholder={sources.length === 0 ? "인덱싱 중..." : "질문을 입력하세요... (Enter 전송)"}
+              disabled={loading || sources.length === 0}
+            />
+            <button className="send-btn" onClick={send} disabled={loading || !input.trim() || sources.length === 0}>
+              {loading ? "처리 중..." : "전송"}
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    // ── 대시보드 탭 ────────────────────────────────────────────
+    function DashboardTab({ sessions, activeId }) {
+      if (!sessions.length) return <div className="dashboard"><p style={{color:"#9ca3af"}}>대화를 시작하면 비용이 표시됩니다.</p></div>;
+      const totalUsd = sessions.reduce((s, x) => s + (x.total_cost_usd || 0), 0);
+      const totalIn  = sessions.reduce((s, x) => s + (x.total_tokens?.input  || 0), 0);
+      const totalOut = sessions.reduce((s, x) => s + (x.total_tokens?.output || 0), 0);
+      const totalQ   = sessions.reduce((s, x) => s + (x.messages || []).filter(m => m.role === "user").length, 0);
+      return (
+        <div className="dashboard">
+          <h2 style={{marginBottom:16}}>📊 세션별 비용 대시보드</h2>
+          <div className="metric-grid">
+            <div className="metric-card"><div className="m-label">전체 누적 비용</div><div className="m-value">${totalUsd.toFixed(5)}</div></div>
+            <div className="metric-card"><div className="m-label">원화 환산</div><div className="m-value">₩{(totalUsd*1380).toFixed(0)}</div></div>
+            <div className="metric-card"><div className="m-label">총 질문 수</div><div className="m-value">{totalQ}개</div></div>
+            <div className="metric-card"><div className="m-label">총 토큰</div><div className="m-value">{(totalIn+totalOut).toLocaleString()}</div></div>
+          </div>
+          <h3 style={{marginBottom:12}}>세션별 상세</h3>
+          {sessions.map(s => {
+            const q = (s.messages || []).filter(m => m.role === "user").length;
+            const avg = q ? (s.total_cost_usd || 0) / q : 0;
+            return (
+              <div className="session-cost-row" key={s.id}>
+                <div className="sc-name">{s.name} {s.id === activeId ? "👈 현재" : ""}</div>
+                <div className="sc-stats">
+                  <span>질문 {q}개</span>
+                  <span>총 비용 ${(s.total_cost_usd||0).toFixed(5)}</span>
+                  <span>질문당 ${avg.toFixed(5)}</span>
+                  <span>₩{((s.total_cost_usd||0)*1380).toFixed(1)}</span>
+                  <span>입력 {(s.total_tokens?.input||0).toLocaleString()} / 출력 {(s.total_tokens?.output||0).toLocaleString()}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ── 메인 앱 ───────────────────────────────────────────────
+    function App() {
+      const [sessions,  setSessions]  = useState([]);
+      const [activeId,  setActiveId]  = useState(null);
+      const [sources,   setSources]   = useState([]);
+      const [stats,     setStats]     = useState({ total_documents: 0, total_chunks: 0 });
+      const [settings,  setSettings]  = useState({ top_k: 5, threshold: 0.2, max_per_source: 2, use_compression: true });
+      const [tab,       setTab]       = useState("chat");
+
+      const loadAll = useCallback(async () => {
+        try {
+          const [sess, src, st] = await Promise.all([
+            fetch(`${API}/sessions`).then(r => r.json()),
+            fetch(`${API}/sources`).then(r => r.json()),
+            fetch(`${API}/stats`).then(r => r.json()),
+          ]);
+          setSessions(sess);
+          setSources(src);
+          setStats(st);
+          if (!activeId && sess.length > 0) setActiveId(sess[0].id);
+        } catch {}
+      }, [activeId]);
+
+      useEffect(() => { loadAll(); }, []);
+
+      const createSession = async () => {
+        const s = await fetch(`${API}/sessions`, { method: "POST" }).then(r => r.json());
+        setSessions(prev => [s, ...prev]);
+        setActiveId(s.id);
+      };
+
+      const deleteSession = async (id) => {
+        await fetch(`${API}/sessions/${id}`, { method: "DELETE" });
+        setSessions(prev => {
+          const rest = prev.filter(s => s.id !== id);
+          if (id === activeId) setActiveId(rest[0]?.id || null);
+          return rest;
+        });
+      };
+
+      const deleteSource = async (name) => {
+        await fetch(`${API}/sources/${encodeURIComponent(name)}`, { method: "DELETE" });
+        loadAll();
+      };
+
+      const reset = async () => {
+        if (!activeId) return;
+        await fetch(`${API}/sessions/${activeId}`, { method: "DELETE" });
+        const s = await fetch(`${API}/sessions`, { method: "POST" }).then(r => r.json());
+        setSessions(prev => [s, ...prev.filter(x => x.id !== activeId)]);
+        setActiveId(s.id);
+      };
+
+      const activeSession = sessions.find(s => s.id === activeId) || null;
+
+      return (
+        <div style={{ display:"flex", width:"100vw", height:"100vh" }}>
+          <Sidebar
+            sessions={sessions} activeId={activeId} sources={sources} stats={stats} settings={settings}
+            onSettingsChange={(k, v) => setSettings(p => ({ ...p, [k]: v }))}
+            onSessionSwitch={id => setActiveId(id)}
+            onSessionCreate={createSession}
+            onSessionDelete={deleteSession}
+            onSessionRename={loadAll}
+            onSourceDelete={deleteSource}
+            onReset={reset}
+          />
+          <div className="main">
+            <div className="tabs">
+              {[
+                { id:"chat",      label:"💬 챗봇" },
+                { id:"dashboard", label:"📊 비용 대시보드" },
+              ].map(t => (
+                <div key={t.id} className={`tab ${tab===t.id?"active":""}`} onClick={() => setTab(t.id)}>
+                  {t.label}
+                </div>
+              ))}
+            </div>
+            <div className="tab-content">
+              <div className={`tab-panel ${tab==="chat"?"active":""}`}>
+                <ChatTab activeSession={activeSession} sources={sources} settings={settings} />
+              </div>
+              <div className={`tab-panel ${tab==="dashboard"?"active":""}`}>
+                <DashboardTab sessions={sessions} activeId={activeId} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
