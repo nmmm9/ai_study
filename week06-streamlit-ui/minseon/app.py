@@ -137,6 +137,8 @@ def _init_state():
         st.session_state.auto_indexed = False
     if "rename_sid"   not in st.session_state:
         st.session_state.rename_sid = None
+    if "is_admin"     not in st.session_state:
+        st.session_state.is_admin = False
 
 
 _init_state()
@@ -299,7 +301,7 @@ with st.sidebar:
 
     # ── 검색 설정 ──────────────────────────────────────────────
     st.markdown("### ⚙️ 검색 설정")
-    top_k           = st.slider("top-k", 1, 8, 5)
+    top_k           = st.slider("top-k", 1, 10, 7)
     threshold       = st.slider("유사도 임계값", 0.0, 1.0, 0.2, step=0.05)
     max_per_source  = st.slider("문서당 최대 청크", 1, 3, 2)
     use_compression = st.checkbox("Context Compression", value=True)
@@ -343,6 +345,22 @@ with st.sidebar:
         sm.save_messages(st.session_state.active_sid, [], [])
         st.rerun()
 
+    st.divider()
+    if st.session_state.is_admin:
+        st.success("관리자 모드")
+        if st.button("로그아웃", use_container_width=True):
+            st.session_state.is_admin = False
+            st.rerun()
+    else:
+        with st.expander("🔒 관리자 로그인"):
+            pw = st.text_input("비밀번호", type="password", key="admin_pw_input")
+            if st.button("로그인", use_container_width=True):
+                if pw == "admin1234":
+                    st.session_state.is_admin = True
+                    st.rerun()
+                else:
+                    st.error("비밀번호가 틀렸습니다")
+
 
 # ════════════════════════════════════════════════════════════════
 # 메인 화면: 탭
@@ -351,11 +369,16 @@ with st.sidebar:
 active_session = sm.get(st.session_state.active_sid)
 session_name   = active_session["name"] if active_session else "대화"
 
-tab_chat, tab_dashboard, tab_pipeline = st.tabs([
-    f"💬 {session_name}",
-    "📊 비용 대시보드",
-    "⚙️ 파이프라인 구조",
-])
+if st.session_state.is_admin:
+    tab_chat, tab_dashboard, tab_pipeline = st.tabs([
+        f"💬 {session_name}",
+        "📊 비용 대시보드",
+        "⚙️ 파이프라인 구조",
+    ])
+else:
+    tab_chat = st.container()
+    tab_dashboard = None
+    tab_pipeline = None
 
 
 # ════════════════════════════════════════════════════════════════
@@ -433,47 +456,49 @@ with tab_chat:
 
 
 # ════════════════════════════════════════════════════════════════
-# 탭 2: 비용 대시보드
+# 탭 2: 비용 대시보드 (관리자 전용)
 # ════════════════════════════════════════════════════════════════
 
-with tab_dashboard:
-    st.header("📊 세션별 비용 대시보드")
-    all_sessions = sm.list()
-    if not all_sessions:
-        st.info("대화를 시작하면 비용이 여기에 표시됩니다.")
-    else:
-        total_usd = sum(s["total_cost_usd"] for s in all_sessions)
-        total_in  = sum(s["total_tokens"]["input"] for s in all_sessions)
-        total_out = sum(s["total_tokens"]["output"] for s in all_sessions)
-        total_q   = sum(len([m for m in s["messages"] if m["role"] == "user"]) for s in all_sessions)
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("전체 누적 비용", f"${total_usd:.5f}")
-        c2.metric("원화 환산",      f"₩{total_usd*1380:.1f}")
-        c3.metric("총 질문 수",     f"{total_q}개")
-        c4.metric("총 토큰",        f"{total_in+total_out:,}")
-        st.divider()
-        st.subheader("세션별 상세")
-        for s in all_sessions:
-            q_count = len([m for m in s["messages"] if m["role"] == "user"])
-            avg     = s["total_cost_usd"] / q_count if q_count else 0
-            is_cur  = "👈 현재" if s["id"] == st.session_state.active_sid else ""
-            with st.expander(f"**{s['name']}** {is_cur}  —  ${s['total_cost_usd']:.5f}"):
-                cc1, cc2, cc3, cc4 = st.columns(4)
-                cc1.metric("질문 수",     f"{q_count}개")
-                cc2.metric("총 비용",     f"${s['total_cost_usd']:.5f}")
-                cc3.metric("질문당 평균", f"${avg:.5f}")
-                cc4.metric("원화",        f"₩{s['total_cost_usd']*1380:.1f}")
-                tok = s["total_tokens"]
-                st.caption(f"입력: {tok['input']:,} / 출력: {tok['output']:,} / 생성일: {s['created_at'][:10]}")
+if tab_dashboard is not None:
+    with tab_dashboard:
+        st.header("📊 세션별 비용 대시보드")
+        all_sessions = sm.list()
+        if not all_sessions:
+            st.info("대화를 시작하면 비용이 여기에 표시됩니다.")
+        else:
+            total_usd = sum(s["total_cost_usd"] for s in all_sessions)
+            total_in  = sum(s["total_tokens"]["input"] for s in all_sessions)
+            total_out = sum(s["total_tokens"]["output"] for s in all_sessions)
+            total_q   = sum(len([m for m in s["messages"] if m["role"] == "user"]) for s in all_sessions)
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("전체 누적 비용", f"${total_usd:.5f}")
+            c2.metric("원화 환산",      f"₩{total_usd*1380:.1f}")
+            c3.metric("총 질문 수",     f"{total_q}개")
+            c4.metric("총 토큰",        f"{total_in+total_out:,}")
+            st.divider()
+            st.subheader("세션별 상세")
+            for s in all_sessions:
+                q_count = len([m for m in s["messages"] if m["role"] == "user"])
+                avg     = s["total_cost_usd"] / q_count if q_count else 0
+                is_cur  = "👈 현재" if s["id"] == st.session_state.active_sid else ""
+                with st.expander(f"**{s['name']}** {is_cur}  —  ${s['total_cost_usd']:.5f}"):
+                    cc1, cc2, cc3, cc4 = st.columns(4)
+                    cc1.metric("질문 수",     f"{q_count}개")
+                    cc2.metric("총 비용",     f"${s['total_cost_usd']:.5f}")
+                    cc3.metric("질문당 평균", f"${avg:.5f}")
+                    cc4.metric("원화",        f"₩{s['total_cost_usd']*1380:.1f}")
+                    tok = s["total_tokens"]
+                    st.caption(f"입력: {tok['input']:,} / 출력: {tok['output']:,} / 생성일: {s['created_at'][:10]}")
 
 
 # ════════════════════════════════════════════════════════════════
-# 탭 3: 파이프라인 구조
+# 탭 3: 파이프라인 구조 (관리자 전용)
 # ════════════════════════════════════════════════════════════════
 
-with tab_pipeline:
-    st.header("⚙️ Advanced RAG 파이프라인 구조")
-    st.markdown("""
+if tab_pipeline is not None:
+    with tab_pipeline:
+        st.header("⚙️ Advanced RAG 파이프라인 구조")
+        st.markdown("""
 ```
 질문 → classify → single/multi
   ↓
@@ -486,9 +511,9 @@ with tab_pipeline:
 ④ Generation: LLM 스트리밍
 ```
 """)
-    st.divider()
-    st.subheader("6주차 추가 기능")
-    st.markdown("""
+        st.divider()
+        st.subheader("6주차 추가 기능")
+        st.markdown("""
 | 기능 | 설명 |
 |---|---|
 | **멀티 세션** | 여러 대화 독립 관리, 자유롭게 전환 |
@@ -497,9 +522,9 @@ with tab_pipeline:
 | **싱글홉/멀티홉** | 질문 유형 자동 분류 |
 | **파이프라인 탭** | 단계별 실행 결과 시각화 |
 """)
-    st.divider()
-    st.subheader("마지막 실행 결과")
-    if rag._last_cost_summary:
-        _render_pipeline(rag)
-    else:
-        st.info("질문을 입력하면 여기에 파이프라인 실행 결과가 표시됩니다.")
+        st.divider()
+        st.subheader("마지막 실행 결과")
+        if rag._last_cost_summary:
+            _render_pipeline(rag)
+        else:
+            st.info("질문을 입력하면 여기에 파이프라인 실행 결과가 표시됩니다.")

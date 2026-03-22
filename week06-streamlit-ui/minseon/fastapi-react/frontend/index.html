@@ -3,699 +3,508 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>청년도우미 Advanced RAG v2</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <title>청년도우미 AI</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; height: 100vh; display: flex; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #212121; color: #ececec; height: 100vh; display: flex; overflow: hidden; }
 
-    /* ── 사이드바 ── */
-    .sidebar { width: 300px; min-width: 300px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; overflow-y: auto; padding: 20px 16px; gap: 12px; }
-    .sidebar h2 { font-size: 17px; font-weight: 700; color: #111827; }
-    .sidebar .caption { font-size: 12px; color: #6b7280; margin-top: 2px; }
-    hr { border: none; border-top: 1px solid #e5e7eb; }
-    .sidebar-section h3 { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+    /* 사이드바 */
+    .sidebar { width: 260px; min-width: 260px; background: #171717; display: flex; flex-direction: column; padding: 12px 8px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; padding: 4px 8px 12px; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg,#2563eb,#7c3aed); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .new-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #3f3f3f; background: transparent; color: #ececec; font-size: 14px; cursor: pointer; margin-bottom: 8px; }
+    .new-btn:hover { background: #2a2a2a; }
+    .sec-label { font-size: 11px; color: #8e8ea0; font-weight: 600; padding: 8px 12px 4px; text-transform: uppercase; letter-spacing: .05em; }
+    .sess-list { flex: 1; overflow-y: auto; }
+    .sess-list::-webkit-scrollbar { width: 4px; }
+    .sess-list::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
+    .sess-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: background .12s; position: relative; }
+    .sess-item:hover { background: #2a2a2a; }
+    .sess-item.active { background: #2a2a2a; }
+    .sess-item .name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .sess-item .acts { display: none; gap: 2px; }
+    .sess-item:hover .acts, .sess-item.active .acts { display: flex; }
+    .act-btn { padding: 3px 5px; border: none; background: transparent; color: #8e8ea0; border-radius: 5px; cursor: pointer; font-size: 12px; }
+    .act-btn:hover { background: #3f3f3f; color: #ececec; }
+    .act-btn.d:hover { background: #3f1f1f; color: #f87171; }
+    .sidebar-foot { padding: 8px; border-top: 1px solid #3f3f3f; margin-top: 8px; font-size: 11px; color: #6b7280; text-align: center; line-height: 1.5; }
 
-    /* 세션 카드 */
-    .session-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
-    .session-card:hover { border-color: #93c5fd; background: #f8faff; }
-    .session-card.active { border-color: #2563eb; background: #eff6ff; }
-    .session-card .s-name { font-size: 13px; font-weight: 700; color: #111827; }
-    .session-card.active .s-name { color: #1d4ed8; }
-    .session-card .s-meta { font-size: 11px; color: #6b7280; margin-top: 3px; }
-    .session-actions { display: flex; gap: 4px; margin-top: 6px; }
-    .session-actions button { flex: 1; padding: 3px; font-size: 11px; border: 1px solid #e5e7eb; background: white; border-radius: 5px; cursor: pointer; }
-    .session-actions button:hover { background: #f3f4f6; }
-    .session-actions button.danger { border-color: #fca5a5; color: #ef4444; }
-    .session-actions button.danger:hover { background: #fef2f2; }
-
-    /* 문서 */
-    .source-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; background: #f9fafb; border-radius: 8px; margin-bottom: 5px; }
-    .source-item .src-name { font-size: 12px; font-weight: 600; color: #374151; }
-    .source-item .src-cnt  { font-size: 11px; color: #6b7280; }
-    .source-item .del-btn  { padding: 3px 8px; font-size: 11px; border: 1px solid #fca5a5; background: white; color: #ef4444; border-radius: 6px; cursor: pointer; }
-    .source-item .del-btn:hover { background: #fef2f2; }
-
-    /* 슬라이더 */
-    .slider-group { margin-bottom: 10px; }
-    .slider-group label { font-size: 12px; color: #374151; font-weight: 600; display: block; margin-bottom: 3px; }
-    .slider-group input[type="range"] { width: 100%; accent-color: #2563eb; }
-    .check-group { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 12px; color: #374151; cursor: pointer; }
-    .check-group input { accent-color: #2563eb; }
-
-    /* 버튼 */
-    .btn-primary { width: 100%; padding: 9px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-sm { width: 100%; padding: 8px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; cursor: pointer; color: #374151; }
-    .btn-sm:hover { background: #e5e7eb; }
-
-    /* 통계 */
-    .stat-row { display: flex; gap: 8px; }
-    .stat-box { flex: 1; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; text-align: center; }
-    .stat-box .lbl { font-size: 11px; color: #6b7280; }
-    .stat-box .val { font-size: 18px; font-weight: 700; color: #111827; }
-
-    /* ── 메인 ── */
+    /* 메인 */
     .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .hdr { display: flex; align-items: center; justify-content: center; padding: 12px 24px; border-bottom: 1px solid #2a2a2a; }
+    .badge { display: flex; align-items: center; gap: 6px; padding: 5px 14px; border: 1px solid #3f3f3f; border-radius: 20px; font-size: 13px; }
+    .dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
 
-    /* 탭 */
-    .tabs { display: flex; border-bottom: 2px solid #e5e7eb; background: white; padding: 0 24px; }
-    .tab { padding: 14px 18px; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
-    .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
-    .tab:hover:not(.active) { color: #374151; }
-    .tab-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-    .tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
-    .tab-panel.active { display: flex; }
+    /* 메시지 */
+    .msgs { flex: 1; overflow-y: auto; padding: 20px 0; display: flex; flex-direction: column; }
+    .msgs::-webkit-scrollbar { width: 6px; }
+    .msgs::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
 
-    /* ── 챗봇 ── */
-    .messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
-    .empty { text-align: center; color: #9ca3af; font-size: 14px; margin-top: 60px; }
-    .message { display: flex; flex-direction: column; max-width: 82%; }
-    .message.user { align-self: flex-end; align-items: flex-end; }
-    .message.assistant { align-self: flex-start; align-items: flex-start; }
-    .msg-label { font-size: 11px; color: #9ca3af; margin-bottom: 4px; font-weight: 600; }
-    .msg-bubble { padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.7; word-break: break-word; }
-    .message.user .msg-bubble { background: #2563eb; color: white; border-bottom-right-radius: 4px; white-space: pre-wrap; }
-    .message.assistant .msg-bubble { background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px; }
-    .message.assistant .msg-bubble p { margin: 0 0 8px; }
-    .message.assistant .msg-bubble p:last-child { margin-bottom: 0; }
-    .message.assistant .msg-bubble h1,.message.assistant .msg-bubble h2,.message.assistant .msg-bubble h3 { font-size: 14px; font-weight: 700; margin: 12px 0 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
-    .message.assistant .msg-bubble ul,.message.assistant .msg-bubble ol { padding-left: 18px; margin: 4px 0 8px; }
-    .message.assistant .msg-bubble li { margin-bottom: 3px; }
-    .message.assistant .msg-bubble strong { font-weight: 700; color: #1f2937; }
-    .message.assistant .msg-bubble code { background: #e5e7eb; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
-    .message.assistant .msg-bubble table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
-    .message.assistant .msg-bubble th,.message.assistant .msg-bubble td { border: 1px solid #d1d5db; padding: 7px 12px; }
-    .message.assistant .msg-bubble th { background: #e0e7ff; font-weight: 700; color: #1e3a8a; }
-    .cursor { display: inline-block; animation: blink 0.8s infinite; color: #6b7280; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    /* 빈 화면 */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 20px; padding: 40px; }
+    .empty-icon { width: 60px; height: 60px; background: linear-gradient(135deg,#2563eb,#7c3aed); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+    .empty h2 { font-size: 20px; font-weight: 600; }
+    .empty p { font-size: 14px; color: #8e8ea0; text-align: center; max-width: 380px; line-height: 1.6; }
+    .sugg-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; max-width: 540px; width: 100%; }
+    .sugg { background: #2a2a2a; border: 1px solid #3f3f3f; border-radius: 12px; padding: 14px; cursor: pointer; }
+    .sugg:hover { border-color: #2563eb; background: #1e293b; }
+    .sugg .si { font-size: 20px; margin-bottom: 6px; }
+    .sugg .st { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .sugg .sd { font-size: 12px; color: #8e8ea0; }
 
-    /* 비용 패널 */
-    .cost-panel { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-    .cost-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; }
-    .cost-chip.money  { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
-    .cost-chip.time   { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
-    .cost-chip.tokens { background: #faf5ff; border: 1px solid #c4b5fd; color: #5b21b6; }
-    .cost-detail { width: 100%; background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 11px; }
-    .cost-detail table { width: 100%; border-collapse: collapse; }
-    .cost-detail th { text-align: left; color: #6b7280; font-weight: 600; padding: 3px 6px; border-bottom: 1px solid #e5e7eb; }
-    .cost-detail td { color: #374151; padding: 3px 6px; }
-    .cost-detail tr:nth-child(even) td { background: #f3f4f6; }
+    /* 유저 메시지 */
+    .u-row { display: flex; justify-content: flex-end; padding: 6px 24px; }
+    .u-bubble { background: #2f2f2f; border-radius: 18px 18px 4px 18px; padding: 12px 16px; max-width: 75%; font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 
-    /* 파이프라인 */
-    .pipeline-panel { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; margin-top: 6px; font-size: 12px; width: 100%; max-width: 600px; }
-    .pl-title { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 10px; }
-    .pl-stage { margin-bottom: 8px; }
-    .pl-stage-header { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #4b5563; margin-bottom: 4px; font-size: 12px; }
-    .pl-badge { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; }
-    .pl-badge.pre  { background: #e0e7ff; color: #3730a3; }
-    .pl-badge.ret  { background: #d1fae5; color: #065f46; }
-    .pl-badge.post { background: #fef3c7; color: #92400e; }
-    .pl-badge.gen  { background: #f3f4f6; color: #374151; }
-    .pl-query-list { display: flex; flex-direction: column; gap: 3px; padding-left: 8px; }
-    .pl-query-item { font-size: 11px; color: #6b7280; border-left: 2px solid #c7d2fe; padding-left: 6px; }
-    .pl-stat { font-size: 11px; color: #6b7280; padding-left: 8px; }
+    /* AI 메시지 */
+    .a-row { padding: 6px 24px; max-width: 800px; width: 100%; align-self: center; }
+    .a-content { font-size: 15px; line-height: 1.8; color: #ececec; word-break: break-word; min-height: 24px; }
+    .a-content p { margin: 0 0 10px; }
+    .a-content p:last-child { margin-bottom: 0; }
+    .a-content h1,.a-content h2,.a-content h3 { font-size: 15px; font-weight: 700; margin: 14px 0 6px; color: #fff; }
+    .a-content ul,.a-content ol { padding-left: 20px; margin: 6px 0 10px; }
+    .a-content li { margin-bottom: 4px; }
+    .a-content strong { font-weight: 700; color: #fff; }
+    .a-content code { background: #2f2f2f; border-radius: 4px; padding: 2px 5px; font-size: 13px; color: #93c5fd; }
+    .a-content table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    .a-content th { background: #1e3a8a; color: #bfdbfe; padding: 7px 12px; text-align: left; font-size: 13px; }
+    .a-content td { border-top: 1px solid #3f3f3f; padding: 7px 12px; font-size: 13px; color: #d1d5db; }
+    .a-content tr:nth-child(even) td { background: #1a1a1a; }
+    .a-content a { color: #60a5fa; }
 
-    /* 출처 */
-    .source-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-    .src-chip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 99px; font-size: 10px; background: transparent; border: 1px solid #e5e7eb; color: #9ca3af; cursor: pointer; transition: all 0.15s; }
-    .src-chip:hover { border-color: #6b7280; color: #6b7280; background: #f9fafb; }
-    .src-chip.compressed { border-color: #a5b4fc; color: #6366f1; }
-    .src-chip-detail { margin-top: 5px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; font-size: 11px; color: #374151; line-height: 1.6; white-space: pre-wrap; }
+    /* 로딩 점 */
+    .dots { display: flex; gap: 5px; padding: 4px 0; }
+    .dots span { width: 7px; height: 7px; background: #6b7280; border-radius: 50%; animation: bonce 1.2s infinite; }
+    .dots span:nth-child(2) { animation-delay: .2s; }
+    .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes bonce { 0%,80%,100%{transform:scale(.8);opacity:.5}40%{transform:scale(1.1);opacity:1} }
+    .cursor { display: inline-block; animation: blink .8s infinite; color: #6b7280; }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+
+    /* 메타 */
+    .meta { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .act-row { display: flex; gap: 4px; }
+    .meta-btn { display: flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 6px; border: none; background: transparent; color: #6b7280; font-size: 12px; cursor: pointer; }
+    .meta-btn:hover { background: #2a2a2a; color: #ececec; }
+    .pl-box { background: #1a1a1a; border: 1px solid #3f3f3f; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #8e8ea0; }
+    .pl-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+    .pl-row:last-child { margin-bottom: 0; }
+    .pl-tag { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .pl-tag.pre { background:#1e3a8a;color:#93c5fd; }
+    .pl-tag.ret { background:#064e3b;color:#6ee7b7; }
+    .pl-tag.post { background:#451a03;color:#fbbf24; }
+    .pl-tag.gen { background:#1f2937;color:#9ca3af; }
+    .pl-txt { flex: 1; line-height: 1.6; }
+    .pl-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .src-row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .src-lbl { font-size: 11px; color: #6b7280; }
+    .src-pill { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; background: transparent; border: 1px solid #3f3f3f; border-radius: 99px; font-size: 11px; color: #8e8ea0; cursor: pointer; }
+    .src-pill:hover { border-color: #6b7280; color: #ececec; background: #2a2a2a; }
+    .src-detail { background: #1a1a1a; border: 1px solid #3f3f3f; border-radius: 8px; padding: 10px; font-size: 12px; color: #9ca3af; line-height: 1.7; white-space: pre-wrap; margin-top: 4px; }
+    .src-detail-hdr { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
 
     /* 입력 */
-    .input-area { display: flex; gap: 10px; padding: 16px 24px; border-top: 1px solid #e5e7eb; background: white; }
-    .input-area input { flex: 1; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; outline: none; transition: border-color 0.15s; }
-    .input-area input:focus { border-color: #2563eb; }
-    .input-area input:disabled { background: #f9fafb; }
-    .send-btn { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-    .send-btn:hover:not(:disabled) { background: #1d4ed8; }
-    .send-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+    .inp-wrap { padding: 16px 24px 18px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .inp-box { width: 100%; max-width: 720px; background: #2f2f2f; border: 1px solid #3f3f3f; border-radius: 16px; display: flex; align-items: flex-end; gap: 8px; padding: 10px 14px; }
+    .inp-box:focus-within { border-color: #4b5563; }
+    .inp-box textarea { flex: 1; background: transparent; border: none; outline: none; color: #ececec; font-size: 15px; resize: none; line-height: 1.6; max-height: 180px; font-family: inherit; }
+    .inp-box textarea::placeholder { color: #6b7280; }
+    .send { width: 36px; height: 36px; border-radius: 10px; border: none; background: #2563eb; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .send:hover:not(:disabled) { background: #1d4ed8; }
+    .send:disabled { background: #3f3f3f; color: #6b7280; cursor: not-allowed; }
+    .inp-hint { font-size: 11px; color: #4b5563; }
 
-    /* 대시보드 */
-    .dashboard { flex: 1; overflow-y: auto; padding: 24px; }
-    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-    .metric-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; text-align: center; }
-    .metric-card .m-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
-    .metric-card .m-value { font-size: 22px; font-weight: 700; color: #111827; }
-    .metric-card .m-sub   { font-size: 11px; color: #9ca3af; margin-top: 4px; }
-    .session-cost-row { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; }
-    .session-cost-row .sc-name { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 6px; }
-    .session-cost-row .sc-stats { display: flex; gap: 16px; font-size: 12px; color: #6b7280; }
-
-    /* 신청 링크 */
-    .apply-btn { display: inline-flex; align-items: center; gap: 4px; background: #2563eb; color: white !important; text-decoration: none; border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 700; transition: background 0.15s; margin: 3px 2px; }
-    .apply-btn:hover { background: #1d4ed8; }
-    .apply-btn::after { content: " →"; }
-    .chat-link { display: inline-flex; align-items: center; gap: 3px; color: #2563eb; text-decoration: none; font-weight: 600; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 1px 7px; font-size: 13px; }
-    .chat-link:hover { background: #dbeafe; }
-
-    /* 이름 수정 인풋 */
-    .rename-input { width: 100%; padding: 5px 8px; border: 1px solid #2563eb; border-radius: 6px; font-size: 13px; outline: none; margin-bottom: 4px; }
+    /* 에러 */
+    .err-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100vw; height: 100vh; gap: 14px; }
+    .err-code { background: #2f2f2f; padding: 6px 14px; border-radius: 8px; color: #93c5fd; font-size: 13px; font-family: monospace; }
+    .retry { padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .retry:hover { background: #1d4ed8; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useRef, useEffect, useCallback } = React;
-    const API = "http://localhost:8000";
+<div id="app" style="display:flex;width:100vw;height:100vh;align-items:center;justify-content:center">
+  <div style="color:#8e8ea0;font-size:14px">연결 중...</div>
+</div>
+<script>
+// ── 설정 ─────────────────────────────────────────────────────
+const API = "http://127.0.0.1:8000";
+marked.setOptions({ breaks: true, gfm: true });
+function md(t) { try { return marked.parse(t||""); } catch { return t||""; } }
 
-    // ── 마크다운 ───────────────────────────────────────────────
-    (function setupMarked() {
-      const renderer = new marked.Renderer();
-      renderer.link = ({ href, title, text }) => {
-        if (/신청/.test(text))
-          return `<a href="${href}" target="_blank" rel="noopener" class="apply-btn">${text}</a>`;
-        return `<a href="${href}" target="_blank" rel="noopener" class="chat-link">${text} ↗</a>`;
-      };
-      marked.use({ renderer, breaks: true, gfm: true });
-    })();
+// ── 상태 ─────────────────────────────────────────────────────
+const S = {
+  sessions: [], activeId: null, messages: [],
+  sources: [], loading: false, err: null,
+  openPl: {}, openSrc: {},   // 패널 토글 (인덱스 키)
+};
 
-    function renderMd(text) {
-      let html = marked.parse(text);
-      html = html
-        .replace(/<li>\[x\]/gi, '<li><input type="checkbox" checked disabled>')
-        .replace(/<li>\[ \]/g,  '<li><input type="checkbox" disabled>');
-      return html;
+// ── 유틸 ─────────────────────────────────────────────────────
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs||{})) {
+    if (k === "cls")   e.className = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (k === "disabled" && v) e.disabled = true;
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids) {
+    if (c == null) continue;
+    e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+
+// ── API ───────────────────────────────────────────────────────
+async function apiLoad() {
+  const [sess, src] = await Promise.all([
+    fetch(`${API}/sessions`).then(r=>r.json()),
+    fetch(`${API}/sources`).then(r=>r.json()),
+  ]);
+  S.sessions = sess;
+  S.sources  = src;
+  S.err      = null;
+  if (!S.activeId) {
+    if (sess.length > 0) {
+      S.activeId = sess[0].id;
+      S.messages = cleanMsgs(sess[0].messages || []);
+    } else {
+      const ns = await fetch(`${API}/sessions`,{method:"POST"}).then(r=>r.json());
+      S.sessions = [ns];
+      S.activeId = ns.id;
+      S.messages = [];
     }
+  }
+}
+function cleanMsgs(msgs) {
+  return (msgs||[]).map(m => ({...m, hits:(m.hits||[]).filter(h=>h&&h.source)}));
+}
+async function apiRename(id, name) {
+  await fetch(`${API}/sessions/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
+  S.sessions = S.sessions.map(s => s.id===id ? {...s,name} : s);
+}
+async function apiDelete(id) {
+  await fetch(`${API}/sessions/${id}`,{method:"DELETE"});
+  S.sessions = S.sessions.filter(s => s.id !== id);
+  if (S.activeId === id) {
+    S.activeId = S.sessions[0]?.id || null;
+    S.messages = cleanMsgs(S.sessions[0]?.messages || []);
+  }
+}
+async function apiNew() {
+  const s = await fetch(`${API}/sessions`,{method:"POST"}).then(r=>r.json());
+  S.sessions = [s, ...S.sessions];
+  S.activeId = s.id;
+  S.messages = [];
+}
+function apiSwitch(id) {
+  S.activeId = id;
+  S.messages = cleanMsgs(S.sessions.find(s=>s.id===id)?.messages || []);
+  S.openPl  = {};
+  S.openSrc = {};
+}
 
-    // ── 비용 패널 ──────────────────────────────────────────────
-    function CostPanel({ cost }) {
-      const [open, setOpen] = useState(false);
-      if (!cost || !cost.total_cost_usd) return null;
-      const usd = cost.total_cost_usd;
-      const krw = cost.total_cost_krw;
-      const sec = cost.total_elapsed;
-      const tok = (cost.total_input_tokens || 0) + (cost.total_output_tokens || 0);
-      const byStage = cost.by_stage || {};
-      const LABELS = {
-        pre: "Pre-retrieval", embedding: "임베딩", reranking: "Re-ranking",
-        compression: "Compression", generation: "Generation",
-      };
-      return (
-        <div>
-          <div className="cost-panel">
-            <span className="cost-chip money" onClick={() => setOpen(!open)}>
-              💰 ${usd.toFixed(5)} (₩{krw.toFixed(2)})
-            </span>
-            <span className="cost-chip time">⏱ {sec.toFixed(1)}s</span>
-            <span className="cost-chip tokens">🔤 {tok.toLocaleString()} 토큰</span>
-          </div>
-          {open && (
-            <div className="cost-detail">
-              <table>
-                <thead><tr><th>단계</th><th>시간</th><th>입력</th><th>출력</th><th>비용</th></tr></thead>
-                <tbody>
-                  {Object.entries(byStage).map(([stage, s]) => (
-                    <tr key={stage}>
-                      <td>{LABELS[stage] || stage}</td>
-                      <td>{(s.elapsed || 0).toFixed(2)}s</td>
-                      <td>{(s.input_tokens || 0).toLocaleString()}</td>
-                      <td>{(s.output_tokens || 0).toLocaleString()}</td>
-                      <td>${(s.cost_usd || 0).toFixed(6)}</td>
-                    </tr>
-                  ))}
-                  <tr style={{fontWeight:700, borderTop:"2px solid #e5e7eb"}}>
-                    <td>합계</td><td>{sec.toFixed(2)}s</td>
-                    <td>{(cost.total_input_tokens||0).toLocaleString()}</td>
-                    <td>{(cost.total_output_tokens||0).toLocaleString()}</td>
-                    <td>${usd.toFixed(6)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      );
-    }
+// ── 전송 ─────────────────────────────────────────────────────
+async function send(txt) {
+  const text = (txt || document.getElementById("ti")?.value || "").trim();
+  if (!text || S.loading || !S.activeId) return;
+  const ti = document.getElementById("ti");
+  if (ti) { ti.value = ""; ti.style.height = "auto"; }
 
-    // ── 파이프라인 패널 ────────────────────────────────────────
-    function PipelinePanel({ pipeline }) {
-      if (!pipeline) return null;
-      const { pre, retrieval, post } = pipeline;
-      return (
-        <div className="pipeline-panel">
-          <div className="pl-title">🔬 Advanced RAG 파이프라인</div>
-          {pre && (
-            <div className="pl-stage">
-              <div className="pl-stage-header">
-                <span className="pl-badge pre">Pre</span>
-                Multi-query ({pre.query_type === "single" ? "싱글홉" : "멀티홉"})
-              </div>
-              <div className="pl-query-list">
-                {pre.queries.map((q, i) => (
-                  <div className="pl-query-item" key={i}>쿼리 {i+1}: {q}</div>
-                ))}
-              </div>
-            </div>
-          )}
-          {retrieval && (
-            <div className="pl-stage">
-              <div className="pl-stage-header">
-                <span className="pl-badge ret">Retrieval</span>
-                Hybrid Search (BM25 + Vector)
-              </div>
-              <div className="pl-stat">
-                {retrieval.queries_used}개 쿼리 → <strong>{retrieval.count}개</strong> 후보
-              </div>
-            </div>
-          )}
-          {post && (
-            <div className="pl-stage">
-              <div className="pl-stage-header">
-                <span className="pl-badge post">Post</span>
-                Re-ranking + Compression
-              </div>
-              <div className="pl-stat">
-                Re-ranking → <strong>{post.reranked}개</strong> 선별
-                {post.compressed > 0 && ` | 🗜️ ${post.compressed}개 압축`}
-              </div>
-            </div>
-          )}
-          <div className="pl-stage">
-            <div className="pl-stage-header">
-              <span className="pl-badge gen">Gen</span>
-              LLM 스트리밍 응답
-            </div>
-          </div>
-        </div>
-      );
-    }
+  // 누적 변수 (인덱스 문제 완전 회피)
+  let acc = { content:"", pipeline:{}, hits:[] };
 
-    // ── 출처 칩 ────────────────────────────────────────────────
-    function SourceChip({ hit, index }) {
-      const [open, setOpen] = useState(false);
-      return (
-        <div>
-          <span
-            className={`src-chip${hit.compressed ? " compressed" : ""}`}
-            onClick={() => setOpen(!open)}
-          >
-            {hit.compressed ? "🗜️" : ""}{index + 1} {hit.source.replace(/\.[^.]+$/, "")}
-          </span>
-          {open && (
-            <div className="src-chip-detail">
-              <div style={{fontWeight:600, marginBottom:4, fontSize:11, color:"#6b7280"}}>
-                {hit.source} · 유사도 {(hit.similarity * 100).toFixed(0)}%
-                {hit.compressed ? " · 압축됨" : ""}
-              </div>
-              {hit.content}
-            </div>
-          )}
-        </div>
-      );
-    }
+  S.messages.push({ role:"user", content:text });
+  S.messages.push({ role:"assistant", content:"", hits:[], pipeline:{}, streaming:true });
+  S.loading = true;
+  const aiIdx = S.messages.length - 1;
+  render();
 
-    // ── 세션 카드 ──────────────────────────────────────────────
-    function SessionCard({ session, isActive, onSwitch, onRename, onDelete }) {
-      const [editing, setEditing] = useState(false);
-      const [name, setName] = useState(session.name);
-      const msgCount = (session.messages || []).filter(m => m.role === "user").length;
+  try {
+    const res = await fetch(`${API}/chat/stream`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({session_id:S.activeId,message:text,top_k:5,threshold:0.2,max_per_source:2,use_compression:false}),
+    });
+    const reader = res.body.getReader();
+    const dec    = new TextDecoder();
 
-      const save = async () => {
-        await fetch(`${API}/sessions/${session.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        });
-        setEditing(false);
-        onRename();
-      };
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
 
-      return (
-        <div className={`session-card ${isActive ? "active" : ""}`} onClick={() => !editing && onSwitch(session.id)}>
-          {editing ? (
-            <div onClick={e => e.stopPropagation()}>
-              <input
-                className="rename-input"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && save()}
-                autoFocus
-              />
-              <div style={{display:"flex", gap:4}}>
-                <button style={{flex:1,padding:"3px",fontSize:11,border:"1px solid #2563eb",background:"#eff6ff",color:"#2563eb",borderRadius:5,cursor:"pointer"}} onClick={save}>저장</button>
-                <button style={{flex:1,padding:"3px",fontSize:11,border:"1px solid #e5e7eb",background:"white",borderRadius:5,cursor:"pointer"}} onClick={() => { setEditing(false); setName(session.name); }}>취소</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="s-name">{isActive ? "▶ " : ""}{session.name}</div>
-              <div className="s-meta">질문 {msgCount}개 · ${(session.total_cost_usd || 0).toFixed(5)}</div>
-              <div className="session-actions" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setEditing(true)}>✏️ 이름변경</button>
-                <button className="danger" onClick={() => onDelete(session.id)}>🗑 삭제</button>
-              </div>
-            </>
-          )}
-        </div>
-      );
-    }
+      for (const line of dec.decode(value).split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        let d; try { d = JSON.parse(line.slice(6)); } catch { continue; }
 
-    // ── 사이드바 ───────────────────────────────────────────────
-    function Sidebar({ sessions, activeId, sources, stats, settings, onSettingsChange, onSessionSwitch, onSessionCreate, onSessionDelete, onSessionRename, onSourceDelete, onReset }) {
-      return (
-        <div className="sidebar">
-          <div>
-            <h2>🤖 청년도우미</h2>
-            <div className="caption">6주차: FastAPI + React · 세션 관리</div>
-          </div>
-          <hr />
-
-          <div className="sidebar-section">
-            <h3>💬 대화 목록</h3>
-            <button className="btn-primary" onClick={onSessionCreate} style={{marginBottom:8}}>＋ 새 대화</button>
-            {sessions.map(s => (
-              <SessionCard
-                key={s.id} session={s} isActive={s.id === activeId}
-                onSwitch={onSessionSwitch} onRename={onSessionRename} onDelete={onSessionDelete}
-              />
-            ))}
-          </div>
-          <hr />
-
-          <div className="sidebar-section">
-            <h3>📂 인덱싱된 문서</h3>
-            {sources.length === 0
-              ? <div style={{fontSize:12, color:"#9ca3af"}}>인덱싱 중...</div>
-              : sources.map(s => (
-                  <div className="source-item" key={s.source}>
-                    <div>
-                      <div className="src-name">{s.source}</div>
-                      <div className="src-cnt">{s.chunks}개 청크</div>
-                    </div>
-                    <button className="del-btn" onClick={() => onSourceDelete(s.source)}>삭제</button>
-                  </div>
-                ))
-            }
-          </div>
-          <hr />
-
-          <div className="sidebar-section">
-            <h3>⚙️ 검색 설정</h3>
-            {[
-              {key:"top_k",          label:`top-k: ${settings.top_k}`,           min:1, max:8, step:1},
-              {key:"threshold",      label:`임계값: ${settings.threshold}`,        min:0, max:1, step:0.05},
-              {key:"max_per_source", label:`문서당 최대: ${settings.max_per_source}`, min:1, max:3, step:1},
-            ].map(s => (
-              <div className="slider-group" key={s.key}>
-                <label>{s.label}</label>
-                <input type="range" min={s.min} max={s.max} step={s.step}
-                  value={settings[s.key]}
-                  onChange={e => onSettingsChange(s.key, s.step < 1 ? parseFloat(e.target.value) : parseInt(e.target.value))}
-                />
-              </div>
-            ))}
-            <label className="check-group">
-              <input type="checkbox" checked={settings.use_compression}
-                onChange={e => onSettingsChange("use_compression", e.target.checked)} />
-              Context Compression
-            </label>
-          </div>
-          <hr />
-
-          <div className="sidebar-section">
-            <h3>📊 통계</h3>
-            <div className="stat-row">
-              <div className="stat-box"><div className="lbl">문서</div><div className="val">{stats.total_documents}</div></div>
-              <div className="stat-box"><div className="lbl">청크</div><div className="val">{stats.total_chunks}</div></div>
-            </div>
-          </div>
-          <hr />
-          <button className="btn-sm" onClick={onReset}>대화 초기화</button>
-        </div>
-      );
-    }
-
-    // ── 챗봇 탭 ───────────────────────────────────────────────
-    function ChatTab({ activeSession, sources, settings }) {
-      const [messages, setMessages] = useState([]);
-      const [input, setInput]       = useState("");
-      const [loading, setLoading]   = useState(false);
-      const [showPipeline, setShowPipeline] = useState(true);
-      const bottomRef = useRef(null);
-
-      useEffect(() => {
-        if (activeSession) {
-          setMessages(activeSession.messages || []);
-        }
-      }, [activeSession?.id]);
-
-      useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
-
-      const send = async () => {
-        if (!input.trim() || loading || !activeSession || sources.length === 0) return;
-        const text = input.trim();
-        setInput("");
-        const newMsg = { role: "assistant", content: "", hits: [], pipeline: {}, cost: null };
-        setMessages(prev => [...prev, { role: "user", content: text }, newMsg]);
-        setLoading(true);
-
-        try {
-          const res = await fetch(`${API}/chat/stream`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ session_id: activeSession.id, message: text, ...settings }),
-          });
-          const reader  = res.body.getReader();
-          const decoder = new TextDecoder();
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const lines = decoder.decode(value).split("\n");
-            for (const line of lines) {
-              if (!line.startsWith("data: ")) continue;
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "pipeline") {
-                setMessages(prev => {
-                  const u = [...prev];
-                  const last = { ...u[u.length-1] };
-                  last.pipeline = { ...last.pipeline, [data.stage]: data };
-                  u[u.length-1] = last;
-                  return u;
-                });
-              }
-              if (data.type === "text") {
-                setMessages(prev => {
-                  const u = [...prev];
-                  u[u.length-1] = { ...u[u.length-1], content: u[u.length-1].content + data.content };
-                  return u;
-                });
-              }
-              if (data.type === "hits") {
-                setMessages(prev => {
-                  const u = [...prev];
-                  u[u.length-1] = { ...u[u.length-1], hits: data.hits };
-                  return u;
-                });
-              }
-              if (data.type === "cost") {
-                setMessages(prev => {
-                  const u = [...prev];
-                  u[u.length-1] = { ...u[u.length-1], cost: data };
-                  return u;
-                });
-              }
-            }
+        if (d.type === "text") {
+          acc.content += d.content;
+          // stream-box DOM 직접 업데이트
+          const box = document.getElementById("stream-box");
+          if (box) {
+            box.innerHTML = md(acc.content) + '<span class="cursor">▌</span>';
+            document.getElementById("msg-end")?.scrollIntoView({behavior:"smooth"});
           }
-        } catch (err) {
-          setMessages(prev => {
-            const u = [...prev];
-            u[u.length-1] = { ...u[u.length-1], content: `오류: ${err.message}` };
-            return u;
-          });
-        } finally {
-          setLoading(false);
         }
-      };
+        if (d.type === "pipeline") acc.pipeline[d.stage] = d;
+        if (d.type === "hits")     acc.hits = (d.hits||[]).filter(x=>x&&x.source);
+        if (d.type === "done") {
+          // acc에 누적된 최종 값으로 state 업데이트 후 렌더
+          S.messages[aiIdx] = {
+            role:"assistant",
+            content: acc.content,
+            hits:    acc.hits,
+            pipeline:acc.pipeline,
+            streaming:false,
+          };
+          S.loading = false;
+          render();
+          fetch(`${API}/sessions`).then(r=>r.json()).then(ss=>{
+            S.sessions = ss;
+            const sl = document.getElementById("sess-list");
+            if (sl) { sl.innerHTML=""; buildSessList(sl); }
+          });
+        }
+      }
+    }
+    if (S.loading) { // done 없이 스트림 닫힌 경우
+      S.messages[aiIdx] = {role:"assistant",content:acc.content||"(응답 없음)",hits:acc.hits,pipeline:acc.pipeline,streaming:false};
+      S.loading = false;
+      render();
+    }
+  } catch(e) {
+    S.messages[aiIdx] = {role:"assistant",content:`오류: ${e.message}`,hits:[],pipeline:{},streaming:false};
+    S.loading = false;
+    render();
+  }
+}
 
-      return (
-        <>
-          <div style={{padding:"8px 24px",background:"white",borderBottom:"1px solid #f3f4f6",display:"flex",alignItems:"center",gap:8}}>
-            <label style={{fontSize:12,color:"#374151",display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-              <input type="checkbox" checked={showPipeline} onChange={e => setShowPipeline(e.target.checked)} style={{accentColor:"#2563eb"}} />
-              파이프라인 단계 표시
-            </label>
-          </div>
-          <div className="messages">
-            {messages.length === 0 && (
-              <div className="empty">
-                {sources.length === 0 ? "서버가 인덱싱 중입니다. 잠시 후 새로고침하세요." : "질문을 입력하세요."}
-              </div>
-            )}
-            {messages.map((msg, i) => (
-              <div key={i} className={`message ${msg.role}`}>
-                <div className="msg-label">{msg.role === "user" ? "나" : "AI"}</div>
-                <div className="msg-bubble">
-                  {msg.role === "user" ? msg.content : (
-                    <span dangerouslySetInnerHTML={{ __html: renderMd(msg.content) }} />
-                  )}
-                  {msg.role === "assistant" && loading && i === messages.length - 1 && (
-                    <span className="cursor">▌</span>
-                  )}
-                </div>
-                {msg.role === "assistant" && showPipeline && Object.keys(msg.pipeline || {}).length > 0 && (
-                  <PipelinePanel pipeline={msg.pipeline} />
-                )}
-                {msg.role === "assistant" && msg.cost && <CostPanel cost={msg.cost} />}
-                {msg.role === "assistant" && msg.hits && msg.hits.length > 0 && (
-                  <div className="source-chips">
-                    {msg.hits.map((h, j) => <SourceChip key={j} hit={h} index={j} />)}
-                  </div>
-                )}
-              </div>
-            ))}
-            <div ref={bottomRef} />
-          </div>
-          <div className="input-area">
-            <input
-              type="text" value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-              placeholder={sources.length === 0 ? "인덱싱 중..." : "질문을 입력하세요... (Enter 전송)"}
-              disabled={loading || sources.length === 0}
-            />
-            <button className="send-btn" onClick={send} disabled={loading || !input.trim() || sources.length === 0}>
-              {loading ? "처리 중..." : "전송"}
-            </button>
-          </div>
-        </>
-      );
+// ── 렌더: 사이드바 세션 목록 ──────────────────────────────────
+function buildSessList(container) {
+  if (S.sessions.length === 0) {
+    container.appendChild(h("div",{style:"font-size:12px;color:#4b5563;padding:8px 12px"},"새 대화를 시작하세요"));
+    return;
+  }
+  for (const s of S.sessions) {
+    const active = s.id === S.activeId;
+    const item = h("div",{cls:`sess-item${active?" active":""}`, onclick:()=>{ apiSwitch(s.id); render(); }},
+      h("span",{style:"font-size:14px"},"💬"),
+      h("span",{cls:"name"},s.name),
+      h("div",{cls:"acts", onclick:e=>e.stopPropagation()},
+        h("button",{cls:"act-btn",title:"이름변경",onclick:e=>{
+          e.stopPropagation();
+          const n=prompt("새 이름:",s.name); if(n) apiRename(s.id,n.trim()).then(render);
+        }},"✏️"),
+        h("button",{cls:"act-btn d",title:"삭제",onclick:e=>{
+          e.stopPropagation();
+          if(confirm(`"${s.name}" 삭제?`)) apiDelete(s.id).then(render);
+        }},"🗑"),
+      ),
+    );
+    container.appendChild(item);
+  }
+}
+
+// ── 렌더: 메시지 목록 ─────────────────────────────────────────
+function buildMsgs(container) {
+  if (S.messages.length === 0) {
+    const suggs = [
+      {i:"🏠",t:"주거 지원",d:"청년 월세 지원이 궁금해요"},
+      {i:"💼",t:"취업 지원",d:"취업 장려금 신청 방법은?"},
+      {i:"🎓",t:"교육·장학금",d:"청년 장학금 종류가 뭐가 있나요?"},
+      {i:"💰",t:"금융 지원",d:"청년 저금리 대출 조건 알려줘"},
+    ];
+    container.appendChild(h("div",{cls:"empty"},
+      h("div",{cls:"empty-icon"},"🤖"),
+      h("h2",{},"청년도우미에게 무엇이든 물어보세요"),
+      h("p",{},"청년 주거·취업·교육·금융 정책 정보를 AI가 찾아드립니다."),
+      h("div",{cls:"sugg-grid"},
+        ...suggs.map(s=>h("div",{cls:"sugg",onclick:()=>send(s.d)},
+          h("div",{cls:"si"},s.i),
+          h("div",{cls:"st"},s.t),
+          h("div",{cls:"sd"},s.d),
+        ))
+      ),
+    ));
+    return;
+  }
+
+  for (let i = 0; i < S.messages.length; i++) {
+    const msg = S.messages[i];
+    if (msg.role === "user") {
+      container.appendChild(h("div",{cls:"u-row"},h("div",{cls:"u-bubble"},msg.content)));
+      continue;
     }
 
-    // ── 대시보드 탭 ────────────────────────────────────────────
-    function DashboardTab({ sessions, activeId }) {
-      if (!sessions.length) return <div className="dashboard"><p style={{color:"#9ca3af"}}>대화를 시작하면 비용이 표시됩니다.</p></div>;
-      const totalUsd = sessions.reduce((s, x) => s + (x.total_cost_usd || 0), 0);
-      const totalIn  = sessions.reduce((s, x) => s + (x.total_tokens?.input  || 0), 0);
-      const totalOut = sessions.reduce((s, x) => s + (x.total_tokens?.output || 0), 0);
-      const totalQ   = sessions.reduce((s, x) => s + (x.messages || []).filter(m => m.role === "user").length, 0);
-      return (
-        <div className="dashboard">
-          <h2 style={{marginBottom:16}}>📊 세션별 비용 대시보드</h2>
-          <div className="metric-grid">
-            <div className="metric-card"><div className="m-label">전체 누적 비용</div><div className="m-value">${totalUsd.toFixed(5)}</div></div>
-            <div className="metric-card"><div className="m-label">원화 환산</div><div className="m-value">₩{(totalUsd*1380).toFixed(0)}</div></div>
-            <div className="metric-card"><div className="m-label">총 질문 수</div><div className="m-value">{totalQ}개</div></div>
-            <div className="metric-card"><div className="m-label">총 토큰</div><div className="m-value">{(totalIn+totalOut).toLocaleString()}</div></div>
-          </div>
-          <h3 style={{marginBottom:12}}>세션별 상세</h3>
-          {sessions.map(s => {
-            const q = (s.messages || []).filter(m => m.role === "user").length;
-            const avg = q ? (s.total_cost_usd || 0) / q : 0;
-            return (
-              <div className="session-cost-row" key={s.id}>
-                <div className="sc-name">{s.name} {s.id === activeId ? "👈 현재" : ""}</div>
-                <div className="sc-stats">
-                  <span>질문 {q}개</span>
-                  <span>총 비용 ${(s.total_cost_usd||0).toFixed(5)}</span>
-                  <span>질문당 ${avg.toFixed(5)}</span>
-                  <span>₩{((s.total_cost_usd||0)*1380).toFixed(1)}</span>
-                  <span>입력 {(s.total_tokens?.input||0).toLocaleString()} / 출력 {(s.total_tokens?.output||0).toLocaleString()}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
+    // AI 메시지
+    const isStreaming = msg.streaming && i === S.messages.length - 1;
+    const contentEl = h("div", {cls:"a-content"});
+
+    if (isStreaming) {
+      // 항상 id 부여 (내용 유무 관계없이)
+      contentEl.id = "stream-box";
+      if (!msg.content) {
+        contentEl.appendChild(h("div",{cls:"dots"},h("span"),h("span"),h("span")));
+      } else {
+        contentEl.innerHTML = md(msg.content) + '<span class="cursor">▌</span>';
+      }
+    } else {
+      // 완료
+      contentEl.innerHTML = md(msg.content);
     }
 
-    // ── 메인 앱 ───────────────────────────────────────────────
-    function App() {
-      const [sessions,  setSessions]  = useState([]);
-      const [activeId,  setActiveId]  = useState(null);
-      const [sources,   setSources]   = useState([]);
-      const [stats,     setStats]     = useState({ total_documents: 0, total_chunks: 0 });
-      const [settings,  setSettings]  = useState({ top_k: 5, threshold: 0.2, max_per_source: 2, use_compression: true });
-      const [tab,       setTab]       = useState("chat");
+    const row = h("div",{cls:"a-row"}, contentEl);
 
-      const loadAll = useCallback(async () => {
-        try {
-          const [sess, src, st] = await Promise.all([
-            fetch(`${API}/sessions`).then(r => r.json()),
-            fetch(`${API}/sources`).then(r => r.json()),
-            fetch(`${API}/stats`).then(r => r.json()),
-          ]);
-          setSessions(sess);
-          setSources(src);
-          setStats(st);
-          if (!activeId && sess.length > 0) setActiveId(sess[0].id);
-        } catch {}
-      }, [activeId]);
+    // 완료 시 메타 추가
+    if (!isStreaming && msg.content) {
+      const meta = h("div",{cls:"meta"});
+      const actRow = h("div",{cls:"act-row"});
 
-      useEffect(() => { loadAll(); }, []);
+      // 복사
+      const copyBtn = h("button",{cls:"meta-btn",onclick:()=>{
+        navigator.clipboard.writeText(msg.content);
+        copyBtn.textContent="✓ 복사됨";
+        setTimeout(()=>{copyBtn.textContent="📋 복사";},1500);
+      }},"📋 복사");
+      actRow.appendChild(copyBtn);
 
-      const createSession = async () => {
-        const s = await fetch(`${API}/sessions`, { method: "POST" }).then(r => r.json());
-        setSessions(prev => [s, ...prev]);
-        setActiveId(s.id);
-      };
+      // 파이프라인 토글
+      const hasPl = msg.pipeline && Object.keys(msg.pipeline).length > 0;
+      if (hasPl) {
+        const plBtn = h("button",{cls:"meta-btn",onclick:()=>{
+          S.openPl[i]=!S.openPl[i];
+          const box = document.getElementById(`pl-${i}`);
+          if (box) box.style.display = S.openPl[i]?"block":"none";
+          plBtn.textContent = S.openPl[i]?"🔬 파이프라인 숨기기":"🔬 파이프라인 보기";
+        }},"🔬 파이프라인 보기");
+        actRow.appendChild(plBtn);
+      }
+      meta.appendChild(actRow);
 
-      const deleteSession = async (id) => {
-        await fetch(`${API}/sessions/${id}`, { method: "DELETE" });
-        setSessions(prev => {
-          const rest = prev.filter(s => s.id !== id);
-          if (id === activeId) setActiveId(rest[0]?.id || null);
-          return rest;
+      // 파이프라인 박스
+      if (hasPl) {
+        const {pre,retrieval,post} = msg.pipeline;
+        const plBox = h("div",{cls:"pl-box", id:`pl-${i}`, style:`display:${S.openPl[i]?"block":"none"}`});
+        if (pre) {
+          const txt = h("div",{cls:"pl-txt"}, pre.query_type==="single"?"싱글홉 (1개 쿼리)":`멀티홉 (${(pre.queries||[]).length}개 쿼리)`);
+          if ((pre.queries||[]).length>1) {
+            const sub=h("div",{cls:"pl-sub"}); pre.queries.forEach(q=>{sub.appendChild(h("div",{},"• "+q));}); txt.appendChild(sub);
+          }
+          plBox.appendChild(h("div",{cls:"pl-row"},h("span",{cls:"pl-tag pre"},"Pre"),txt));
+        }
+        if (retrieval) plBox.appendChild(h("div",{cls:"pl-row"},h("span",{cls:"pl-tag ret"},"검색"),h("div",{cls:"pl-txt"},`Hybrid Search → ${retrieval.count}개 후보`)));
+        if (post)      plBox.appendChild(h("div",{cls:"pl-row"},h("span",{cls:"pl-tag post"},"후처리"),h("div",{cls:"pl-txt"},`Re-ranking → ${post.reranked}개 선별`)));
+        plBox.appendChild(h("div",{cls:"pl-row"},h("span",{cls:"pl-tag gen"},"생성"),h("div",{cls:"pl-txt"},"GPT-4o-mini 스트리밍")));
+        meta.appendChild(plBox);
+      }
+
+      // 출처
+      const hits = (msg.hits||[]).filter(h2=>h2&&h2.source);
+      if (hits.length) {
+        const srcRow = h("div",{cls:"src-row"},h("span",{cls:"src-lbl"},"출처"));
+        hits.forEach((hit,j)=>{
+          const key=`${i}-${j}`;
+          const name=hit.source.replace(/\.[^.]+$/,"");
+          const pill=h("span",{cls:"src-pill",onclick:()=>{
+            S.openSrc[key]=!S.openSrc[key];
+            const det=document.getElementById(`src-${key}`);
+            if(det) det.style.display=S.openSrc[key]?"block":"none";
+          }},`📄 ${name}`,h("span",{style:"opacity:.5"},` ·${(hit.similarity*100).toFixed(0)}%`));
+          const det=h("div",{cls:"src-detail",id:`src-${key}`,style:`display:${S.openSrc[key]?"block":"none"}`},
+            h("div",{cls:"src-detail-hdr"},`${hit.source} · 유사도 ${(hit.similarity*100).toFixed(0)}%`),
+            hit.content,
+          );
+          srcRow.appendChild(pill);
+          srcRow.appendChild(det);
         });
-      };
+        meta.appendChild(srcRow);
+      }
 
-      const deleteSource = async (name) => {
-        await fetch(`${API}/sources/${encodeURIComponent(name)}`, { method: "DELETE" });
-        loadAll();
-      };
-
-      const reset = async () => {
-        if (!activeId) return;
-        await fetch(`${API}/sessions/${activeId}`, { method: "DELETE" });
-        const s = await fetch(`${API}/sessions`, { method: "POST" }).then(r => r.json());
-        setSessions(prev => [s, ...prev.filter(x => x.id !== activeId)]);
-        setActiveId(s.id);
-      };
-
-      const activeSession = sessions.find(s => s.id === activeId) || null;
-
-      return (
-        <div style={{ display:"flex", width:"100vw", height:"100vh" }}>
-          <Sidebar
-            sessions={sessions} activeId={activeId} sources={sources} stats={stats} settings={settings}
-            onSettingsChange={(k, v) => setSettings(p => ({ ...p, [k]: v }))}
-            onSessionSwitch={id => setActiveId(id)}
-            onSessionCreate={createSession}
-            onSessionDelete={deleteSession}
-            onSessionRename={loadAll}
-            onSourceDelete={deleteSource}
-            onReset={reset}
-          />
-          <div className="main">
-            <div className="tabs">
-              {[
-                { id:"chat",      label:"💬 챗봇" },
-                { id:"dashboard", label:"📊 비용 대시보드" },
-              ].map(t => (
-                <div key={t.id} className={`tab ${tab===t.id?"active":""}`} onClick={() => setTab(t.id)}>
-                  {t.label}
-                </div>
-              ))}
-            </div>
-            <div className="tab-content">
-              <div className={`tab-panel ${tab==="chat"?"active":""}`}>
-                <ChatTab activeSession={activeSession} sources={sources} settings={settings} />
-              </div>
-              <div className={`tab-panel ${tab==="dashboard"?"active":""}`}>
-                <DashboardTab sessions={sessions} activeId={activeId} />
-              </div>
-            </div>
-          </div>
-        </div>
-      );
+      row.appendChild(meta);
     }
+    container.appendChild(row);
+  }
+  container.appendChild(h("div",{id:"msg-end"}));
+}
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-  </script>
+// ── 전체 렌더 ────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  app.style.cssText = "display:flex;width:100vw;height:100vh;";
+
+  if (S.err) {
+    app.appendChild(h("div",{cls:"err-screen"},
+      h("div",{style:"font-size:44px"},"⚠️"),
+      h("div",{style:"font-size:20px;font-weight:700"},"서버에 연결할 수 없습니다"),
+      h("div",{style:"font-size:14px;color:#8e8ea0;text-align:center;line-height:1.8"},
+        "백엔드 서버를 먼저 실행하세요.",
+        h("div",{cls:"err-code"},"uvicorn server:app --reload"),
+        h("div",{style:"font-size:12px;color:#f87171;margin-top:6px"},S.err),
+      ),
+      h("button",{cls:"retry",onclick:init},"🔄 다시 연결"),
+    ));
+    return;
+  }
+
+  // 사이드바
+  const sessList = h("div",{cls:"sess-list",id:"sess-list"});
+  buildSessList(sessList);
+  app.appendChild(h("div",{cls:"sidebar"},
+    h("div",{cls:"logo"},h("div",{cls:"logo-icon"},"🤖"),"청년도우미"),
+    h("button",{cls:"new-btn",onclick:()=>apiNew().then(render)},"✏️ 새 대화"),
+    h("div",{cls:"sec-label"},"대화 목록"),
+    sessList,
+    h("div",{cls:"sidebar-foot"},"Advanced RAG · GPT-4o-mini\n청년 정책 전문 AI"),
+  ));
+
+  // 메인
+  const msgCont = h("div",{cls:"msgs"});
+  buildMsgs(msgCont);
+
+  const isReady = S.sources.length > 0;
+  const ta = h("textarea",{
+    id:"ti", rows:"1",
+    placeholder: !S.activeId ? "새 대화를 시작하세요..."
+      : !isReady ? "문서 인덱싱 중..."
+      : "청년 정책에 대해 물어보세요... (Enter 전송, Shift+Enter 줄바꿈)",
+  });
+  if (S.loading || !S.activeId || !isReady) ta.disabled = true;
+  ta.addEventListener("input", function(){ this.style.height="auto"; this.style.height=Math.min(this.scrollHeight,180)+"px"; });
+  ta.addEventListener("keydown", function(e){ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();} });
+
+  const sendBtn = h("button",{cls:"send",onclick:send},"↑");
+  if (S.loading || !S.activeId || !isReady) sendBtn.disabled = true;
+
+  app.appendChild(h("div",{cls:"main"},
+    h("div",{cls:"hdr"},h("div",{cls:"badge"},h("div",{cls:"dot"}),"GPT-4o-mini · Advanced RAG",
+      isReady ? null : h("span",{style:"color:#f59e0b;margin-left:6px"},"인덱싱 중...")
+    )),
+    msgCont,
+    h("div",{cls:"inp-wrap"},
+      h("div",{cls:"inp-box"},ta,sendBtn),
+      h("div",{cls:"inp-hint"},"Advanced RAG · Hybrid Search · Re-ranking"),
+    ),
+  ));
+
+  // 스크롤 하단
+  setTimeout(()=>document.getElementById("msg-end")?.scrollIntoView(),0);
+}
+
+// ── 초기화 ───────────────────────────────────────────────────
+async function init() {
+  try {
+    await apiLoad();
+    render();
+  } catch(e) {
+    S.err = e.message || String(e);
+    render();
+  }
+}
+
+init();
+</script>
 </body>
 </html>

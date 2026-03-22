@@ -70,7 +70,7 @@ class ChatRequest(BaseModel):
     top_k:           int   = 5
     threshold:       float = 0.2
     max_per_source:  int   = 2
-    use_compression: bool  = True
+    use_compression: bool  = False
 
 
 class SessionRenameRequest(BaseModel):
@@ -197,7 +197,9 @@ async def chat_stream(req: ChatRequest):
         system_content = rag._build_system_prompt(final_hits)
 
         from services.llm_service import stream_response
+        full_response = ""
         for chunk in stream_response(system_content, rag.conversation, req.message, tracker=tracker):
+            full_response += chunk
             yield f"data: {json.dumps({'type':'text','content':chunk})}\n\n"
             await asyncio.sleep(0)
         tracker.end_stage("generation")
@@ -228,7 +230,7 @@ async def chat_stream(req: ChatRequest):
             req.session_id,
             session["messages"] + [
                 {"role": "user",      "content": req.message},
-                {"role": "assistant", "content": ""},
+                {"role": "assistant", "content": full_response},
             ],
             rag.conversation,
         )
