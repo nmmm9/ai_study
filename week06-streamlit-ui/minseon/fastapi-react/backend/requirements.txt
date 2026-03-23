@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+openai
+supabase
+chromadb==0.4.24
+pydantic
+python-dotenv
+rank-bm25
