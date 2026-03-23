@@ -36,17 +36,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SESSIONS_PATH = os.path.join(_ROOT, "data", "sessions.json")
-sm  = SessionManager(SESSIONS_PATH)
+
+sm = SessionManager()
+
 
 # 세션별 RAG 인스턴스 (session_id → AdvancedRagPipeline)
 _rag_instances: dict[str, AdvancedRagPipeline] = {}
 
 # 공유 RAG (인덱싱·검색용 - 벡터DB는 공유)
-_shared_rag = AdvancedRagPipeline()
-
-# 자동 인덱싱
-_shared_rag.auto_index_data_dir()
+try:
+    _shared_rag = AdvancedRagPipeline()
+    _shared_rag.auto_index_data_dir()
+except Exception as e:
+    print(f"[WARN] RAG 초기화 실패 (배포 환경): {e}")
+    _shared_rag = None
 
 
 def get_rag(session_id: str) -> AdvancedRagPipeline:
@@ -249,6 +252,8 @@ async def chat_stream(req: ChatRequest):
 
 @app.get("/sources")
 def get_sources():
+    if _shared_rag is None:
+        return []
     return _shared_rag.get_indexed_sources()
 
 
