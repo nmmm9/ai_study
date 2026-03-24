@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 05 — Advanced RAG · juwon</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --c1: #5c6ef8; --c2: #f85c8a; --c3: #00c9a7; --c4: #ffb347; --c5: #a259ff;
+    --white: #fff; --bg: #f7f7fb; --text: #1a1a2e; --mid: #5a5a7a;
+    --light: #9090b0; --stroke: #e4e4f0; --dark: #1c1c30;
+  }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; width: 100vw; }
+  .deck { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+  .slide { position: absolute; inset: 0; display: flex; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.77,0,0.18,1); }
+  .slide.active { transform: translateX(0); }
+
+  .lp { width: 260px; min-width: 260px; display: flex; flex-direction: column; justify-content: space-between; padding: 44px 32px; position: relative; overflow: hidden; }
+  .lp::after { content: attr(data-icon); position: absolute; bottom: -16px; right: -8px; font-size: 130px; line-height: 1; opacity: 0.15; pointer-events: none; }
+  .lp .top-label { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+  .lp .main-title { font-size: 28px; font-weight: 900; color: #fff; line-height: 1.25; margin-top: 8px; }
+  .lp .sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 8px; line-height: 1.6; }
+  .lp .pg { font-size: 12px; color: rgba(255,255,255,0.35); }
+
+  .rp { flex: 1; background: var(--white); padding: 40px 52px 64px; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+
+  h2 { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+  .section-tag { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--light); }
+  p { font-size: 15px; line-height: 1.85; color: var(--mid); }
+  li { font-size: 14px; line-height: 1.7; color: var(--mid); margin-bottom: 5px; list-style: none; }
+  li::before { content: "·"; margin-right: 10px; color: var(--light); font-weight: 900; }
+  strong { font-weight: 700; color: var(--text); }
+
+  .card { background: var(--bg); border: 1.5px solid var(--stroke); border-radius: 14px; padding: 16px 18px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .card p, .card li { font-size: 13px; line-height: 1.65; }
+  .ac1 { border-color: var(--c1); background: #f6f7ff; }
+  .ac2 { border-color: var(--c2); background: #fff6f8; }
+  .ac3 { border-color: var(--c3); background: #f0fdfb; }
+  .ac4 { border-color: var(--c4); background: #fffbf4; }
+  .ac5 { border-color: var(--c5); background: #faf6ff; }
+
+  .grid { display: grid; gap: 12px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .why-box { border-left: 4px solid var(--c1); background: #f6f7ff; border-radius: 0 12px 12px 0; padding: 12px 16px; }
+  .why-box.g { border-color: var(--c3); background: #f0fdfb; }
+  .why-box.p { border-color: var(--c5); background: #faf6ff; }
+  .why-box .why-label { font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--c1); margin-bottom: 4px; }
+  .why-box.g .why-label { color: var(--c3); }
+  .why-box.p .why-label { color: var(--c5); }
+  .why-box p { font-size: 14px; color: var(--mid); }
+
+  .q-box { border: 1.5px solid var(--stroke); border-radius: 12px; padding: 14px 18px; background: var(--bg); }
+  .q-label { font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--light); margin-bottom: 8px; }
+  .q-item { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); background: var(--white); border: 1.5px solid var(--stroke); border-radius: 8px; padding: 8px 14px; margin-bottom: 6px; }
+  .q-item:last-child { margin-bottom: 0; }
+
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .fstep { padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; }
+  .farrow { color: var(--light); font-size: 16px; }
+  .f1 { background: #eef0fe; color: var(--c1); }
+  .f2 { background: #feeef3; color: var(--c2); }
+  .f3 { background: #e0faf5; color: var(--c3); }
+  .f5 { background: #f3eeff; color: var(--c5); }
+
+  .bg1 { background: linear-gradient(150deg,#5c6ef8,#3a4de0); }
+  .bg3 { background: linear-gradient(150deg,#f85c8a,#c83060); }
+  .bg6 { background: linear-gradient(150deg,#00c9a7,#0090a0); }
+  .bg8 { background: linear-gradient(150deg,#ffb347,#e07020); }
+  .bg10 { background: linear-gradient(150deg,#00c9a7,#5c6ef8); }
+
+  .nav { position: fixed; bottom: 0; left: 260px; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 36px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-top: 1.5px solid var(--stroke); z-index: 200; }
+  .dots { display: flex; gap: 6px; align-items: center; }
+  .dot { width: 7px; height: 7px; border-radius: 99px; background: var(--stroke); cursor: pointer; transition: all 0.25s; }
+  .dot.on { width: 22px; background: var(--c1); }
+  .arrows { display: flex; gap: 8px; }
+  .abtn { width: 32px; height: 32px; border-radius: 9px; border: 1.5px solid var(--stroke); background: var(--white); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; color: var(--mid); transition: all 0.2s; }
+  .abtn:hover { border-color: var(--c1); color: var(--c1); }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- ═══ 0: Title ═══ -->
+  <div class="slide active" data-slide="0">
+    <div class="lp bg1" data-icon="⚡">
+      <div class="top-label">Week 05</div>
+      <div>
+        <div class="main-title">Advanced<br>RAG</div>
+        <div class="sub">4주차 RAG를<br>더 정확하게</div>
+      </div>
+      <div class="pg">01 / 08</div>
+    </div>
+    <div class="rp">
+      <div>
+        <div class="section-tag">5주차 핵심 기법</div>
+        <h2>검색을 더 잘하기 위한 3가지</h2>
+        <p>4주차에서 기본 RAG를 만들었지만<br>질문 방식이 달라지거나 키워드가 정확해도 못 찾는 경우가 있었다.</p>
+      </div>
+      <div class="grid g3">
+        <div class="card ac1">
+          <h4>Multi-Query</h4>
+          <p class="sm" style="font-size:13px;">질문을 여러 표현으로 확장해서 검색 커버리지 향상</p>
+        </div>
+        <div class="card ac3">
+          <h4>Hybrid Search</h4>
+          <p class="sm" style="font-size:13px;">BM25 키워드 + Vector 의미 검색 결합</p>
+        </div>
+        <div class="card ac5">
+          <h4>Parent-Child</h4>
+          <p class="sm" style="font-size:13px;">작은 청크로 검색, 큰 청크로 답변</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 1: Multi-Query ═══ -->
+  <div class="slide" data-slide="1">
+    <div class="lp bg3" data-icon="🔍">
+      <div class="top-label">기법 1</div>
+      <div>
+        <div class="main-title">Multi-<br>Query</div>
+        <div class="sub">질문 하나로는<br>부족하다</div>
+      </div>
+      <div class="pg">02 / 08</div>
+    </div>
+    <div class="rp">
+      <div>
+        <div class="section-tag">개념</div>
+        <h2>같은 뜻, 다른 표현으로 검색</h2>
+        <p>사람마다 같은 질문을 다르게 표현한다. <strong>GPT로 질문을 3개 더 만들어서</strong> 총 4번 검색한 뒤 결과를 합친다. 짧고 모호한 질문일수록 효과가 크다.</p>
+      </div>
+
+      <div class="flow">
+        <div class="fstep f2">질문 입력</div>
+        <div class="farrow">→</div>
+        <div class="fstep f1">GPT로 3개 확장</div>
+        <div class="farrow">→</div>
+        <div class="fstep f3">4번 검색 → 결과 합산</div>
+      </div>
+
+      <div class="q-box">
+        <div class="q-label">테스트 질문</div>
+        <div class="q-item">카카오 개발자 되려면?</div>
+        <div class="q-item">백엔드 취업 조건</div>
+      </div>
+
+      <div class="why-box">
+        <div class="why-label">확인 방법</div>
+        <p>답변 후 <strong>🔍 Multi-Query 확장</strong> expander를 열면<br>원본 + 확장 쿼리 3개가 나온다</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ screenshot 1: Multi-Query ═══ -->
+  <div class="slide" data-slide="2-img">
+    <div class="lp bg3" data-icon="📸">
+      <div class="top-label">데모</div>
+      <div>
+        <div class="main-title">Multi-<br>Query<br>결과</div>
+        <div class="sub">"카카오 개발자<br>되려면?"<br>질문 시</div>
+      </div>
+      <div class="pg">03 / 08</div>
+    </div>
+    <div class="rp" style="padding:24px 32px; justify-content:flex-start;">
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:16px; border:1.5px solid var(--stroke); overflow:hidden; min-height:0;">
+        <img src="1.png" alt="Multi-Query 데모"
+             style="max-width:100%; max-height:100%; object-fit:contain; display:block; padding:8px;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 2: Hybrid Search ═══ -->
+  <div class="slide" data-slide="2">
+    <div class="lp bg6" data-icon="⚡">
+      <div class="top-label">기법 2</div>
+      <div>
+        <div class="main-title">Hybrid<br>Search</div>
+        <div class="sub">BM25 + Vector<br>둘 다 써야 한다</div>
+      </div>
+      <div class="pg">04 / 08</div>
+    </div>
+    <div class="rp">
+      <div>
+        <div class="section-tag">개념</div>
+        <h2>키워드 검색 + 의미 검색</h2>
+        <p>Vector 검색은 의미가 비슷한 문서를 잘 찾지만 <strong>정확한 키워드는 BM25가 더 잘 찾는다.</strong> RRF(순위 기반 점수 합산)로 두 결과를 공평하게 결합한다.</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card ac1">
+          <h4>Vector Search</h4>
+          <ul>
+            <li>"자격요건" ≈ "필수 조건" 인식</li>
+            <li>의미 기반 유사도</li>
+          </ul>
+        </div>
+        <div class="card ac3">
+          <h4>BM25 Search</h4>
+          <ul>
+            <li>"Kubernetes" 정확히 매칭</li>
+            <li>키워드 빈도 기반</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="q-box">
+        <div class="q-label">테스트 질문 (정확한 키워드)</div>
+        <div class="q-item">Java Spring 경험 있으면 어디 지원할 수 있어?</div>
+        <div class="q-item">Kubernetes 쓰는 회사 어디야?</div>
+      </div>
+
+      <div class="why-box g">
+        <div class="why-label">확인 방법</div>
+        <p>📎 참조 출처에 나온 회사들이 <strong>해당 기술을 실제로 요구하는 회사</strong>인지 확인</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ screenshot 2: Hybrid Search ═══ -->
+  <div class="slide" data-slide="4-img">
+    <div class="lp bg6" data-icon="📸">
+      <div class="top-label">데모</div>
+      <div>
+        <div class="main-title">Hybrid<br>Search<br>결과</div>
+        <div class="sub">"Java Spring<br>경험 있으면<br>어디?" 질문 시</div>
+      </div>
+      <div class="pg">05 / 08</div>
+    </div>
+    <div class="rp" style="padding:24px 32px; justify-content:flex-start;">
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:16px; border:1.5px solid var(--stroke); overflow:hidden; min-height:0;">
+        <img src="2.png" alt="Hybrid Search 데모"
+             style="max-width:100%; max-height:100%; object-fit:contain; display:block; padding:8px;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3: Parent-Child ═══ -->
+  <div class="slide" data-slide="3">
+    <div class="lp bg8" data-icon="📦">
+      <div class="top-label">기법 3</div>
+      <div>
+        <div class="main-title">Parent-<br>Child<br>Chunk</div>
+        <div class="sub">검색은 작게<br>맥락은 크게</div>
+      </div>
+      <div class="pg">06 / 08</div>
+    </div>
+    <div class="rp">
+      <div>
+        <div class="section-tag">개념</div>
+        <h2>청크 크기의 trade-off 해결</h2>
+        <p>청크가 작으면 검색은 정확하지만 GPT에게 줄 맥락이 부족하다. <strong>200자 청크로 검색하고, 600자 부모 청크를 GPT에게 전달</strong>하면 둘 다 잡을 수 있다.</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card ac1">
+          <h4>Child 청크 (200자)</h4>
+          <ul>
+            <li>ChromaDB에 저장</li>
+            <li>BM25 인덱스에 저장</li>
+            <li>→ 정밀한 검색용</li>
+          </ul>
+        </div>
+        <div class="card ac4">
+          <h4>Parent 청크 (600자)</h4>
+          <ul>
+            <li>메타데이터로 같이 저장</li>
+            <li>GPT 프롬프트에 사용</li>
+            <li>→ 풍부한 답변용</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="q-box">
+        <div class="q-label">테스트 질문 (답변 풍부도 비교)</div>
+        <div class="q-item">카카오랑 네이버 자격요건 비교해줘</div>
+        <div class="q-item">전체 공고 중 우대사항이 많은 회사는?</div>
+      </div>
+
+      <div class="why-box p">
+        <div class="why-label">확인 방법</div>
+        <p>4주차보다 <strong>답변이 더 길고 구체적</strong>으로 나오면 Parent 청크가 잘 전달된 것</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ screenshot 3: Parent-Child ═══ -->
+  <div class="slide" data-slide="6-img">
+    <div class="lp bg8" data-icon="📸">
+      <div class="top-label">데모</div>
+      <div>
+        <div class="main-title">Parent-<br>Child<br>결과</div>
+        <div class="sub">"카카오랑<br>네이버 비교"<br>질문 시</div>
+      </div>
+      <div class="pg">07 / 08</div>
+    </div>
+    <div class="rp" style="padding:24px 32px; justify-content:flex-start;">
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:16px; border:1.5px solid var(--stroke); overflow:hidden; min-height:0;">
+        <img src="3.png" alt="Parent-Child 데모"
+             style="max-width:100%; max-height:100%; object-fit:contain; display:block; padding:8px;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4: 정리 ═══ -->
+  <div class="slide" data-slide="4">
+    <div class="lp bg10" data-icon="💡">
+      <div class="top-label">마무리</div>
+      <div>
+        <div class="main-title">핵심<br>한 줄</div>
+        <div class="sub">5주차를 통해<br>느낀 것</div>
+      </div>
+      <div class="pg">08 / 08</div>
+    </div>
+    <div class="rp">
+      <div>
+        <div class="section-tag">Learnings</div>
+        <h2>RAG의 핵심은 LLM이 아니라 검색이다</h2>
+        <p>LLM이 아무리 좋아도 <strong>엉뚱한 청크를 주면 틀린 답변</strong>이 나온다.<br>검색이 좋아야 답변이 좋아진다.</p>
+      </div>
+      <div class="grid g3">
+        <div class="card ac1">
+          <h4>Multi-Query</h4>
+          <p style="font-size:13px;">질문 방식이 달라도<br>놓치지 않는다</p>
+        </div>
+        <div class="card ac3">
+          <h4>Hybrid Search</h4>
+          <p style="font-size:13px;">의미 + 키워드<br>서로 보완</p>
+        </div>
+        <div class="card ac5">
+          <h4>Parent-Child</h4>
+          <p style="font-size:13px;">검색 정확도 +<br>답변 품질 동시에</p>
+        </div>
+      </div>
+      <div class="why-box">
+        <div class="why-label">느낀 점</div>
+        <p>기법 하나하나는 단순한데, <strong>조합하면 전혀 다른 결과</strong>가 나온다는 걸 직접 확인할 수 있었다.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<nav class="nav">
+  <div class="dots" id="dots"></div>
+  <div class="arrows">
+    <button class="abtn" id="prev">&#8592;</button>
+    <button class="abtn" id="next">&#8594;</button>
+  </div>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  let cur = 0;
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.onclick = () => go(i);
+    dotsEl.appendChild(d);
+  });
+  function go(n) {
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('on');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('on');
+  }
+  document.getElementById('prev').onclick = () => go(cur - 1);
+  document.getElementById('next').onclick = () => go(cur + 1);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(cur - 1);
+  });
+</script>
+</body>
+</html>
