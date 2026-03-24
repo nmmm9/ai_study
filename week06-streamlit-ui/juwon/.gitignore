@@ -1,0 +1,20 @@
+# 환경 변수 (절대 올리면 안됨!)
+.env
+
+# 업로드 파일
+uploads/
+uploaded_files.json
+
+# 북마크 (선택)
+bookmarks.json
+chat_history.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ChromaDB (로컬 캐시)
+chroma_db/
