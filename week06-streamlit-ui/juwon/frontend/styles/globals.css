@@ -1,0 +1,60 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #171717;
+  color: #ececec;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+}
+
+/* ── 스크롤바 ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+
+/* ── 입력 공통 ── */
+input, textarea, select {
+  background: #1e1e1e;
+  color: #ececec;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: #10a37f;
+  box-shadow: 0 0 0 3px rgba(16,163,127,0.15);
+}
+
+/* ── 마크다운 ── */
+.md-body { line-height: 1.75; font-size: 14px; color: #ececec; }
+.md-body p { margin-bottom: 10px; }
+.md-body p:last-child { margin-bottom: 0; }
+.md-body strong { color: #ffffff; font-weight: 700; }
+.md-body ul, .md-body ol { padding-left: 20px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+.md-body li { color: #ececec; }
+.md-body h1, .md-body h2, .md-body h3 {
+  color: #ffffff; font-weight: 700; margin: 14px 0 6px;
+}
+.md-body h1 { font-size: 18px; }
+.md-body h2 { font-size: 16px; color: #10a37f; }
+.md-body h3 { font-size: 14px; color: #10a37f; }
+.md-body code {
+  background: #2a2a2a; border-radius: 4px;
+  padding: 1px 6px; font-size: 13px; color: #10a37f;
+}
+.md-body hr { border-color: #2a2a2a; margin: 10px 0; }
+
+/* ── 버튼 공통 ── */
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  transition: all 0.18s ease;
+}
