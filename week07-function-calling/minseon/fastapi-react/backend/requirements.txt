@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+openai
+python-dotenv
+chromadb==0.4.24
+pydantic
+rank-bm25
+numpy<2.0
+langchain-text-splitters
+langchain
