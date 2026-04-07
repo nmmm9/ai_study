@@ -126,7 +126,7 @@ st.markdown("""
 
 def _init_state():
     if "sm"           not in st.session_state:
-        st.session_state.sm = SessionManager(SESSIONS_PATH)
+        st.session_state.sm = SessionManager()
     if "rag"          not in st.session_state:
         st.session_state.rag = AdvancedRagPipeline()
     if "active_sid"   not in st.session_state:

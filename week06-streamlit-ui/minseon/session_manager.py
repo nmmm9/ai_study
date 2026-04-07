@@ -45,3 +45,13 @@ class SessionManager:
             sb.table("sessions").update({
                 "total_cost_usd": session.get("total_cost_usd", 0) + cost_usd,
             }).eq("id", sid).execute()
+
+    def export_markdown(self, sid):
+        session = self.get(sid)
+        if not session:
+            return ""
+        lines = [f"# {session['name']}\n"]
+        for m in session.get("messages", []):
+            role = "**나**" if m["role"] == "user" else "**AI**"
+            lines.append(f"{role}: {m['content']}\n")
+        return "\n".join(lines)
