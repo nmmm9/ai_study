@@ -35,3 +35,10 @@ week_guide/
 docs/
 .bkit
 .agents
+
+# External repos (reference only)
+hermes/
+k-skills/
+
+# Lock files
+package-lock.json
