@@ -1,0 +1,310 @@
+{
+  "items": [
+    {
+      "id": "top_001",
+      "name": "화이트 베이직 티셔츠",
+      "category": "상의",
+      "color": "white",
+      "style": ["캐주얼", "베이직"],
+      "season": ["봄", "여름", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "top_002",
+      "name": "네이비 스트라이프 티셔츠",
+      "category": "상의",
+      "color": "navy",
+      "style": ["캐주얼", "마린"],
+      "season": ["봄", "여름"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "top_003",
+      "name": "오버사이즈 그레이 후드티",
+      "category": "상의",
+      "color": "gray",
+      "style": ["캐주얼", "스트릿"],
+      "season": ["봄", "가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "비"]
+    },
+    {
+      "id": "top_004",
+      "name": "크림색 니트 스웨터",
+      "category": "상의",
+      "color": "cream",
+      "style": ["캐주얼", "따뜻한"],
+      "season": ["가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "눈"]
+    },
+    {
+      "id": "top_005",
+      "name": "하늘색 옥스퍼드 셔츠",
+      "category": "상의",
+      "color": "light_blue",
+      "style": ["캐주얼", "포멀", "비즈니스 캐주얼"],
+      "season": ["봄", "여름", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "top_006",
+      "name": "버건디 터틀넥",
+      "category": "상의",
+      "color": "burgundy",
+      "style": ["캐주얼", "포멀"],
+      "season": ["가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "눈"]
+    },
+    {
+      "id": "top_007",
+      "name": "블랙 민소매 탑",
+      "category": "상의",
+      "color": "black",
+      "style": ["캐주얼", "미니멀"],
+      "season": ["봄", "여름"],
+      "weather_condition": ["맑음"]
+    },
+    {
+      "id": "top_008",
+      "name": "연두색 린넨 셔츠",
+      "category": "상의",
+      "color": "sage",
+      "style": ["캐주얼", "내추럴"],
+      "season": ["봄", "여름"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "bottom_001",
+      "name": "블루 슬림핏 청바지",
+      "category": "하의",
+      "color": "blue",
+      "style": ["캐주얼", "베이직"],
+      "season": ["봄", "여름", "가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "비"]
+    },
+    {
+      "id": "bottom_002",
+      "name": "블랙 스키니 진",
+      "category": "하의",
+      "color": "black",
+      "style": ["캐주얼", "미니멀", "스트릿"],
+      "season": ["봄", "여름", "가을", "겨울"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "bottom_003",
+      "name": "베이지 와이드 슬랙스",
+      "category": "하의",
+      "color": "beige",
+      "style": ["캐주얼", "포멀", "비즈니스 캐주얼"],
+      "season": ["봄", "여름", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "bottom_004",
+      "name": "카키 카고 팬츠",
+      "category": "하의",
+      "color": "khaki",
+      "style": ["캐주얼", "스트릿", "아웃도어"],
+      "season": ["봄", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "bottom_005",
+      "name": "화이트 와이드 면 반바지",
+      "category": "하의",
+      "color": "white",
+      "style": ["캐주얼", "리조트"],
+      "season": ["여름"],
+      "weather_condition": ["맑음"]
+    },
+    {
+      "id": "bottom_006",
+      "name": "네이비 미디 스커트",
+      "category": "하의",
+      "color": "navy",
+      "style": ["캐주얼", "페미닌", "포멀"],
+      "season": ["봄", "여름", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "bottom_007",
+      "name": "그레이 트레이닝 팬츠",
+      "category": "하의",
+      "color": "gray",
+      "style": ["캐주얼", "스포티"],
+      "season": ["봄", "가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "비"]
+    },
+    {
+      "id": "outer_001",
+      "name": "베이지 트렌치코트",
+      "category": "아우터",
+      "color": "beige",
+      "style": ["캐주얼", "포멀", "클래식"],
+      "season": ["봄", "가을"],
+      "weather_condition": ["맑음", "흐림", "비"]
+    },
+    {
+      "id": "outer_002",
+      "name": "블랙 가죽 재킷",
+      "category": "아우터",
+      "color": "black",
+      "style": ["캐주얼", "스트릿", "록"],
+      "season": ["봄", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "outer_003",
+      "name": "연회색 오버핏 코트",
+      "category": "아우터",
+      "color": "light_gray",
+      "style": ["캐주얼", "포멀", "미니멀"],
+      "season": ["가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "눈"]
+    },
+    {
+      "id": "outer_004",
+      "name": "청 데님 재킷",
+      "category": "아우터",
+      "color": "blue",
+      "style": ["캐주얼", "스트릿"],
+      "season": ["봄", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "outer_005",
+      "name": "카멜 울 코트",
+      "category": "아우터",
+      "color": "camel",
+      "style": ["포멀", "클래식", "비즈니스 캐주얼"],
+      "season": ["가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "눈"]
+    },
+    {
+      "id": "outer_006",
+      "name": "카키 아노락 바람막이",
+      "category": "아우터",
+      "color": "khaki",
+      "style": ["캐주얼", "아웃도어", "스포티"],
+      "season": ["봄", "가을"],
+      "weather_condition": ["흐림", "비"]
+    },
+    {
+      "id": "outer_007",
+      "name": "베이지 니트 가디건",
+      "category": "아우터",
+      "color": "beige",
+      "style": ["캐주얼", "내추럴", "따뜻한"],
+      "season": ["봄", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "shoes_001",
+      "name": "화이트 스니커즈",
+      "category": "신발",
+      "color": "white",
+      "style": ["캐주얼", "스트릿", "스포티"],
+      "season": ["봄", "여름", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "shoes_002",
+      "name": "블랙 첼시 부츠",
+      "category": "신발",
+      "color": "black",
+      "style": ["캐주얼", "포멀", "클래식"],
+      "season": ["가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "비"]
+    },
+    {
+      "id": "shoes_003",
+      "name": "탄 가죽 로퍼",
+      "category": "신발",
+      "color": "tan",
+      "style": ["캐주얼", "포멀", "비즈니스 캐주얼"],
+      "season": ["봄", "여름", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "shoes_004",
+      "name": "베이지 스트랩 샌들",
+      "category": "신발",
+      "color": "beige",
+      "style": ["캐주얼", "페미닌", "리조트"],
+      "season": ["여름"],
+      "weather_condition": ["맑음"]
+    },
+    {
+      "id": "shoes_005",
+      "name": "블랙 러닝화",
+      "category": "신발",
+      "color": "black",
+      "style": ["스포티", "캐주얼"],
+      "season": ["봄", "여름", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "shoes_006",
+      "name": "브라운 워커 부츠",
+      "category": "신발",
+      "color": "brown",
+      "style": ["캐주얼", "아웃도어", "스트릿"],
+      "season": ["가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "눈"]
+    },
+    {
+      "id": "acc_001",
+      "name": "베이지 버킷햇",
+      "category": "액세서리",
+      "color": "beige",
+      "style": ["캐주얼", "스트릿"],
+      "season": ["봄", "여름"],
+      "weather_condition": ["맑음"]
+    },
+    {
+      "id": "acc_002",
+      "name": "네이비 울 머플러",
+      "category": "액세서리",
+      "color": "navy",
+      "style": ["캐주얼", "포멀"],
+      "season": ["가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "눈"]
+    },
+    {
+      "id": "acc_003",
+      "name": "블랙 토트백",
+      "category": "액세서리",
+      "color": "black",
+      "style": ["캐주얼", "포멀", "미니멀"],
+      "season": ["봄", "여름", "가을", "겨울"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "acc_004",
+      "name": "베이지 캔버스 숄더백",
+      "category": "액세서리",
+      "color": "beige",
+      "style": ["캐주얼", "내추럴"],
+      "season": ["봄", "여름", "가을"],
+      "weather_condition": ["맑음", "흐림"]
+    },
+    {
+      "id": "acc_005",
+      "name": "블랙 비니",
+      "category": "액세서리",
+      "color": "black",
+      "style": ["캐주얼", "스트릿"],
+      "season": ["가을", "겨울"],
+      "weather_condition": ["맑음", "흐림", "눈"]
+    },
+    {
+      "id": "acc_006",
+      "name": "화이트 골프 캡",
+      "category": "액세서리",
+      "color": "white",
+      "style": ["캐주얼", "스포티"],
+      "season": ["봄", "여름"],
+      "weather_condition": ["맑음"]
+    }
+  ]
+}
