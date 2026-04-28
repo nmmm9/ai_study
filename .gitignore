@@ -42,3 +42,10 @@ k-skills/
 
 # Lock files
 package-lock.json
+
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
