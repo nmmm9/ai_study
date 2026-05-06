@@ -143,23 +143,8 @@ with st.expander("🔀 LangGraph 그래프 구조 시각화", expanded=False):
 
     with tab_mermaid:
         mermaid_code = get_graph_mermaid()
-        # Mermaid.js로 렌더링
-        st.components.v1.html(f"""
-        <div style="background:#161b22; padding:16px; border-radius:8px;">
-            <div class="mermaid" style="color:white;">
-            {mermaid_code}
-            </div>
-        </div>
-        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-        <script>
-            mermaid.initialize({{
-                startOnLoad: true,
-                theme: 'dark',
-                flowchart: {{ curve: 'basis' }}
-            }});
-        </script>
-        """, height=350)
-        st.caption("각 박스가 노드(작업 단계), 화살표가 엣지(실행 순서)")
+        st.code(mermaid_code, language="text")
+        st.caption("위 코드를 https://mermaid.live 에 붙여넣으면 다이어그램으로 확인 가능")
 
     with tab_ascii:
         ascii_art = get_graph_ascii()
