@@ -49,3 +49,5 @@ node_modules/
 out/
 dist/
 build/
+
+design.md
