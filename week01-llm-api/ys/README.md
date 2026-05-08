@@ -25,19 +25,19 @@
 - 코드 실행 방법:
   
   - Backend 실행
-  cd backend
-  copy .env.example .env #OPENAI_API_KEY=본인 API 키 작성
-  .\venv\Scripts\Activate.ps1
-  pip install -r requirements.txt
-  uvicorn main:app --reload --port 8000
+    - cd backend
+    - copy .env.example .env #OPENAI_API_KEY=본인 API 키 작성
+    - .\venv\Scripts\Activate.ps1
+    - pip install -r requirements.txt
+    - uvicorn main:app --reload --port 8000
 
   - Frontend 실행
-    cd frontend
-    npm install
-    npm run dev
+    - cd frontend
+    - npm install
+    - npm run dev
     
   - 브라우저 접속
-    http:\\localhost:5173
+    - http:\\localhost:5173
 
 ## WHY (의사결정 기록)
 1. **Q**: 왜 FastAPI 방식을 선택했는가?
