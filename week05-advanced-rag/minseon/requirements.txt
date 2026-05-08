@@ -1,0 +1,7 @@
+openai
+chromadb==0.4.24
+langchain-text-splitters
+pymupdf
+python-dotenv
+streamlit
+rank-bm25

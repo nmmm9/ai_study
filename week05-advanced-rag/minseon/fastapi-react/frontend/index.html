@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced RAG 챗봇 (FastAPI + React)</title>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f2f5; height: 100vh; display: flex;
+    }
+
+    /* ── 사이드바 ── */
+    .sidebar {
+      width: 290px; min-width: 290px; background: white;
+      border-right: 1px solid #e5e7eb;
+      display: flex; flex-direction: column;
+      overflow-y: auto; padding: 20px 16px; gap: 16px;
+    }
+    .sidebar h2 { font-size: 17px; font-weight: 700; color: #111827; }
+    .sidebar .caption { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .sidebar-section h3 { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 10px; }
+    hr { border: none; border-top: 1px solid #e5e7eb; }
+
+    /* Advanced RAG 배지 */
+    .adv-badge {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+      padding: 10px 12px; font-size: 12px; color: #1e40af; line-height: 1.8;
+    }
+    .adv-badge .badge-title { font-weight: 700; margin-bottom: 4px; font-size: 13px; }
+
+    /* 소스 아이템 */
+    .source-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; background: #f9fafb; border-radius: 8px; margin-bottom: 6px;
+    }
+    .source-item .src-name { font-size: 12px; font-weight: 600; color: #374151; }
+    .source-item .src-cnt  { font-size: 11px; color: #6b7280; }
+    .source-item .del-btn  {
+      padding: 3px 8px; font-size: 11px; border: 1px solid #fca5a5;
+      background: white; color: #ef4444; border-radius: 6px; cursor: pointer;
+    }
+    .source-item .del-btn:hover { background: #fef2f2; }
+
+    /* 슬라이더 */
+    .slider-group { margin-bottom: 12px; }
+    .slider-group label { font-size: 12px; color: #374151; font-weight: 600; display: block; margin-bottom: 4px; }
+    .slider-group input[type="range"] { width: 100%; accent-color: #2563eb; }
+
+    /* 체크박스 */
+    .check-group { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 12px; color: #374151; cursor: pointer; }
+    .check-group input { accent-color: #2563eb; width: 14px; height: 14px; }
+
+    /* 통계 */
+    .stat-row { display: flex; gap: 8px; }
+    .stat-box {
+      flex: 1; background: #f9fafb; border: 1px solid #e5e7eb;
+      border-radius: 8px; padding: 8px; text-align: center;
+    }
+    .stat-box .lbl { font-size: 11px; color: #6b7280; }
+    .stat-box .val { font-size: 18px; font-weight: 700; color: #111827; }
+    .token-info { font-size: 12px; color: #6b7280; margin-top: 6px; }
+
+    .btn-sm {
+      width: 100%; padding: 8px; background: #f3f4f6; border: 1px solid #d1d5db;
+      border-radius: 8px; font-size: 13px; cursor: pointer; color: #374151;
+    }
+    .btn-sm:hover { background: #e5e7eb; }
+
+    /* ── 메인 ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+
+    /* ── 챗봇 패널 ── */
+    .messages {
+      flex: 1; overflow-y: auto; padding: 20px 24px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .empty { text-align: center; color: #9ca3af; font-size: 14px; margin-top: 60px; }
+
+    .message { display: flex; flex-direction: column; max-width: 82%; }
+    .message.user { align-self: flex-end; align-items: flex-end; }
+    .message.assistant { align-self: flex-start; align-items: flex-start; }
+
+    .msg-label { font-size: 11px; color: #9ca3af; margin-bottom: 4px; font-weight: 600; }
+    .msg-bubble {
+      padding: 12px 16px; border-radius: 12px;
+      font-size: 14px; line-height: 1.7; word-break: break-word;
+    }
+    .message.user .msg-bubble {
+      background: #2563eb; color: white; border-bottom-right-radius: 4px;
+      white-space: pre-wrap;
+    }
+    .message.assistant .msg-bubble {
+      background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px;
+    }
+
+    /* 마크다운 스타일 */
+    .message.assistant .msg-bubble p { margin: 0 0 8px; }
+    .message.assistant .msg-bubble p:last-child { margin-bottom: 0; }
+    .message.assistant .msg-bubble h1,
+    .message.assistant .msg-bubble h2,
+    .message.assistant .msg-bubble h3 {
+      font-size: 14px; font-weight: 700; margin: 12px 0 6px;
+      border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;
+    }
+    .message.assistant .msg-bubble h1:first-child,
+    .message.assistant .msg-bubble h2:first-child,
+    .message.assistant .msg-bubble h3:first-child { margin-top: 0; }
+    .message.assistant .msg-bubble ul, .message.assistant .msg-bubble ol { padding-left: 18px; margin: 4px 0 8px; }
+    .message.assistant .msg-bubble li { margin-bottom: 3px; }
+    .message.assistant .msg-bubble strong { font-weight: 700; color: #1f2937; }
+    .message.assistant .msg-bubble code { background: #e5e7eb; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+    .message.assistant .msg-bubble table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+    .message.assistant .msg-bubble th, .message.assistant .msg-bubble td { border: 1px solid #d1d5db; padding: 7px 12px; }
+    .message.assistant .msg-bubble th { background: #e0e7ff; font-weight: 700; color: #1e3a8a; }
+
+    .cursor { display: inline-block; animation: blink 0.8s infinite; color: #6b7280; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── 비용 패널 ── */
+    .cost-panel { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .cost-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;
+    }
+    .cost-chip.money  { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .cost-chip.time   { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+    .cost-chip.tokens { background: #faf5ff; border: 1px solid #c4b5fd; color: #5b21b6; }
+    .cost-detail {
+      width: 100%; background: #fafafa; border: 1px solid #e5e7eb;
+      border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 11px;
+    }
+    .cost-detail table { width: 100%; border-collapse: collapse; }
+    .cost-detail th { text-align: left; color: #6b7280; font-weight: 600; padding: 3px 6px; border-bottom: 1px solid #e5e7eb; }
+    .cost-detail td { color: #374151; padding: 3px 6px; }
+    .cost-detail tr:nth-child(even) td { background: #f3f4f6; }
+
+    /* ── 파이프라인 패널 (응답 아래) ── */
+    .pipeline-panel {
+      background: #fafafa; border: 1px solid #e5e7eb;
+      border-radius: 10px; padding: 12px 14px; margin-top: 6px;
+      font-size: 12px; width: 100%; max-width: 600px;
+    }
+    .pipeline-panel .pl-title {
+      font-size: 12px; font-weight: 700; color: #374151;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .pl-stage { margin-bottom: 8px; }
+    .pl-stage-header {
+      display: flex; align-items: center; gap: 6px;
+      font-weight: 600; color: #4b5563; margin-bottom: 4px; font-size: 12px;
+    }
+    .pl-badge {
+      display: inline-block; padding: 1px 7px; border-radius: 99px;
+      font-size: 10px; font-weight: 700;
+    }
+    .pl-badge.pre      { background: #e0e7ff; color: #3730a3; }
+    .pl-badge.ret      { background: #d1fae5; color: #065f46; }
+    .pl-badge.post     { background: #fef3c7; color: #92400e; }
+    .pl-badge.gen      { background: #f3f4f6; color: #374151; }
+    .pl-query-list { display: flex; flex-direction: column; gap: 3px; padding-left: 8px; }
+    .pl-query-item { font-size: 11px; color: #6b7280; border-left: 2px solid #c7d2fe; padding-left: 6px; }
+    .pl-stat { font-size: 11px; color: #6b7280; padding-left: 8px; }
+
+    /* ── 출처 칩 ── */
+    .source-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .src-chip {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 8px; border-radius: 99px; font-size: 10px;
+      background: transparent; border: 1px solid #e5e7eb; color: #9ca3af;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .src-chip:hover { border-color: #6b7280; color: #6b7280; background: #f9fafb; }
+    .src-chip.compressed { border-color: #a5b4fc; color: #6366f1; }
+    .src-chip-detail {
+      margin-top: 5px; background: #f9fafb; border: 1px solid #e5e7eb;
+      border-radius: 8px; padding: 8px 10px; font-size: 11px; color: #374151;
+      line-height: 1.6; white-space: pre-wrap;
+    }
+
+    /* ── 입력 영역 ── */
+    .input-area {
+      display: flex; gap: 10px; padding: 16px 24px;
+      border-top: 1px solid #e5e7eb; background: white;
+    }
+    .input-area input {
+      flex: 1; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 10px;
+      font-size: 14px; outline: none; transition: border-color 0.15s;
+    }
+    .input-area input:focus { border-color: #2563eb; }
+    .input-area input:disabled { background: #f9fafb; }
+    .send-btn {
+      padding: 10px 20px; background: #2563eb; color: white; border: none;
+      border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .send-btn:hover:not(:disabled) { background: #1d4ed8; }
+    .send-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* 신청 버튼 */
+    .apply-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #2563eb; color: white !important; text-decoration: none;
+      border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 700;
+      transition: background 0.15s; margin: 3px 2px;
+    }
+    .apply-btn:hover { background: #1d4ed8; }
+    .apply-btn::after { content: " →"; }
+    .chat-link {
+      display: inline-flex; align-items: center; gap: 3px;
+      color: #2563eb; text-decoration: none; font-weight: 600;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 6px; padding: 1px 7px; font-size: 13px;
+    }
+    .chat-link:hover { background: #dbeafe; }
+
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
+    const API = "http://localhost:8000";
+
+    // ── 마크다운 렌더링 ─────────────────────────────────────
+    (function setupMarked() {
+      const renderer = new marked.Renderer();
+      renderer.link = ({ href, title, text }) => {
+        if (/신청/.test(text)) {
+          return `<a href="${href}" target="_blank" rel="noopener" class="apply-btn">${text}</a>`;
+        }
+        return `<a href="${href}" target="_blank" rel="noopener" class="chat-link">${text} ↗</a>`;
+      };
+      marked.use({ renderer, breaks: true, gfm: true });
+    })();
+
+    function renderMd(text) {
+      let html = marked.parse(text);
+      html = html
+        .replace(/<li>\[x\]/gi, '<li><input type="checkbox" checked disabled>')
+        .replace(/<li>\[ \]/g,  '<li><input type="checkbox" disabled>');
+      return html;
+    }
+
+    // ── 비용 패널 ───────────────────────────────────────────
+    function CostPanel({ cost }) {
+      const [open, setOpen] = useState(false);
+      if (!cost || !cost.total_cost_usd) return null;
+
+      const usd = cost.total_cost_usd;
+      const krw = cost.total_cost_krw;
+      const sec = cost.total_elapsed;
+      const tok = (cost.total_input_tokens || 0) + (cost.total_output_tokens || 0);
+      const byStage = cost.by_stage || {};
+
+      const STAGE_LABELS = {
+        pre: "Pre-retrieval (Multi-query)",
+        embedding: "Retrieval (임베딩)",
+        reranking: "Post (Re-ranking)",
+        compression: "Post (Compression)",
+        generation: "Generation (LLM)",
+      };
+
+      return (
+        <div>
+          <div className="cost-panel">
+            <span className="cost-chip money" onClick={() => setOpen(!open)} title="단계별 비용 보기">
+              💰 ${usd.toFixed(5)} (₩{krw.toFixed(2)})
+            </span>
+            <span className="cost-chip time">⏱ {sec.toFixed(1)}s</span>
+            <span className="cost-chip tokens">🔤 {tok.toLocaleString()} 토큰</span>
+          </div>
+          {open && (
+            <div className="cost-detail">
+              <table>
+                <thead>
+                  <tr>
+                    <th>단계</th>
+                    <th>시간</th>
+                    <th>입력 토큰</th>
+                    <th>출력 토큰</th>
+                    <th>비용 (USD)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(byStage).map(([stage, s]) => (
+                    <tr key={stage}>
+                      <td>{STAGE_LABELS[stage] || stage}</td>
+                      <td>{(s.elapsed || 0).toFixed(2)}s</td>
+                      <td>{(s.input_tokens || 0).toLocaleString()}</td>
+                      <td>{(s.output_tokens || 0).toLocaleString()}</td>
+                      <td>${(s.cost_usd || 0).toFixed(6)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{fontWeight:700, borderTop:"2px solid #e5e7eb"}}>
+                    <td>합계</td>
+                    <td>{sec.toFixed(2)}s</td>
+                    <td>{(cost.total_input_tokens||0).toLocaleString()}</td>
+                    <td>{(cost.total_output_tokens||0).toLocaleString()}</td>
+                    <td>${usd.toFixed(6)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── 파이프라인 패널 ─────────────────────────────────────
+    function PipelinePanel({ pipeline }) {
+      if (!pipeline) return null;
+      const { pre, retrieval, post } = pipeline;
+      return (
+        <div className="pipeline-panel">
+          <div className="pl-title">🔬 Advanced RAG 파이프라인</div>
+
+          {/* Pre-retrieval */}
+          {pre && (
+            <div className="pl-stage">
+              <div className="pl-stage-header">
+                <span className="pl-badge pre">Pre</span>
+                Multi-query Generation
+              </div>
+              <div className="pl-query-list">
+                {pre.queries.map((q, i) => (
+                  <div className="pl-query-item" key={i}>쿼리 {i+1}: {q}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Retrieval */}
+          {retrieval && (
+            <div className="pl-stage">
+              <div className="pl-stage-header">
+                <span className="pl-badge ret">Retrieval</span>
+                Hybrid Search (BM25 + Vector)
+              </div>
+              <div className="pl-stat">
+                {retrieval.queries_used}개 쿼리 × Hybrid Search → <strong>{retrieval.count}개</strong> 후보 수집
+              </div>
+            </div>
+          )}
+
+          {/* Post-retrieval */}
+          {post && (
+            <div className="pl-stage">
+              <div className="pl-stage-header">
+                <span className="pl-badge post">Post</span>
+                Re-ranking + Compression
+              </div>
+              <div className="pl-stat">
+                Re-ranking → <strong>{post.reranked}개</strong> 선별
+                {post.compressed > 0 && ` | 🗜️ ${post.compressed}개 압축`}
+              </div>
+            </div>
+          )}
+
+          {/* Generation */}
+          <div className="pl-stage">
+            <div className="pl-stage-header">
+              <span className="pl-badge gen">Gen</span>
+              LLM 스트리밍 응답
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── 출처 칩 ────────────────────────────────────────────
+    function SourceChip({ hit, index }) {
+      const [open, setOpen] = useState(false);
+      return (
+        <div>
+          <span
+            className={`src-chip${hit.compressed ? " compressed" : ""}`}
+            onClick={() => setOpen(!open)}
+            title={hit.source}
+          >
+            {hit.compressed ? "🗜️" : ""}{index + 1} {hit.source.replace(/\.[^.]+$/, "")}
+          </span>
+          {open && (
+            <div className="src-chip-detail">
+              <div style={{fontWeight:600, marginBottom:4, fontSize:11, color:"#6b7280"}}>
+                {hit.source} · 유사도 {(hit.similarity * 100).toFixed(0)}%
+                {hit.compressed ? " · 압축됨" : ""}
+              </div>
+              {hit.content}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── 사이드바 ───────────────────────────────────────────
+    function Sidebar({ sources, stats, settings, onSettingsChange, onDelete, onReset, tokens }) {
+      return (
+        <div className="sidebar">
+          <div>
+            <h2>🚀 Advanced RAG</h2>
+            <div className="caption">5주차: FastAPI + React</div>
+          </div>
+
+          <div className="adv-badge">
+            <div className="badge-title">적용된 Advanced RAG 기법</div>
+            ✅ Multi-query Generation<br/>
+            ✅ Hybrid Search (BM25 + Vector)<br/>
+            ✅ RRF Fusion<br/>
+            ✅ GPT Re-ranking<br/>
+            ✅ Context Compression
+          </div>
+
+          <hr />
+
+          <div className="sidebar-section">
+            <h3>📚 인덱싱된 문서</h3>
+            <div style={{fontSize:"11px",color:"#9ca3af",marginBottom:"8px"}}>서버 시작 시 data/ 폴더 자동 인덱싱</div>
+            {sources.length === 0
+              ? <div style={{fontSize:"12px", color:"#9ca3af"}}>인덱싱 중...</div>
+              : sources.map(s => (
+                  <div className="source-item" key={s.source}>
+                    <div>
+                      <div className="src-name">{s.source}</div>
+                      <div className="src-cnt">{s.chunks}개 청크</div>
+                    </div>
+                    <button className="del-btn" onClick={() => onDelete(s.source)}>삭제</button>
+                  </div>
+                ))
+            }
+          </div>
+
+          <hr />
+
+          <div className="sidebar-section">
+            <h3>⚙️ 검색 설정</h3>
+            {[
+              {key:"top_k",          label:`top-k: ${settings.top_k}`,          min:1, max:8, step:1},
+              {key:"threshold",      label:`유사도 임계값: ${settings.threshold}`, min:0, max:1, step:0.05},
+              {key:"max_per_source", label:`문서당 최대: ${settings.max_per_source}`, min:1, max:3, step:1},
+            ].map(s => (
+              <div className="slider-group" key={s.key}>
+                <label>{s.label}</label>
+                <input type="range" min={s.min} max={s.max} step={s.step}
+                  value={settings[s.key]}
+                  onChange={e => onSettingsChange(s.key, s.step < 1 ? parseFloat(e.target.value) : parseInt(e.target.value))}
+                />
+              </div>
+            ))}
+            <label className="check-group">
+              <input
+                type="checkbox"
+                checked={settings.use_compression}
+                onChange={e => onSettingsChange("use_compression", e.target.checked)}
+              />
+              Context Compression 사용
+            </label>
+          </div>
+
+          <hr />
+
+          <div className="sidebar-section">
+            <h3>📊 통계</h3>
+            <div className="stat-row">
+              <div className="stat-box"><div className="lbl">문서</div><div className="val">{stats.total_documents}</div></div>
+              <div className="stat-box"><div className="lbl">청크</div><div className="val">{stats.total_chunks}</div></div>
+            </div>
+            <div className="token-info">
+              입력: {tokens.input.toLocaleString()} / 출력: {tokens.output.toLocaleString()} 토큰
+            </div>
+          </div>
+
+          <hr />
+          <button className="btn-sm" onClick={onReset}>대화 초기화</button>
+        </div>
+      );
+    }
+
+    // ── 챗봇 탭 ───────────────────────────────────────────
+    function ChatTab({ sources, settings, onTokensUpdate }) {
+      const [messages, setMessages] = useState([]);
+      const [input, setInput]       = useState("");
+      const [loading, setLoading]   = useState(false);
+      const [showPipeline, setShowPipeline] = useState(true);
+      const bottomRef = useRef(null);
+
+      useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+      const send = async () => {
+        if (!input.trim() || loading || sources.length === 0) return;
+        const text = input.trim();
+        setInput("");
+
+        const newMsg = { role: "assistant", content: "", hits: [], pipeline: {} };
+        setMessages(prev => [...prev, { role: "user", content: text }, newMsg]);
+        setLoading(true);
+
+        try {
+          const res = await fetch(`${API}/chat/stream`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text, ...settings }),
+          });
+
+          const reader  = res.body.getReader();
+          const decoder = new TextDecoder();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const lines = decoder.decode(value).split("\n");
+
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === "pipeline") {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  const last = { ...updated[updated.length - 1] };
+                  last.pipeline = { ...last.pipeline, [data.stage]: data };
+                  updated[updated.length - 1] = last;
+                  return updated;
+                });
+              }
+              if (data.type === "text") {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    ...updated[updated.length - 1],
+                    content: updated[updated.length - 1].content + data.content,
+                  };
+                  return updated;
+                });
+              }
+              if (data.type === "hits") {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { ...updated[updated.length - 1], hits: data.hits };
+                  return updated;
+                });
+              }
+              if (data.type === "cost") {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { ...updated[updated.length - 1], cost: data };
+                  return updated;
+                });
+              }
+              if (data.type === "usage") {
+                onTokensUpdate(data.input, data.output);
+              }
+              if (data.type === "error") {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    ...updated[updated.length - 1],
+                    content: `오류: ${data.message}`,
+                  };
+                  return updated;
+                });
+              }
+            }
+          }
+        } catch (err) {
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              content: `오류: ${err.message}\n서버가 실행 중인지 확인하세요.`,
+            };
+            return updated;
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <>
+          <div style={{padding:"8px 24px", background:"white", borderBottom:"1px solid #f3f4f6", display:"flex", alignItems:"center", gap:8}}>
+            <label style={{fontSize:12, color:"#374151", display:"flex", alignItems:"center", gap:6, cursor:"pointer"}}>
+              <input type="checkbox" checked={showPipeline} onChange={e => setShowPipeline(e.target.checked)} style={{accentColor:"#2563eb"}} />
+              파이프라인 단계 표시
+            </label>
+          </div>
+          <div className="messages">
+            {messages.length === 0 && (
+              <div className="empty">
+                {sources.length === 0
+                  ? "서버가 data/ 폴더를 인덱싱 중입니다. 잠시 후 새로고침하세요."
+                  : "질문을 입력해서 Advanced RAG 파이프라인을 시작하세요."}
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.role}`}>
+                <div className="msg-label">{msg.role === "user" ? "나" : "AI"}</div>
+                <div className="msg-bubble">
+                  {msg.role === "user" ? (
+                    msg.content
+                  ) : (
+                    <span dangerouslySetInnerHTML={{ __html: renderMd(msg.content) }} />
+                  )}
+                  {msg.role === "assistant" && loading && i === messages.length - 1 && (
+                    <span className="cursor">▌</span>
+                  )}
+                </div>
+                {msg.role === "assistant" && showPipeline && Object.keys(msg.pipeline || {}).length > 0 && (
+                  <PipelinePanel pipeline={msg.pipeline} />
+                )}
+                {msg.role === "assistant" && msg.cost && (
+                  <CostPanel cost={msg.cost} />
+                )}
+                {msg.role === "assistant" && msg.hits && msg.hits.length > 0 && (
+                  <div className="source-chips">
+                    {msg.hits.map((h, j) => <SourceChip key={j} hit={h} index={j} />)}
+                  </div>
+                )}
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+          <div className="input-area">
+            <input
+              type="text" value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+              placeholder={sources.length === 0 ? "먼저 문서를 인덱싱하세요..." : "질문을 입력하세요... (Enter 전송)"}
+              disabled={loading || sources.length === 0}
+            />
+            <button className="send-btn" onClick={send} disabled={loading || !input.trim() || sources.length === 0}>
+              {loading ? "처리 중..." : "전송"}
+            </button>
+          </div>
+        </>
+      );
+    }
+
+
+    // ── 메인 앱 ───────────────────────────────────────────
+    function App() {
+      const [sources,  setSources]  = useState([]);
+      const [stats,    setStats]    = useState({ total_documents: 0, total_chunks: 0 });
+      const [tokens,   setTokens]   = useState({ input: 0, output: 0 });
+      const [settings, setSettings] = useState({ top_k: 5, threshold: 0.2, max_per_source: 2, use_compression: true });
+
+      const loadSources = useCallback(async () => {
+        try {
+          const [s, st] = await Promise.all([
+            fetch(`${API}/sources`).then(r => r.json()),
+            fetch(`${API}/stats`).then(r => r.json()),
+          ]);
+          setSources(s);
+          setStats(st);
+        } catch {}
+      }, []);
+
+      useEffect(() => { loadSources(); }, [loadSources]);
+
+      const handleDelete = async (name) => {
+        await fetch(`${API}/sources/${encodeURIComponent(name)}`, { method: "DELETE" });
+        loadSources();
+      };
+
+      const handleReset = async () => {
+        await fetch(`${API}/chat`, { method: "DELETE" });
+        setTokens({ input: 0, output: 0 });
+        window.location.reload();
+      };
+
+      const handleTokensUpdate = (inp, out) => {
+        setTokens(prev => ({ input: prev.input + inp, output: prev.output + out }));
+      };
+
+      const updateSetting = (key, val) => setSettings(prev => ({ ...prev, [key]: val }));
+
+      return (
+        <div style={{ display:"flex", width:"100vw", height:"100vh" }}>
+          <Sidebar
+            sources={sources} stats={stats} settings={settings}
+            onSettingsChange={updateSetting}
+            onDelete={handleDelete} onReset={handleReset} tokens={tokens}
+          />
+          <div className="main">
+            <ChatTab sources={sources} settings={settings} onTokensUpdate={handleTokensUpdate} />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+openai
+python-dotenv
+pydantic
+numpy
+langchain-text-splitters
+tiktoken
+chromadb
+scikit-learn
+rank-bm25
+pymupdf
+python-multipart

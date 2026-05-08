@@ -1,0 +1,6 @@
+openai
+chromadb
+langchain-text-splitters
+pymupdf
+python-dotenv
+streamlit

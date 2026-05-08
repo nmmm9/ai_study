@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>임베딩 시각화 (FastAPI + React)</title>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; }
+
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── 사이드바 ── */
+    .sidebar {
+      width: 260px; min-width: 260px; background: white;
+      border-right: 1px solid #e5e7eb; padding: 20px 16px;
+      display: flex; flex-direction: column; gap: 14px; overflow-y: auto;
+    }
+    .sidebar h2 { font-size: 16px; font-weight: 700; color: #111827; }
+    .sidebar .cap { font-size: 11px; color: #6b7280; }
+    .sidebar h3 { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+    hr { border: none; border-top: 1px solid #e5e7eb; }
+
+    .src-item { background: #f9fafb; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+    .src-item .name { font-size: 11px; font-weight: 600; color: #374151; }
+    .src-item .cnt  { font-size: 10px; color: #6b7280; }
+    .src-item .del  { font-size: 10px; padding: 2px 7px; border: 1px solid #fca5a5; background: white; color: #ef4444; border-radius: 5px; cursor: pointer; }
+
+    .upload-area { border: 2px dashed #d1d5db; border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; font-size: 12px; color: #6b7280; transition: border-color 0.15s; }
+    .upload-area:hover { border-color: #2563eb; color: #2563eb; }
+    input[type="file"] { display: none; }
+
+    .stat-row { display: flex; gap: 6px; }
+    .stat-box { flex: 1; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; text-align: center; }
+    .stat-box .lbl { font-size: 10px; color: #6b7280; }
+    .stat-box .val { font-size: 16px; font-weight: 700; color: #111827; }
+
+    /* ── 메인 ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .tabs { display: flex; background: white; border-bottom: 2px solid #e5e7eb; padding: 0 20px; }
+    .tab { padding: 13px 16px; font-size: 13px; font-weight: 600; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+
+    .tab-content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* ── 공통 카드 ── */
+    .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 16px; }
+    .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #111827; }
+    .card .sub { font-size: 12px; color: #6b7280; margin-bottom: 14px; }
+
+    textarea, input[type="text"] {
+      width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 10px;
+      font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus, input[type="text"]:focus { border-color: #2563eb; }
+    textarea { resize: vertical; }
+
+    .btn { padding: 9px 20px; background: #2563eb; color: white; border: none; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; margin-top: 10px; }
+    .btn:hover:not(:disabled) { background: #1d4ed8; }
+    .btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* ── 벡터 막대 그래프 ── */
+    .bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 80px; background: #f9fafb; border-radius: 8px; padding: 8px 6px 4px; overflow: hidden; }
+    .bar-wrap { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+    .bar { width: 100%; border-radius: 2px 2px 0 0; min-height: 1px; transition: height 0.3s; }
+    .bar.pos { background: #2563eb; }
+    .bar.neg { background: #ef4444; transform: scaleY(-1); transform-origin: bottom; }
+
+    /* ── 차원 개념 시각화 ── */
+    .dim-explain { margin-top: 16px; }
+    .dim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .dim-label { width: 80px; font-size: 12px; font-weight: 700; color: #374151; flex-shrink: 0; }
+    .dim-visual { flex: 1; }
+    .dim-desc { font-size: 11px; color: #6b7280; width: 160px; flex-shrink: 0; }
+
+    /* 1차원: 수직선 */
+    .dim1-line { position: relative; height: 24px; background: #e5e7eb; border-radius: 99px; display: flex; align-items: center; }
+    .dim1-dot  { width: 14px; height: 14px; background: #2563eb; border-radius: 50%; position: absolute; top: 50%; transform: translateY(-50%); transition: left 0.4s; }
+
+    /* 2차원: 격자판 */
+    .dim2-grid { width: 100%; height: 80px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; position: relative; overflow: hidden; }
+    .dim2-grid-line-h { position: absolute; left: 0; right: 0; height: 1px; background: #e5e7eb; }
+    .dim2-grid-line-v { position: absolute; top: 0; bottom: 0; width: 1px; background: #e5e7eb; }
+    .dim2-dot { width: 10px; height: 10px; border-radius: 50%; position: absolute; transform: translate(-50%, -50%); font-size: 9px; white-space: nowrap; }
+    .dim2-label { position: absolute; transform: translate(-50%, 6px); font-size: 9px; color: #374151; white-space: nowrap; }
+
+    /* 고차원 숫자 카드 */
+    .num-cards { display: flex; gap: 4px; flex-wrap: wrap; }
+    .num-card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 4px 7px; font-size: 11px; font-weight: 700; color: #1d4ed8; min-width: 52px; text-align: center; }
+    .num-card.faded { background: #f3f4f6; border-color: #e5e7eb; color: #9ca3af; }
+    .num-card.more { background: white; border-style: dashed; color: #6b7280; }
+
+    /* 지도 비유 */
+    .word-map { width: 100%; height: 140px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; position: relative; overflow: hidden; }
+    .word-dot { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .word-dot .circle { width: 10px; height: 10px; border-radius: 50%; }
+    .word-dot .name { font-size: 10px; font-weight: 600; white-space: nowrap; }
+
+    .vector-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .vstat { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; font-size: 12px; }
+    .vstat .lbl { color: #6b7280; font-size: 10px; }
+    .vstat .val { font-weight: 700; color: #111827; font-size: 14px; }
+
+    /* ── 유사도 게이지 ── */
+    .gauge-wrap { margin: 14px 0; }
+    .gauge-label { display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+    .gauge-track { height: 18px; background: #f3f4f6; border-radius: 9px; overflow: hidden; }
+    .gauge-fill { height: 100%; border-radius: 9px; transition: width 0.5s; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+    .gauge-fill span { font-size: 11px; font-weight: 700; color: white; }
+
+    /* ── 검색 결과 ── */
+    .hit-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+    .hit-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .hit-source { font-size: 12px; font-weight: 700; color: #2563eb; }
+    .hit-sim { font-size: 12px; color: #6b7280; }
+    .hit-sim-bar { height: 6px; background: #e5e7eb; border-radius: 3px; margin-bottom: 8px; overflow: hidden; }
+    .hit-sim-fill { height: 100%; background: #2563eb; border-radius: 3px; }
+    .hit-content { font-size: 12px; color: #374151; line-height: 1.6; white-space: pre-wrap; }
+
+    /* ── 이론 탭 ── */
+    .theory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .theory-card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .theory-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+    .theory-card p, .theory-card li { font-size: 13px; color: #374151; line-height: 1.7; }
+    .theory-card ul { padding-left: 18px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+    .badge.blue  { background: #dbeafe; color: #1d4ed8; }
+    .badge.green { background: #dcfce7; color: #15803d; }
+    .badge.red   { background: #fee2e2; color: #b91c1c; }
+    .badge.gray  { background: #f3f4f6; color: #374151; }
+
+    .flow-steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+    .flow-step { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600; color: #1d4ed8; }
+    .flow-arrow { font-size: 16px; color: #9ca3af; }
+
+    .model-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+    .model-table th { background: #f9fafb; padding: 8px; border: 1px solid #e5e7eb; text-align: left; }
+    .model-table td { padding: 8px; border: 1px solid #e5e7eb; }
+
+    .example-sim { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+    .example-sim .texts { flex: 1; font-size: 12px; color: #374151; }
+    .example-sim .sim-badge { padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+    .sim-high   { background: #dcfce7; color: #15803d; }
+    .sim-mid    { background: #fef9c3; color: #a16207; }
+    .sim-low    { background: #fee2e2; color: #b91c1c; }
+
+    .loading { text-align: center; color: #6b7280; font-size: 13px; padding: 20px; }
+    .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; color: #dc2626; font-size: 13px; margin-top: 10px; }
+
+    /* ── 챗봇 ── */
+    .chat-wrap { display: flex; flex-direction: column; height: calc(100vh - 130px); }
+    .chat-msgs  { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+    .chat-empty { text-align: center; color: #9ca3af; font-size: 13px; margin-top: 60px; line-height: 2; }
+    .chat-row-user { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+    .chat-row-asst { display: flex; justify-content: flex-start; margin-bottom: 12px; }
+    .bubble { max-width: 78%; padding: 10px 14px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+    .bubble-user { background: #2563eb; color: white; border-radius: 14px 14px 2px 14px; }
+    .bubble-asst { background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 14px 14px 14px 2px; }
+    .src-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .src-chip { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; }
+    .chat-input-row { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+    .typing { display: inline-flex; gap: 3px; align-items: center; padding: 4px 0; }
+    .typing span { width: 6px; height: 6px; background: #9ca3af; border-radius: 50%; animation: blink 1.2s infinite; }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+    /* ── 프롬프트 프리셋 ── */
+    .preset-bar { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid #f3f4f6; margin-bottom: 10px; }
+    .preset-btn { padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1.5px solid #e5e7eb; background: white; color: #374151; transition: all 0.15s; }
+    .preset-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+    .preset-btn:hover:not(.active) { border-color: #2563eb; color: #2563eb; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+const API = "http://localhost:8000";
+
+// ══════════════════════════════════════════════════════
+// 탭 0: 챗봇
+// ══════════════════════════════════════════════════════
+const PRESETS = [
+  { id:"default",  label:"📚 기본",    prompt:"아래 참고 문서를 바탕으로 질문에 정확하게 답변하세요. 문서에 없는 내용은 '문서에서 찾을 수 없습니다'라고 답하세요. 한국어로 답변합니다." },
+  { id:"friendly", label:"🤝 친절하게", prompt:"아래 참고 문서를 바탕으로 친절하고 따뜻한 어조로 답변하세요. 예시나 비유를 곁들여 이해하기 쉽게 설명해 주세요. 한국어로 답변합니다." },
+  { id:"concise",  label:"⚡ 간결하게", prompt:"아래 참고 문서를 바탕으로 핵심만 3줄 이내로 간결하게 답변하세요. 불필요한 설명은 생략합니다. 한국어로 답변합니다." },
+  { id:"simple",   label:"🎓 쉽게",    prompt:"아래 참고 문서를 바탕으로 중학생도 이해할 수 있게 쉽게 설명하세요. 어려운 용어는 풀어서 설명하고 일상적인 비유를 활용하세요. 한국어로 답변합니다." },
+  { id:"expert",   label:"💼 전문가",  prompt:"아래 참고 문서를 바탕으로 전문가 수준으로 깊이 있게 분석하고 답변하세요. 기술 용어와 세부 메커니즘을 포함해 심층적으로 설명하세요. 한국어로 답변합니다." },
+];
+
+function ChatTab({ sources }) {
+  const [msgs,    setMsgs]   = useState([]);
+  const [input,   setInput]  = useState("");
+  const [loading, setLoading]= useState(false);
+  const [preset,  setPreset] = useState("default");
+  const endRef = useRef(null);
+
+  useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [msgs]);
+
+  const send = async () => {
+    if (!input.trim() || loading || sources.length === 0) return;
+    const q = input.trim();
+    const systemPrompt = PRESETS.find(p => p.id === preset)?.prompt;
+    setInput("");
+    setMsgs(prev => [...prev,
+      {role:"user",      content: q},
+      {role:"assistant", content:"", hits:[], streaming:true},
+    ]);
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API}/chat/stream`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({message: q, top_k: 3, system_prompt: systemPrompt}),
+      });
+
+      const reader = res.body.getReader();
+      const dec    = new TextDecoder();
+      let   buf    = "";
+
+      while (true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, {stream:true});
+        const lines = buf.split("\n");
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === "hits") {
+              setMsgs(prev => { const m=[...prev]; m[m.length-1]={...m[m.length-1], hits:data.hits}; return m; });
+            } else if (data.type === "text") {
+              setMsgs(prev => { const m=[...prev]; m[m.length-1]={...m[m.length-1], content:m[m.length-1].content+data.content}; return m; });
+            }
+          } catch {}
+        }
+      }
+    } catch(e) {
+      setMsgs(prev => { const m=[...prev]; m[m.length-1]={...m[m.length-1], content:`⚠️ 오류: ${e.message}`}; return m; });
+    }
+    setMsgs(prev => { const m=[...prev]; m[m.length-1]={...m[m.length-1], streaming:false}; return m; });
+    setLoading(false);
+  };
+
+  const noDoc = sources.length === 0;
+
+  return (
+    <div className="chat-wrap">
+      {/* 프롬프트 프리셋 */}
+      <div className="preset-bar">
+        {PRESETS.map(p => (
+          <button key={p.id} className={`preset-btn ${preset===p.id?"active":""}`}
+            onClick={() => setPreset(p.id)}>{p.label}</button>
+        ))}
+      </div>
+
+      {/* 메시지 목록 */}
+      <div className="chat-msgs">
+        {msgs.length === 0 && (
+          <div className="chat-empty">
+            {noDoc
+              ? <>📂 서버가 <b>data/</b> 폴더를 인덱싱 중입니다. 잠시 후 새로고침하세요.</>
+              : <>💬 문서 내용에 대해 자유롭게 질문하세요<br/><span style={{fontSize:"11px"}}>인덱싱된 문서: {sources.map(s=>s.source).join(", ")}</span></>}
+          </div>
+        )}
+
+        {msgs.map((msg, i) => (
+          <div key={i} className={msg.role==="user" ? "chat-row-user" : "chat-row-asst"}>
+            <div>
+              <div className={`bubble ${msg.role==="user" ? "bubble-user" : "bubble-asst"}`}>
+                {msg.content
+                  ? msg.content
+                  : msg.streaming
+                    ? <div className="typing"><span/><span/><span/></div>
+                    : ""}
+              </div>
+              {msg.hits && msg.hits.length > 0 && (
+                <div className="src-chips">
+                  {msg.hits.map((h, j) => (
+                    <span key={j} className="src-chip" title={h.content}>
+                      📄 {h.source} {h.sim_pct}%
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        <div ref={endRef} />
+      </div>
+
+      {/* 입력창 */}
+      <div className="chat-input-row">
+        <input type="text" value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key==="Enter" && send()}
+          placeholder={noDoc ? "서버 인덱싱 대기 중..." : "질문을 입력하세요..."}
+          disabled={loading || noDoc} style={{flex:1}} />
+        <button className="btn" onClick={send}
+          disabled={loading || !input.trim() || noDoc}
+          style={{marginTop:0, whiteSpace:"nowrap"}}>
+          {loading ? "답변 중..." : "전송 ↑"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── 벡터 막대 그래프 (중앙 기준선) ──────────────────────
+function VectorBarChart({ values, label }) {
+  if (!values || values.length === 0) return null;
+  const max = Math.max(...values.map(Math.abs), 0.01);
+  const halfH = 54; // 위아래 각 54px
+
+  return (
+    <div>
+      <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"4px"}}>
+        {label || "벡터 값"} (첫 {values.length}차원)
+        &nbsp;—&nbsp;
+        <span style={{color:"#2563eb",fontWeight:"600"}}>■ 양수(+)</span>
+        &nbsp;
+        <span style={{color:"#ef4444",fontWeight:"600"}}>■ 음수(−)</span>
+      </div>
+
+      {/* 그래프 영역 */}
+      <div style={{position:"relative",height:`${halfH*2+2}px`,background:"#f9fafb",
+                   borderRadius:"8px",overflow:"hidden",padding:"0 4px"}}>
+        {/* 배경 격자선 */}
+        {[25,75].map(p => (
+          <div key={p} style={{position:"absolute",left:0,right:0,top:`${p}%`,
+                               height:"1px",background:"#e5e7eb"}} />
+        ))}
+        {/* 중앙 0선 */}
+        <div style={{position:"absolute",left:0,right:0,top:"50%",
+                     height:"2px",background:"#9ca3af",zIndex:2}} />
+        {/* +/- 라벨 */}
+        <div style={{position:"absolute",right:"4px",top:"2px",fontSize:"9px",color:"#9ca3af"}}>+</div>
+        <div style={{position:"absolute",right:"4px",bottom:"2px",fontSize:"9px",color:"#9ca3af"}}>−</div>
+
+        {/* 막대들 */}
+        <div style={{display:"flex",gap:"2px",height:"100%",padding:"2px 0",alignItems:"center"}}>
+          {values.map((v, i) => {
+            const barH = Math.round((Math.abs(v) / max) * halfH);
+            return (
+              <div key={i} title={`dim ${i+1}: ${v.toFixed(4)}`}
+                   style={{flex:1,height:"100%",display:"flex",flexDirection:"column",
+                           justifyContent:"center",alignItems:"stretch"}}>
+                {/* 양수 영역 (위쪽) */}
+                <div style={{flex:1,display:"flex",alignItems:"flex-end"}}>
+                  {v >= 0
+                    ? <div style={{width:"100%",height:`${barH}px`,background:"#2563eb",
+                                   borderRadius:"2px 2px 0 0",minHeight:v>0?"2px":0}} />
+                    : <div style={{width:"100%"}} />}
+                </div>
+                {/* 음수 영역 (아래쪽) */}
+                <div style={{flex:1,display:"flex",alignItems:"flex-start"}}>
+                  {v < 0
+                    ? <div style={{width:"100%",height:`${barH}px`,background:"#ef4444",
+                                   borderRadius:"0 0 2px 2px",minHeight:"2px"}} />
+                    : <div style={{width:"100%"}} />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 축 레이블 */}
+      <div style={{display:"flex",justifyContent:"space-between",
+                   fontSize:"9px",color:"#9ca3af",marginTop:"2px",padding:"0 4px"}}>
+        <span>dim 1</span>
+        <span>dim {Math.round(values.length/2)}</span>
+        <span>dim {values.length}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── 유사도 게이지 ─────────────────────────────────────
+function SimilarityGauge({ value, interp }) {
+  const pct = Math.max(0, Math.min(100, value * 100));
+  const color = pct >= 70 ? "#10b981" : pct >= 40 ? "#f59e0b" : "#ef4444";
+  return (
+    <div className="gauge-wrap">
+      <div className="gauge-label">
+        <span>유사도</span>
+        <span style={{fontWeight:"700", color}}>{pct.toFixed(1)}%</span>
+      </div>
+      <div className="gauge-track">
+        <div className="gauge-fill" style={{width:`${pct}%`, background:color}}>
+          {pct > 15 && <span>{pct.toFixed(1)}%</span>}
+        </div>
+      </div>
+      <div style={{fontSize:"12px", color:"#374151", marginTop:"6px"}}>
+        판정: <b style={{color}}>{interp}</b>
+      </div>
+    </div>
+  );
+}
+
+// ── 벡터 통계 뱃지 ────────────────────────────────────
+function VectorStats({ stats }) {
+  if (!stats) return null;
+  return (
+    <div className="vector-stats">
+      {[
+        ["차원", stats.dimension],
+        ["최솟값", stats.min],
+        ["최댓값", stats.max],
+        ["평균", stats.mean],
+        ["L2 노름", stats.norm],
+      ].map(([l, v]) => (
+        <div className="vstat" key={l}>
+          <div className="lbl">{l}</div>
+          <div className="val">{v}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// 탭 1: 임베딩 체험
+// ══════════════════════════════════════════════════════
+function EmbedTab() {
+  const [text, setText] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const run = async () => {
+    if (!text.trim()) return;
+    setLoading(true); setError(""); setResult(null);
+    try {
+      const res = await fetch(`${API}/embed/single`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({text}),
+      });
+      setResult(await res.json());
+    } catch(e) { setError(`서버 연결 실패: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
+  const examples = ["청년도약계좌 신청 방법", "How to apply for youth savings account", "강아지는 귀엽다", "오늘 날씨가 맑다"];
+
+  return (
+    <div>
+      <div className="card">
+        <h3>🔢 텍스트 → 벡터 변환 체험</h3>
+        <p className="sub">텍스트를 입력하면 AI가 1536개의 숫자로 이루어진 벡터로 변환합니다. 그 벡터의 첫 30개 차원을 막대그래프로 시각화합니다.</p>
+
+        <div style={{marginBottom:"8px"}}>
+          {examples.map(ex => (
+            <span key={ex} onClick={() => setText(ex)}
+              style={{display:"inline-block",margin:"0 4px 4px 0",padding:"4px 10px",background:"#eff6ff",borderRadius:"99px",fontSize:"11px",cursor:"pointer",color:"#1d4ed8",border:"1px solid #bfdbfe"}}>
+              {ex}
+            </span>
+          ))}
+        </div>
+
+        <textarea rows={3} value={text} onChange={e => setText(e.target.value)} placeholder="임베딩할 텍스트를 입력하세요..." />
+        <button className="btn" onClick={run} disabled={loading || !text.trim()}>
+          {loading ? "변환 중..." : "벡터로 변환하기"}
+        </button>
+        {error && <div className="error">⚠️ {error}</div>}
+      </div>
+
+      {result && (
+        <div className="card">
+          <h3>📊 변환 결과</h3>
+          <div style={{fontSize:"13px",color:"#374151",marginBottom:"12px"}}>
+            <b>"{result.text}"</b>
+            <span style={{marginLeft:"8px",fontSize:"11px",color:"#6b7280"}}>→ {result.stats.dimension}차원 벡터</span>
+          </div>
+          <VectorBarChart values={result.stats.preview_30} label="벡터 값" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 코사인 유사도 각도 다이어그램 ────────────────────────
+function CosineDiagram({ similarity, text1, text2 }) {
+  const theta   = Math.acos(Math.max(-1, Math.min(1, similarity)));
+  const thetaDeg = (theta * 180 / Math.PI).toFixed(1);
+  const color   = similarity >= 0.7 ? "#10b981" : similarity >= 0.4 ? "#f59e0b" : "#ef4444";
+
+  const cx = 80, cy = 95, r = 60;
+  const aRad = -50 * Math.PI / 180;          // Arrow A: upper-right
+  const bRad = aRad + theta;                 // Arrow B: rotated by theta
+
+  const ax = cx + r * Math.cos(aRad), ay = cy + r * Math.sin(aRad);
+  const bx = cx + r * Math.cos(bRad), by = cy + r * Math.sin(bRad);
+
+  const ar = 28;
+  const asx = cx + ar * Math.cos(aRad), asy = cy + ar * Math.sin(aRad);
+  const aex = cx + ar * Math.cos(bRad), aey = cy + ar * Math.sin(bRad);
+
+  const midRad = aRad + theta / 2;
+  const lx = cx + ar * 1.8 * Math.cos(midRad);
+  const ly = cy + ar * 1.8 * Math.sin(midRad);
+
+  const ta = (x) => x > cx + 5 ? "start" : x < cx - 5 ? "end" : "middle";
+  const tx = (x) => x > cx + 5 ? x + 7 : x < cx - 5 ? x - 7 : x;
+  const ty = (x, y) => Math.abs(x - cx) <= 5 ? y + 14 : y;
+
+  const cap = (t) => t ? `"${t.slice(0, 7)}${t.length > 7 ? "…" : ""}"` : "";
+
+  return (
+    <div style={{background:"#f9fafb",borderRadius:"12px",padding:"16px",marginTop:"14px"}}>
+      <div style={{fontSize:"13px",fontWeight:"700",color:"#374151",marginBottom:"12px",textAlign:"center"}}>
+        📐 벡터 각도 시각화 — 각도가 작을수록 의미가 비슷
+      </div>
+      <div style={{display:"flex",gap:"16px",alignItems:"center",flexWrap:"wrap"}}>
+        <svg width="180" height="155" viewBox="0 0 180 155" style={{flexShrink:0}}>
+          {/* 축 */}
+          <line x1="10" y1={cy} x2="165" y2={cy} stroke="#d1d5db" strokeWidth="1"/>
+          <line x1={cx} y1="8"  x2={cx}  y2={cy+18} stroke="#d1d5db" strokeWidth="1"/>
+          {/* 각도 호 */}
+          <path d={`M ${asx} ${asy} A ${ar} ${ar} 0 0 1 ${aex} ${aey}`}
+                fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4,2"/>
+          {/* 각도 레이블 */}
+          <text x={lx} y={ly} fill={color} fontSize="10" textAnchor="middle"
+                dominantBaseline="middle" fontWeight="700">{thetaDeg}°</text>
+          {/* 벡터 A */}
+          <line x1={cx} y1={cy} x2={ax} y2={ay} stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round"/>
+          <circle cx={ax} cy={ay} r="5" fill="#2563eb"/>
+          <text x={tx(ax)} y={ty(ax,ay)} fill="#2563eb" fontSize="9"
+                textAnchor={ta(ax)} dominantBaseline="middle" fontWeight="700">{cap(text1)||"A"}</text>
+          {/* 벡터 B */}
+          <line x1={cx} y1={cy} x2={bx} y2={by} stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round"/>
+          <circle cx={bx} cy={by} r="5" fill="#ef4444"/>
+          <text x={tx(bx)} y={ty(bx,by)} fill="#ef4444" fontSize="9"
+                textAnchor={ta(bx)} dominantBaseline="middle" fontWeight="700">{cap(text2)||"B"}</text>
+          {/* 원점 */}
+          <circle cx={cx} cy={cy} r="3" fill="#6b7280"/>
+          <text x={cx-6} y={cy+12} fill="#9ca3af" fontSize="9" textAnchor="middle">O</text>
+        </svg>
+
+        <div style={{flex:1,minWidth:"120px",fontSize:"12px",color:"#374151",lineHeight:"1.9"}}>
+          <div><span style={{background:"#dbeafe",color:"#1d4ed8",padding:"1px 7px",borderRadius:"99px",fontWeight:"700",fontSize:"11px"}}>A</span> {text1}</div>
+          <div style={{marginBottom:"8px"}}><span style={{background:"#fee2e2",color:"#b91c1c",padding:"1px 7px",borderRadius:"99px",fontWeight:"700",fontSize:"11px"}}>B</span> {text2}</div>
+          <div style={{background:"white",border:`1.5px solid ${color}`,borderRadius:"8px",padding:"8px 10px",fontSize:"11px",lineHeight:"1.7"}}>
+            <div>각도: <b style={{color}}>{thetaDeg}°</b></div>
+            <div>cos({thetaDeg}°) = <b style={{color}}>{similarity.toFixed(4)}</b></div>
+            <div style={{marginTop:"4px",fontSize:"10px",color}}>
+              {parseFloat(thetaDeg) < 30 ? "↔ 거의 같은 방향 (매우 유사)"
+               : parseFloat(thetaDeg) < 60 ? "↔ 비슷한 방향 (유사)"
+               : parseFloat(thetaDeg) < 90 ? "↔ 약간 벌어짐 (보통)"
+               : "↔ 크게 벌어짐 (낮은 유사도)"}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{fontSize:"11px",color:"#6b7280",marginTop:"8px",textAlign:"center"}}>
+        0°에 가까울수록 두 텍스트가 같은 방향 → 의미가 비슷 &nbsp;|&nbsp; 90°이면 무관 &nbsp;|&nbsp; 180°이면 반대
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// 탭 2: 유사도 비교
+// ══════════════════════════════════════════════════════
+function CompareTab() {
+  const [text1, setText1] = useState("");
+  const [text2, setText2] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const examplePairs = [
+    ["청년도약계좌 신청 방법", "청년 저축 계좌 가입 조건"],
+    ["강아지", "고양이"],
+    ["파이썬 프로그래밍", "오늘 점심 메뉴"],
+    ["주택 청약 통장", "집 사는 방법"],
+  ];
+
+  const run = async () => {
+    if (!text1.trim() || !text2.trim()) return;
+    setLoading(true); setError(""); setResult(null);
+    try {
+      const res = await fetch(`${API}/embed/compare`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({text1, text2}),
+      });
+      setResult(await res.json());
+    } catch(e) { setError(`서버 연결 실패: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      <div className="card">
+        <h3>📐 두 텍스트 유사도 비교</h3>
+        <p className="sub">두 텍스트를 각각 벡터로 변환한 뒤 코사인 유사도를 계산합니다. 의미가 비슷할수록 1에 가까워집니다.</p>
+
+        <div style={{marginBottom:"8px"}}>
+          {examplePairs.map(([a,b], i) => (
+            <span key={i} onClick={() => { setText1(a); setText2(b); }}
+              style={{display:"inline-block",margin:"0 4px 4px 0",padding:"4px 10px",background:"#f3f4f6",borderRadius:"99px",fontSize:"11px",cursor:"pointer",color:"#374151"}}>
+              "{a}" vs "{b}"
+            </span>
+          ))}
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+          <div>
+            <label style={{fontSize:"12px",fontWeight:"600",color:"#374151",display:"block",marginBottom:"4px"}}>텍스트 A</label>
+            <textarea rows={2} value={text1} onChange={e => setText1(e.target.value)} placeholder="첫 번째 텍스트..." />
+          </div>
+          <div>
+            <label style={{fontSize:"12px",fontWeight:"600",color:"#374151",display:"block",marginBottom:"4px"}}>텍스트 B</label>
+            <textarea rows={2} value={text2} onChange={e => setText2(e.target.value)} placeholder="두 번째 텍스트..." />
+          </div>
+        </div>
+        <button className="btn" onClick={run} disabled={loading || !text1.trim() || !text2.trim()}>
+          {loading ? "비교 중..." : "유사도 계산하기"}
+        </button>
+        {error && <div className="error">⚠️ {error}</div>}
+      </div>
+
+      {result && (
+        <div className="card">
+          <h3>📊 비교 결과</h3>
+          <SimilarityGauge value={result.similarity} interp={result.interpretation} />
+          <CosineDiagram similarity={result.similarity} text1={result.text1} text2={result.text2} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 검색 결과 카드 (접기/펼치기) ─────────────────────────
+function HitCard({ hit: h, rank }) {
+  const [open, setOpen] = React.useState(false);
+  const PREVIEW = 120;
+  const needsExpand = h.content.length > PREVIEW;
+  const simColor = h.sim_pct >= 70 ? "#10b981" : h.sim_pct >= 40 ? "#f59e0b" : "#ef4444";
+
+  return (
+    <div className="hit-card" style={{marginBottom:"10px"}}>
+      {/* 헤더: 순위 + 출처 + 유사도 */}
+      <div className="hit-header">
+        <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+          <span style={{background:"#eff6ff",color:"#1d4ed8",borderRadius:"50%",
+                        width:"22px",height:"22px",display:"flex",alignItems:"center",
+                        justifyContent:"center",fontSize:"11px",fontWeight:"700",flexShrink:0}}>
+            {rank}
+          </span>
+          <span className="hit-source">{h.source}</span>
+          <span style={{fontSize:"10px",color:"#9ca3af"}}>청크 #{h.chunk_index}</span>
+        </div>
+        <span style={{fontWeight:"700",color:simColor,fontSize:"13px"}}>{h.sim_pct}%</span>
+      </div>
+
+      {/* 유사도 바 */}
+      <div className="hit-sim-bar" style={{marginBottom:"10px"}}>
+        <div className="hit-sim-fill" style={{width:`${h.sim_pct}%`,background:simColor}} />
+      </div>
+
+      {/* 내용 미리보기 */}
+      <div className="hit-content" style={{fontSize:"12px",lineHeight:"1.7",color:"#374151",
+                                           background:"#f9fafb",borderRadius:"8px",padding:"10px",
+                                           whiteSpace:"pre-wrap",wordBreak:"break-all"}}>
+        {open || !needsExpand
+          ? h.content
+          : h.content.slice(0, PREVIEW) + "…"}
+      </div>
+
+      {/* 펼치기/접기 버튼 */}
+      {needsExpand && (
+        <button onClick={() => setOpen(!open)}
+          style={{marginTop:"6px",background:"none",border:"1px solid #e5e7eb",borderRadius:"6px",
+                  padding:"4px 12px",fontSize:"11px",color:"#6b7280",cursor:"pointer",width:"100%",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:"4px"}}>
+          {open ? "▲ 접기" : `▼ 전체 보기 (${h.content.length}자)`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// 탭 3: 문서 검색
+// ══════════════════════════════════════════════════════
+function SearchTab({ sources, onDelete }) {
+  const [query, setQuery]   = useState("");
+  const [topK, setTopK]     = useState(3);
+  const [hits, setHits]     = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState("");
+
+  const runSearch = async () => {
+    if (!query.trim()) return;
+    setLoading(true); setError(""); setHits(null);
+    try {
+      const res = await fetch(`${API}/search`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({query, top_k: topK}),
+      });
+      setHits(await res.json());
+    } catch(e) { setError(`서버 연결 실패: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      {sources.length > 0 && (
+        <div className="card">
+          <h3>📂 인덱싱된 문서</h3>
+          <p className="sub">서버 시작 시 data/ 폴더의 파일이 자동으로 인덱싱됩니다.</p>
+          {sources.map(s => (
+            <div className="src-item" key={s.source}>
+              <div>
+                <div className="name">{s.source}</div>
+                <div className="cnt">{s.chunks}개 청크</div>
+              </div>
+              <button className="del" onClick={() => onDelete(s.source)}>삭제</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card">
+        <h3>🔍 유사도 검색</h3>
+        <div style={{display:"flex",gap:"10px",alignItems:"flex-end"}}>
+          <div style={{flex:1}}>
+            <input type="text" value={query} onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key==="Enter" && runSearch()}
+              placeholder="검색할 질문을 입력하세요..." />
+          </div>
+          <div>
+            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>top-k</div>
+            <select value={topK} onChange={e => setTopK(parseInt(e.target.value))}
+              style={{padding:"9px",border:"1px solid #d1d5db",borderRadius:"10px",fontSize:"13px"}}>
+              {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+        </div>
+        <button className="btn" onClick={runSearch} disabled={loading || !query.trim() || sources.length===0}>
+          {loading ? "검색 중..." : "검색"}
+        </button>
+        {sources.length===0 && <div style={{fontSize:"12px",color:"#9ca3af",marginTop:"6px"}}>서버 시작 시 자동 인덱싱됩니다.</div>}
+        {error && <div className="error">⚠️ {error}</div>}
+      </div>
+
+      {hits && (
+        <div className="card">
+          <h3>검색 결과 ({hits.hits.length}개)</h3>
+          <div style={{fontSize:"12px",color:"#6b7280",marginBottom:"12px"}}>질문: "{hits.query}"</div>
+          {hits.hits.length === 0
+            ? <div style={{color:"#9ca3af",fontSize:"13px"}}>관련 내용을 찾지 못했습니다.</div>
+            : hits.hits.map((h, i) => <HitCard key={i} hit={h} rank={i+1} />)
+          }
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 차원 개념 시각화 컴포넌트 ─────────────────────────
+function DimensionExplainer() {
+  const sampleVec = [0.23, -0.15, 0.87, -0.42, 0.11, 0.63, -0.08, 0.31, -0.76, 0.19];
+
+  const wordDots = [
+    { name:"강아지", x:18, y:28, color:"#2563eb" },
+    { name:"개",     x:26, y:36, color:"#2563eb" },
+    { name:"고양이", x:30, y:20, color:"#7c3aed" },
+    { name:"자동차", x:72, y:22, color:"#dc2626" },
+    { name:"비행기", x:80, y:32, color:"#dc2626" },
+    { name:"기차",   x:74, y:42, color:"#dc2626" },
+    { name:"사랑",   x:50, y:72, color:"#16a34a" },
+    { name:"행복",   x:58, y:65, color:"#16a34a" },
+    { name:"기쁨",   x:52, y:80, color:"#16a34a" },
+  ];
+
+  return (
+    <div className="card">
+      <h3>🎯 벡터 차원이란? — 그림으로 이해하기</h3>
+
+      <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:"10px",
+                   padding:"12px",marginBottom:"16px",fontSize:"13px",color:"#92400e",lineHeight:"1.7"}}>
+        💡 <b>핵심 개념</b>: 임베딩은 텍스트를 <b>여러 개의 숫자</b>로 표현합니다.<br />
+        숫자가 많을수록(고차원일수록) 의미를 더 <b>세밀하게</b> 표현할 수 있습니다.
+      </div>
+
+      {/* 1차원 */}
+      <div className="dim-row">
+        <div className="dim-label">📍 1차원</div>
+        <div className="dim-visual">
+          <div className="dim1-line">
+            <span style={{position:"absolute",left:"6px",fontSize:"10px",color:"#9ca3af"}}>-1</span>
+            <div className="dim1-dot" style={{left:"calc(65% - 7px)"}} />
+            <span style={{position:"absolute",right:"6px",fontSize:"10px",color:"#9ca3af"}}>+1</span>
+          </div>
+          <div style={{fontSize:"10px",color:"#6b7280",marginTop:"3px"}}>벡터 → [0.65]</div>
+        </div>
+        <div className="dim-desc">숫자 1개.<br />점의 위치만 표현</div>
+      </div>
+
+      {/* 2차원 */}
+      <div className="dim-row">
+        <div className="dim-label">🗺️ 2차원</div>
+        <div className="dim-visual">
+          <div className="dim2-grid" style={{height:"72px"}}>
+            {[33,66].map(p => <div key={`h${p}`} className="dim2-grid-line-h" style={{top:`${p}%`}} />)}
+            {[33,66].map(p => <div key={`v${p}`} className="dim2-grid-line-v" style={{left:`${p}%`}} />)}
+            {[
+              {x:28,y:35,c:"#2563eb",n:"강아지"},
+              {x:42,y:28,c:"#7c3aed",n:"고양이"},
+              {x:72,y:42,c:"#dc2626",n:"자동차"},
+            ].map(d => (
+              <React.Fragment key={d.n}>
+                <div className="dim2-dot" style={{left:`${d.x}%`,top:`${d.y}%`,background:d.c}} />
+                <div className="dim2-label" style={{left:`${d.x}%`,top:`${d.y}%`,color:d.c}}>{d.n}</div>
+              </React.Fragment>
+            ))}
+          </div>
+          <div style={{fontSize:"10px",color:"#6b7280",marginTop:"3px"}}>벡터 → [0.28, 0.35]</div>
+        </div>
+        <div className="dim-desc">숫자 2개.<br />지도처럼 평면 위치 표현</div>
+      </div>
+
+      {/* 1536차원 */}
+      <div className="dim-row">
+        <div className="dim-label">🤖 1536차원</div>
+        <div className="dim-visual">
+          <div className="num-cards">
+            {sampleVec.map((v, i) => (
+              <div className={`num-card ${Math.abs(v) < 0.2 ? "faded" : ""}`} key={i}>
+                <div style={{fontSize:"9px",color:"#6b7280"}}>d{i+1}</div>
+                <div>{v.toFixed(2)}</div>
+              </div>
+            ))}
+            <div className="num-card more">+1526<br />개…</div>
+          </div>
+          <div style={{fontSize:"10px",color:"#6b7280",marginTop:"4px"}}>숫자 1536개 → 텍스트의 모든 의미 담음</div>
+        </div>
+        <div className="dim-desc">숫자 1536개.<br />미묘한 의미 차이도 표현</div>
+      </div>
+
+      {/* 단어 지도 */}
+      <div style={{marginTop:"20px"}}>
+        <div style={{fontSize:"13px",fontWeight:"700",color:"#111827",marginBottom:"4px"}}>
+          🗺️ 단어 의미 지도
+          <span style={{fontSize:"11px",fontWeight:"400",color:"#6b7280",marginLeft:"6px"}}>
+            (1536차원을 2D로 압축 — t-SNE/UMAP 방식 상상도)
+          </span>
+        </div>
+        <div className="word-map">
+          {/* 클러스터 원형 배경 */}
+          <div style={{position:"absolute",left:"6%",top:"6%",width:"30%",height:"58%",
+                       background:"rgba(37,99,235,0.06)",borderRadius:"50%",border:"1px dashed #93c5fd"}} />
+          <div style={{position:"absolute",left:"60%",top:"6%",width:"32%",height:"58%",
+                       background:"rgba(220,38,38,0.06)",borderRadius:"50%",border:"1px dashed #fca5a5"}} />
+          <div style={{position:"absolute",left:"36%",top:"55%",width:"30%",height:"40%",
+                       background:"rgba(22,163,74,0.06)",borderRadius:"50%",border:"1px dashed #86efac"}} />
+          {/* 클러스터 라벨 */}
+          <div style={{position:"absolute",left:"8%",top:"8%",fontSize:"9px",color:"#3b82f6",fontWeight:"700"}}>🐾 동물</div>
+          <div style={{position:"absolute",left:"62%",top:"8%",fontSize:"9px",color:"#ef4444",fontWeight:"700"}}>🚗 탈것</div>
+          <div style={{position:"absolute",left:"38%",top:"57%",fontSize:"9px",color:"#16a34a",fontWeight:"700"}}>💚 감정</div>
+          {/* 단어 점들 */}
+          {wordDots.map(d => (
+            <div key={d.name} className="word-dot" style={{left:`${d.x}%`,top:`${d.y}%`}}>
+              <div className="circle" style={{background:d.color}} />
+              <div className="name" style={{color:d.color}}>{d.name}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:"11px",color:"#6b7280",marginTop:"6px",lineHeight:"1.6"}}>
+          ↑ 의미가 <b>비슷한 단어</b>(강아지·개·고양이)는 <b>가까이</b> 모이고, 다른 단어들은 <b>멀리</b> 떨어집니다.<br />
+          실제로는 1536차원이라 눈으로 볼 수 없어, 2차원으로 압축해서 보여주는 것입니다.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// 탭 4: 임베딩 이론
+// ══════════════════════════════════════════════════════
+function TheoryTab() {
+  return (
+    <div>
+      {/* 임베딩이란 */}
+      <div className="card">
+        <h3>🧠 임베딩(Embedding)이란?</h3>
+        <p style={{fontSize:"13px",color:"#374151",lineHeight:"1.7",marginBottom:"12px"}}>
+          텍스트(사람의 언어)를 AI가 이해할 수 있는 <b>고차원 숫자 벡터</b>로 변환하는 과정입니다.<br />
+          의미가 <b>비슷한 텍스트</b>는 벡터 공간에서 <b>가까운 위치</b>에 배치됩니다.
+        </p>
+        <div className="flow-steps">
+          <div className="flow-step">텍스트 입력</div>
+          <div className="flow-arrow">→</div>
+          <div className="flow-step">토크나이저</div>
+          <div className="flow-arrow">→</div>
+          <div className="flow-step">트랜스포머 인코더</div>
+          <div className="flow-arrow">→</div>
+          <div className="flow-step">1536차원 벡터</div>
+        </div>
+      </div>
+
+      {/* 차원 시각화 */}
+      <DimensionExplainer />
+
+      {/* 유사도 예시 */}
+      <div className="card">
+        <h3>📏 유사도 예시</h3>
+        {[
+          ["청년도약계좌", "청년 저축 계좌", "~0.92", "sim-high"],
+          ["강아지", "개", "~0.88", "sim-high"],
+          ["강아지", "고양이", "~0.72", "sim-mid"],
+          ["파이썬 코딩", "오늘 날씨", "~0.18", "sim-low"],
+        ].map(([a,b,sim,cls], i) => (
+          <div className="example-sim" key={i}>
+            <div className="texts">"{a}" &nbsp;←→&nbsp; "{b}"</div>
+            <span className={`sim-badge ${cls}`}>{sim}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// 메인 앱
+// ══════════════════════════════════════════════════════
+function App() {
+  const [tab,     setTab]     = useState("chat");
+  const [sources, setSources] = useState([]);
+  const [stats,   setStats]   = useState({total_chunks:0, total_documents:0, embedding_model:"", vector_dim:0});
+
+  const loadSources = async () => {
+    const [s, st] = await Promise.all([
+      fetch(`${API}/sources`).then(r => r.json()),
+      fetch(`${API}/stats`).then(r => r.json()),
+    ]);
+    setSources(s);
+    setStats(st);
+  };
+
+  useEffect(() => { loadSources(); }, []);
+
+  const handleDelete = async (name) => {
+    await fetch(`${API}/sources/${encodeURIComponent(name)}`, {method:"DELETE"});
+    loadSources();
+  };
+
+  return (
+    <div className="layout">
+      {/* 사이드바 */}
+      <div className="sidebar">
+        <div>
+          <h2>🔢 임베딩 시각화</h2>
+          <div className="cap">3주차: FastAPI + React</div>
+        </div>
+        <hr />
+        <div>
+          <div className="stat-row">
+            <div className="stat-box"><div className="lbl">문서</div><div className="val">{stats.total_documents}</div></div>
+            <div className="stat-box"><div className="lbl">청크</div><div className="val">{stats.total_chunks}</div></div>
+          </div>
+        </div>
+        <hr />
+        <div>
+          <h3>📚 인덱싱된 문서</h3>
+          {sources.length === 0
+            ? <div style={{fontSize:"11px",color:"#9ca3af"}}>서버 시작 시 자동 인덱싱</div>
+            : sources.map(s => (
+                <div className="src-item" key={s.source}>
+                  <div>
+                    <div className="name">{s.source}</div>
+                    <div className="cnt">{s.chunks}개 청크</div>
+                  </div>
+                  <button className="del" onClick={() => handleDelete(s.source)}>삭제</button>
+                </div>
+              ))
+          }
+        </div>
+      </div>
+
+      {/* 메인 */}
+      <div className="main">
+        <div className="tabs">
+          {[
+            ["chat",    "💬 챗봇"],
+            ["search",  "🔍 문서 검색"],
+            ["embed",   "🔢 임베딩 체험"],
+            ["compare", "📐 유사도 비교"],
+            ["theory",  "📖 임베딩 이론"],
+          ].map(([id, label]) => (
+            <div key={id} className={`tab ${tab===id?"active":""}`} onClick={() => setTab(id)}>{label}</div>
+          ))}
+        </div>
+        <div className="tab-content">
+          {tab === "chat"    && <ChatTab sources={sources} />}
+          {tab === "search"  && <SearchTab sources={sources} onDelete={handleDelete} />}
+          {tab === "embed"   && <EmbedTab />}
+          {tab === "compare" && <CompareTab />}
+          {tab === "theory"  && <TheoryTab />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

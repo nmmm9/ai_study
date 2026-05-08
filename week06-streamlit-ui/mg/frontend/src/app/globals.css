@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-outfit);
+  --font-serif: var(--font-cormorant);
+
+  --color-base: #1A1A1F;
+  --color-base-50: #212127;
+  --color-base-100: #2A2A31;
+  --color-base-200: #35353D;
+  --color-base-300: #42424B;
+
+  --color-gold: #D4B07A;
+  --color-gold-dim: #B8955E;
+
+  --color-pearl: #F2EFE9;
+  --color-pearl-dim: #B5B0A6;
+  --color-pearl-muted: #7D7972;
+
+  --color-stroke: #383840;
+  --color-stroke-hover: #4A4A54;
+
+  --color-good: #81C784;
+  --color-bad: #E57373;
+  --color-info: #64B5F6;
+  --color-purple: #B39DDB;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-stroke) transparent;
+}
+
+body {
+  background: var(--color-base);
+  color: var(--color-pearl);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-stroke); border-radius: 2px; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-fade-in { animation: fade-in 0.3s ease-out both; }
+.animate-blink { animation: blink 1s infinite; }
+
+.glass {
+  background: rgba(26, 26, 31, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Markdown styling inside chat */
+.chat-markdown h1, .chat-markdown h2, .chat-markdown h3 {
+  font-weight: 600;
+  margin: 16px 0 8px;
+}
+.chat-markdown h1 { font-size: 20px; }
+.chat-markdown h2 { font-size: 18px; }
+.chat-markdown h3 { font-size: 16px; }
+.chat-markdown p { margin: 8px 0; }
+.chat-markdown ul, .chat-markdown ol { padding-left: 20px; margin: 8px 0; }
+.chat-markdown li { margin: 4px 0; }
+.chat-markdown code {
+  background: rgba(201, 169, 110, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--color-gold);
+}
+.chat-markdown pre {
+  background: var(--color-base-100);
+  border: 1px solid var(--color-stroke);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.chat-markdown pre code {
+  background: none;
+  padding: 0;
+}
+.chat-markdown strong { color: var(--color-pearl); font-weight: 600; }

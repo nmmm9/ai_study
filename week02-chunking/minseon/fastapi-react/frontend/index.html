@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>문서 청킹 시각화 (FastAPI + React)</title>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .container {
+      width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    header h1 { font-size: 22px; font-weight: 700; color: #111827; }
+    header p  { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    .card h2 { font-size: 15px; font-weight: 700; color: #374151; margin-bottom: 16px; }
+
+    /* 슬라이더 설정 */
+    .settings { display: flex; gap: 24px; }
+
+    .setting-item { flex: 1; }
+
+    .setting-item label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+
+    .setting-item input[type="range"] {
+      width: 100%;
+      accent-color: #2563eb;
+    }
+
+    .setting-item .value {
+      font-size: 13px;
+      color: #2563eb;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    /* 탭 */
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+
+    .tab {
+      padding: 8px 18px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: white;
+      color: #6b7280;
+      transition: all 0.15s;
+    }
+
+    .tab.active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: white;
+    }
+
+    /* 파일 업로드 */
+    .upload-area {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .upload-area:hover { border-color: #2563eb; }
+    .upload-area.has-file { border-color: #10b981; background: #f0fdf4; }
+
+    .upload-area p { font-size: 14px; color: #6b7280; }
+    .upload-area .filename { font-size: 14px; color: #10b981; font-weight: 600; margin-top: 8px; }
+
+    input[type="file"] { display: none; }
+
+    /* 텍스트 입력 */
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus { border-color: #2563eb; }
+
+    /* 버튼 */
+    .btn {
+      padding: 11px 24px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 12px;
+    }
+
+    .btn:hover:not(:disabled) { background: #1d4ed8; }
+    .btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* 통계 */
+    .stats { display: flex; gap: 12px; margin-bottom: 20px; }
+
+    .stat-box {
+      flex: 1;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-box .label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+    .stat-box .val   { font-size: 22px; font-weight: 700; color: #111827; }
+    .stat-box .unit  { font-size: 12px; color: #9ca3af; }
+
+    /* 청크 목록 */
+    .chunk-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .chunk-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .chunk-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      background: #f9fafb;
+      transition: background 0.1s;
+      user-select: none;
+    }
+
+    .chunk-header:hover { background: #f3f4f6; }
+
+    .chunk-header .left  { display: flex; align-items: center; gap: 10px; }
+    .chunk-header .index { font-size: 12px; font-weight: 700; color: white; background: #2563eb; border-radius: 6px; padding: 2px 8px; }
+    .chunk-header .preview { font-size: 13px; color: #374151; }
+    .chunk-header .len    { font-size: 12px; color: #9ca3af; white-space: nowrap; }
+    .chunk-header .arrow  { font-size: 12px; color: #9ca3af; margin-left: 8px; }
+
+    .chunk-body {
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border-top: 1px solid #e5e7eb;
+      background: white;
+    }
+
+    /* 에러 */
+    .error {
+      padding: 14px 16px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      color: #dc2626;
+      font-size: 14px;
+    }
+
+    /* 로딩 */
+    .loading { text-align: center; color: #6b7280; font-size: 14px; padding: 24px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef } = React;
+
+    const API_URL = "http://localhost:8000";
+
+    // ── 슬라이더 컴포넌트 ──────────────────────────────
+    function Slider({ label, value, min, max, step, onChange }) {
+      return (
+        <div className="setting-item">
+          <label>{label}</label>
+          <input
+            type="range"
+            min={min} max={max} step={step}
+            value={value}
+            onChange={e => onChange(Number(e.target.value))}
+          />
+          <div className="value">{value}자</div>
+        </div>
+      );
+    }
+
+    // ── 청크 아이템 (펼치기/접기) ──────────────────────
+    function ChunkItem({ chunk }) {
+      const [open, setOpen] = useState(false);
+      const preview = chunk.content.replace(/\n/g, " ").slice(0, 60);
+
+      return (
+        <div className="chunk-item">
+          <div className="chunk-header" onClick={() => setOpen(!open)}>
+            <div className="left">
+              <span className="index">#{chunk.index + 1}</span>
+              <span className="preview">{preview}{chunk.content.length > 60 ? "..." : ""}</span>
+            </div>
+            <div style={{display:"flex", alignItems:"center"}}>
+              <span className="len">{chunk.length}자</span>
+              <span className="arrow">{open ? "▲" : "▼"}</span>
+            </div>
+          </div>
+          {open && <div className="chunk-body">{chunk.content}</div>}
+        </div>
+      );
+    }
+
+    // ── 메인 앱 ───────────────────────────────────────
+    function App() {
+      const [tab, setTab]           = useState("file");   // "file" | "text"
+      const [file, setFile]         = useState(null);
+      const [textInput, setTextInput] = useState("");
+      const [chunkSize, setChunkSize]   = useState(900);
+      const [chunkOverlap, setChunkOverlap] = useState(90);
+      const [result, setResult]     = useState(null);
+      const [loading, setLoading]   = useState(false);
+      const [error, setError]       = useState("");
+      const fileInputRef            = useRef(null);
+
+      // ── 청킹 요청 ────────────────────────────────────
+      const handleChunk = async () => {
+        setError("");
+        setResult(null);
+        setLoading(true);
+
+        try {
+          let res;
+
+          if (tab === "file") {
+            if (!file) { setError("파일을 선택하세요."); setLoading(false); return; }
+            const form = new FormData();
+            form.append("file", file);
+            form.append("chunk_size", chunkSize);
+            form.append("chunk_overlap", chunkOverlap);
+            res = await fetch(`${API_URL}/chunk/file`, { method: "POST", body: form });
+          } else {
+            if (!textInput.trim()) { setError("텍스트를 입력하세요."); setLoading(false); return; }
+            const form = new FormData();
+            form.append("text", textInput);
+            form.append("chunk_size", chunkSize);
+            form.append("chunk_overlap", chunkOverlap);
+            res = await fetch(`${API_URL}/chunk/text`, { method: "POST", body: form });
+          }
+
+          const data = await res.json();
+          if (data.error) { setError(data.error); }
+          else { setResult(data); }
+
+        } catch (err) {
+          setError(`서버 연결 실패: ${err.message}\n서버가 실행 중인지 확인하세요.`);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="container">
+          {/* 헤더 */}
+          <header>
+            <h1>✂️ 문서 청킹 시각화</h1>
+            <p>FastAPI (백엔드) + React (프론트엔드) — 2주차</p>
+          </header>
+
+          {/* 청킹 설정 */}
+          <div className="card">
+            <h2>청킹 설정</h2>
+            <div className="settings">
+              <Slider
+                label={`chunk_size (최대 글자 수)`}
+                value={chunkSize} min={100} max={2000} step={50}
+                onChange={setChunkSize}
+              />
+              <Slider
+                label={`chunk_overlap (겹침 글자 수)  — overlap 비율: ${Math.round(chunkOverlap/chunkSize*100)}%`}
+                value={chunkOverlap} min={0} max={300} step={10}
+                onChange={setChunkOverlap}
+              />
+            </div>
+          </div>
+
+          {/* 입력 */}
+          <div className="card">
+            <div className="tabs">
+              <button className={`tab ${tab === "file" ? "active" : ""}`} onClick={() => setTab("file")}>
+                파일 업로드
+              </button>
+              <button className={`tab ${tab === "text" ? "active" : ""}`} onClick={() => setTab("text")}>
+                텍스트 직접 입력
+              </button>
+            </div>
+
+            {tab === "file" ? (
+              <>
+                <div
+                  className={`upload-area ${file ? "has-file" : ""}`}
+                  onClick={() => fileInputRef.current.click()}
+                >
+                  <p>클릭해서 파일 선택 (md / txt / pdf)</p>
+                  {file && <div className="filename">📄 {file.name}</div>}
+                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".md,.txt,.pdf"
+                  onChange={e => setFile(e.target.files[0] || null)}
+                />
+              </>
+            ) : (
+              <textarea
+                rows={8}
+                placeholder="여기에 텍스트를 붙여넣으세요..."
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+              />
+            )}
+
+            <button className="btn" onClick={handleChunk} disabled={loading}>
+              {loading ? "청킹 중..." : "청킹 실행"}
+            </button>
+          </div>
+
+          {/* 에러 */}
+          {error && <div className="error">⚠️ {error}</div>}
+
+          {/* 로딩 */}
+          {loading && <div className="loading">청킹 중...</div>}
+
+          {/* 결과 */}
+          {result && (
+            <div className="card">
+              <h2>청킹 결과 — {result.source}</h2>
+
+              {/* 통계 */}
+              <div className="stats">
+                <div className="stat-box">
+                  <div className="label">총 청크 수</div>
+                  <div className="val">{result.stats.total}</div>
+                  <div className="unit">개</div>
+                </div>
+                <div className="stat-box">
+                  <div className="label">평균 길이</div>
+                  <div className="val">{result.stats.avg}</div>
+                  <div className="unit">자</div>
+                </div>
+                <div className="stat-box">
+                  <div className="label">최소 길이</div>
+                  <div className="val">{result.stats.min}</div>
+                  <div className="unit">자</div>
+                </div>
+                <div className="stat-box">
+                  <div className="label">최대 길이</div>
+                  <div className="val">{result.stats.max}</div>
+                  <div className="unit">자</div>
+                </div>
+              </div>
+
+              {/* 청크 목록 */}
+              <div className="chunk-list">
+                {result.chunks.map(chunk => (
+                  <ChunkItem key={chunk.index} chunk={chunk} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
