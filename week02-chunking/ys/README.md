@@ -11,12 +11,12 @@
 
 ## 핵심 구현
 - 주요 로직 설명:
-- 문서 로드: data 폴더에 있는 PDF/Markdown 파일을 읽어와 프로그램에서 처리할 수 있는 텍스트로 변환
-- 텍스트 정제: 추출된 텍스트의 불필요한 공백, 줄바꿈, 빈 줄을 정리하여 Chunking 품질 개선
-- Chunking 방식: RecursiveCharacterTextSplitter를 사용해 (문단 → 줄바꿈 → 문장 → 공백 순서) 의미가 최대한 끊기지 않게 분할
-- Metadata 저장: 각 chunk에 원본 파일명, 문서 유형, PDF 페이지 번호, Markdown 섹션명, chunk 번호, 글자 수를 함께 저장
-- 결과 저장: 분할된 chunk는 output/chunks.json에 저장하고, chunk 품질 확인용 output/chunk_report.txt를 생성
-- 사용자 질문 처리: 사용자가 질문을 입력하면 chunks.json에 저장된 chunk 중 질문과 관련 있는 내용을 검색하여 참고 문서로 활용할 수 있도록 구성
+  - 문서 로드: data 폴더에 있는 PDF/Markdown 파일을 읽어와 프로그램에서 처리할 수 있는 텍스트로 변환
+  - 텍스트 정제: 추출된 텍스트의 불필요한 공백, 줄바꿈, 빈 줄을 정리하여 Chunking 품질 개선
+  - Chunking 방식: RecursiveCharacterTextSplitter를 사용해 (문단 → 줄바꿈 → 문장 → 공백 순서) 의미가 최대한 끊기지 않게 분할
+  - Metadata 저장: 각 chunk에 원본 파일명, 문서 유형, PDF 페이지 번호, Markdown 섹션명, chunk 번호, 글자 수를 함께 저장
+  - 결과 저장: 분할된 chunk는 output/chunks.json에 저장하고, chunk 품질 확인용 output/chunk_report.txt를 생성
+  - 사용자 질문 처리: 사용자가 질문을 입력하면 chunks.json에 저장된 chunk 중 질문과 관련 있는 내용을 검색하여 참고 문서로 활용할 수 있도록 구성
 
 - 코드 실행 방법:
   - 프로젝트 폴더로 이동  
