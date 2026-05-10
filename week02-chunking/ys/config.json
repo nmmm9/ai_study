@@ -1,0 +1,9 @@
+{
+  "chunk_size": 500,
+  "chunk_overlap": 80,
+  "separators": ["\n\n", "\n", ". ", " ", ""],
+  "data_dir": "data",
+  "output_dir": "output",
+  "output_json_file": "chunks.json",
+  "output_report_file": "chunk_report.txt"
+}
