@@ -33,7 +33,7 @@
      - cd ../frontend
      - npm install
      - .env.local 파일에 VITE_API_URL=http://localhost:8000 입력
-     npm run dev
+     - npm run dev
   - 브라우저
      - http://localhost:5173
      - 화면에서 종목명, 종목코드, 질문을 입력
