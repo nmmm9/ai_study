@@ -1,0 +1,15 @@
+# 발표 자료
+presentation.html
+
+# 환경 변수
+.env
+
+# Python 캐시
+__pycache__/
+*.pyc
+
+# DB
+*.db
+
+# 수집 데이터 (용량 큼)
+data/youthcenter/
