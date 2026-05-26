@@ -24,6 +24,7 @@ Thumbs.db
 
 # Vector DB
 chroma_db/
+chroma_data/
 faiss_index/
 AA.txt
 B.TXT

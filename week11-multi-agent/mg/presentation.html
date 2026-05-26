@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 11 — Multi-Agent · Plan-and-Execute</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --canvas: #F3F0EE;
+    --lifted: #FCFBFA;
+    --bone: #F4F4F4;
+    --white: #FFFFFF;
+
+    --ink: #141413;
+    --charcoal: #262627;
+    --slate: #696969;
+    --granite: #555555;
+    --dust: #D1CDC7;
+
+    --signal: #CF4500;
+    --orbit: #F37338;
+    --clay: #9A3A0A;
+    --link: #3860BE;
+
+    --ghost: #E8E2DA;
+  }
+
+  body {
+    font-family: 'Sofia Sans', 'Inter', system-ui, sans-serif;
+    background: var(--canvas);
+    color: var(--ink);
+    overflow: hidden;
+    height: 100vh;
+    font-weight: 450;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .slide-container { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 56px 88px 88px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.45s ease;
+    overflow: hidden;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .ghost-mark {
+    position: absolute;
+    font-size: 132px;
+    font-weight: 500;
+    letter-spacing: -2.64px;
+    color: var(--ghost);
+    user-select: none;
+    z-index: 0;
+    line-height: 0.95;
+    white-space: nowrap;
+  }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.56px;
+    color: var(--ink);
+    margin-bottom: 18px;
+  }
+  .eyebrow::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--orbit);
+  }
+  .eyebrow.muted { color: var(--slate); }
+
+  h1 {
+    font-size: 82px; font-weight: 500;
+    line-height: 1; letter-spacing: -1.64px;
+    color: var(--ink);
+    position: relative; z-index: 1;
+  }
+  h2 {
+    font-size: 48px; font-weight: 500;
+    line-height: 1.05; letter-spacing: -0.96px;
+    margin-bottom: 30px;
+    color: var(--ink);
+    position: relative; z-index: 1;
+  }
+  h3 {
+    font-size: 22px; font-weight: 500;
+    line-height: 1.2; letter-spacing: -0.44px;
+  }
+  h4 {
+    font-size: 17px; font-weight: 500;
+    letter-spacing: -0.34px; margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 16px; line-height: 1.55;
+    color: var(--charcoal); font-weight: 450;
+  }
+
+  .lead {
+    font-size: 20px; font-weight: 450;
+    line-height: 1.5; color: var(--ink);
+    max-width: 800px; margin-top: 18px;
+  }
+
+  .accent { color: var(--signal); }
+  .orbit-ink { color: var(--orbit); }
+  .muted { color: var(--slate); }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bone);
+    padding: 2px 7px; border-radius: 6px;
+    font-size: 0.85em; color: var(--ink);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 500;
+    letter-spacing: -0.26px;
+    background: var(--white); color: var(--ink);
+    border: 1.5px solid var(--ink);
+  }
+  .pill-ink { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .pill-orbit { background: transparent; border: 1.5px solid var(--orbit); }
+  .pill-signal { background: var(--signal); color: var(--white); border-color: var(--signal); }
+
+  .card {
+    background: var(--lifted);
+    border-radius: 24px;
+    padding: 22px 24px;
+    border: 1px solid rgba(0,0,0,0.04);
+    position: relative; z-index: 1;
+  }
+  .card.elevated {
+    background: var(--white);
+    box-shadow: rgba(0,0,0,0.06) 0px 24px 48px 0px;
+  }
+  .card.dark { background: var(--ink); border: none; }
+  .card.dark h4 { color: var(--canvas); }
+  .card.dark p { color: var(--dust); }
+  .card h4 { color: var(--ink); }
+  .card p { font-size: 14px; line-height: 1.6; color: var(--charcoal); }
+
+  .grid { display: grid; gap: 16px; position: relative; z-index: 1; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+
+  .numbered { display: flex; gap: 14px; align-items: flex-start; }
+  .num-circle {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    background: var(--white);
+  }
+  .num-circle.dark { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .num-circle.orbit { border-color: var(--orbit); color: var(--orbit); }
+  .num-circle.signal { background: var(--signal); color: var(--white); border-color: var(--signal); }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--lifted);
+    border-radius: 18px; overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.04);
+    position: relative; z-index: 1;
+  }
+  th, td {
+    text-align: left; padding: 12px 18px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-size: 14px; font-weight: 450;
+    color: var(--charcoal);
+  }
+  th {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.56px;
+    color: var(--slate);
+    background: var(--canvas);
+  }
+  td strong { color: var(--ink); font-weight: 500; }
+  tr:last-child td { border-bottom: none; }
+
+  .flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; flex-wrap: nowrap;
+    margin: 8px 0;
+  }
+  .node {
+    background: var(--white);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    padding: 11px 18px;
+    font-size: 13px; font-weight: 500;
+    letter-spacing: -0.26px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .node.router { border-color: var(--ink); background: var(--ink); color: var(--canvas); }
+  .node.exec { border-color: var(--orbit); background: var(--orbit); color: var(--white); }
+  .node.agent { border-color: var(--ink); }
+  .node.writer { border-color: var(--clay); background: var(--clay); color: var(--white); }
+  .node.critic { border-color: var(--signal); background: var(--signal); color: var(--white); }
+  .node.terminal { background: var(--canvas); border-color: var(--slate); color: var(--slate); font-size: 11px; padding: 8px 14px; }
+  .arrow { color: var(--orbit); font-size: 20px; font-weight: 300; }
+
+  .compare {
+    background: var(--lifted);
+    border-radius: 24px;
+    padding: 24px 28px;
+    border: 1px solid rgba(0,0,0,0.04);
+    position: relative; z-index: 1;
+  }
+  .compare h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.56px; color: var(--slate); margin-bottom: 12px; font-weight: 700; }
+  .compare h3 { font-size: 22px; margin-bottom: 14px; font-weight: 500; }
+  .compare ul { list-style: none; }
+  .compare li { padding: 6px 0; font-size: 14px; color: var(--charcoal); border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .compare li:last-child { border-bottom: none; }
+  .compare.dark { background: var(--ink); }
+  .compare.dark h4 { color: var(--orbit); }
+  .compare.dark h3 { color: var(--canvas); }
+  .compare.dark li { color: var(--dust); border-bottom-color: rgba(255,255,255,0.08); }
+
+  .step-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 20px;
+    background: var(--lifted);
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  .step-row.highlight { background: var(--white); border-color: var(--orbit); border-width: 1.5px; }
+  .step-row .num-circle { width: 30px; height: 30px; font-size: 12px; }
+  .step-row p { font-size: 14px; color: var(--charcoal); }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 11px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1.5px solid;
+  }
+  .badge-continue { background: var(--white); color: var(--ink); border-color: var(--ink); }
+  .badge-revise   { background: var(--orbit); color: var(--white); border-color: var(--orbit); }
+  .badge-finish   { background: var(--lifted); color: var(--clay); border-color: var(--clay); }
+
+  .orbit-arc { position: absolute; pointer-events: none; z-index: 0; }
+
+  .quote {
+    font-size: 26px; font-weight: 500;
+    line-height: 1.35; letter-spacing: -0.52px;
+    color: var(--ink);
+    max-width: 880px;
+    position: relative; z-index: 1;
+  }
+  .quote em { font-style: normal; color: var(--signal); }
+
+  .timeline {
+    display: flex; align-items: stretch; gap: 0;
+    position: relative; z-index: 1;
+  }
+  .timeline-item {
+    flex: 1;
+    background: var(--lifted);
+    border-radius: 18px;
+    padding: 20px 18px;
+    border: 1px solid rgba(0,0,0,0.04);
+    position: relative;
+  }
+  .timeline-item.current {
+    background: var(--ink);
+    color: var(--canvas);
+  }
+  .timeline-item.current h4 { color: var(--orbit); }
+  .timeline-item.current p { color: var(--dust); }
+  .timeline-item + .timeline-item { margin-left: 10px; }
+  .timeline-item h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.56px; color: var(--slate); margin-bottom: 6px; }
+  .timeline-item h3 { font-size: 19px; margin-bottom: 8px; }
+  .timeline-item p { font-size: 13px; line-height: 1.55; }
+  .timeline-item .count { font-size: 26px; font-weight: 500; letter-spacing: -0.52px; }
+
+  .nav {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 20px;
+    padding: 11px 22px;
+    background: var(--white);
+    border-radius: 999px;
+    box-shadow: rgba(0,0,0,0.04) 0px 4px 24px 0px;
+    z-index: 100;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .nav-info { font-size: 12px; color: var(--slate); font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+  .nav-info .curr { color: var(--ink); font-weight: 700; }
+  .progress-bar { width: 180px; height: 2px; background: var(--dust); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--ink); transition: width 0.35s ease; }
+  .nav-keys { font-size: 11px; color: var(--slate); display: flex; gap: 6px; align-items: center; }
+  .nav-keys kbd {
+    background: var(--canvas);
+    padding: 2px 7px; border-radius: 999px;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .topbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px; position: relative; z-index: 1; }
+  .key-message {
+    background: var(--ink); color: var(--canvas);
+    padding: 20px 26px; border-radius: 24px;
+    font-size: 16px; line-height: 1.55;
+    margin-top: 22px; font-weight: 450;
+    position: relative; z-index: 1;
+    box-shadow: rgba(0,0,0,0.08) 0px 24px 48px 0px;
+  }
+  .key-message strong { color: var(--orbit); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="slide-container" id="slides">
+
+<!-- 0: Cover -->
+<div class="slide" data-slide="0">
+  <svg class="orbit-arc" style="top: 50px; right: -60px;" width="540" height="540" viewBox="0 0 540 540" fill="none">
+    <circle cx="270" cy="270" r="250" stroke="#F37338" stroke-width="1.2" stroke-dasharray="2 6" opacity="0.55"/>
+    <circle cx="270" cy="270" r="190" stroke="#F37338" stroke-width="1.2" opacity="0.4"/>
+    <circle cx="270" cy="270" r="130" stroke="#F37338" stroke-width="1.2" stroke-dasharray="2 6" opacity="0.3"/>
+  </svg>
+  <span class="ghost-mark" style="top: 220px; right: -20px;">AGENTS</span>
+
+  <p class="eyebrow">Week 11 · Multi-Agent Systems</p>
+  <h1>
+    <span style="color: var(--ink);">Many</span>
+    <span class="muted" style="font-weight: 300;"> minds,</span><br>
+    <span style="color: var(--orbit);">one answer.</span>
+  </h1>
+  <p class="lead">
+    여러 LLM 이 각자 다른 역할로 협업한다.<br>
+    이번 주는 멀티 에이전트의 정점 — <strong>Plan-and-Execute</strong>.
+  </p>
+  <div class="topbar">
+    <span class="pill pill-ink">Multi-Agent</span>
+    <span class="pill">Supervisor</span>
+    <span class="pill">Self-Correction</span>
+    <span class="pill pill-orbit">Plan-and-Execute</span>
+    <span class="pill">Hierarchical</span>
+    <span class="pill">Debate</span>
+  </div>
+</div>
+
+<!-- 1: 멀티 에이전트란 -->
+<div class="slide" data-slide="1">
+  <span class="ghost-mark" style="bottom: 40px; left: -20px;">WHAT</span>
+  <p class="eyebrow">정의</p>
+  <h2>멀티 에이전트란?</h2>
+  <div class="quote">
+    여러 LLM 이 <em>각자 다른 역할</em> 로 협업해서 하나의 문제를 푼다.<br>
+    한 LLM 이 다 하던 걸 <em>여러 명이 분업</em> 하는 패턴.
+  </div>
+  <div class="grid g2" style="margin-top: 38px;">
+    <div class="card">
+      <h4 class="muted">단일 에이전트</h4>
+      <p style="font-size: 15px;">한 LLM이 모든 도구·역할·검증을 다 함. 도구 5개 까지는 괜찮지만 그 이상부터 정확도가 급락한다.</p>
+    </div>
+    <div class="card dark">
+      <h4>멀티 에이전트</h4>
+      <p style="font-size: 15px;">Supervisor 가 라우팅, 도메인 전문가들이 실행, Critic이 채점, Writer가 통합. <strong style="color: var(--orbit);">역할을 LLM 사이에 나눈다.</strong></p>
+    </div>
+  </div>
+</div>
+
+<!-- 2: 왜 나누는가 - 4가지 이유 -->
+<div class="slide" data-slide="2">
+  <p class="eyebrow">왜 나누는가</p>
+  <h2>4가지 이유</h2>
+  <div class="grid g2">
+    <div class="card numbered">
+      <div class="num-circle dark">1</div>
+      <div>
+        <h4>컨텍스트 효율</h4>
+        <p>한 LLM 에 도구 52개 description 다 넣으면 매번 토큰 폭발. 각 에이전트는 자기 도구 5~12개만 봄.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle dark">2</div>
+      <div>
+        <h4>역할별 system prompt</h4>
+        <p>쇼핑/스포츠/Critic 등 도메인 특화 지시를 따로. 한 prompt에 다 넣으면 충돌하거나 묻힌다.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle dark">3</div>
+      <div>
+        <h4>병렬 실행</h4>
+        <p>"날씨 + KBO 결과" → lifestyle과 sports 가 동시에 실행. 단일 에이전트는 순차로만 가능.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle dark">4</div>
+      <div>
+        <h4>자기 검증 (객관성)</h4>
+        <p>다른 에이전트가 답을 채점하면 자기 편향이 줄어든다. Critic 패턴의 핵심.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3: 단일 vs 멀티 비교 -->
+<div class="slide" data-slide="3">
+  <p class="eyebrow">Comparison</p>
+  <h2>단일 vs 멀티</h2>
+  <table>
+    <tr><th>항목</th><th>단일 에이전트</th><th>멀티 에이전트</th></tr>
+    <tr><td><strong>구현 난이도</strong></td><td>쉬움</td><td>어려움</td></tr>
+    <tr><td><strong>비용</strong></td><td>1회 LLM</td><td><strong>N회 (2~10배)</strong></td></tr>
+    <tr><td><strong>응답 시간</strong></td><td>빠름</td><td>느림 (병렬화로 일부 회복)</td></tr>
+    <tr><td><strong>도구 정확도</strong></td><td>5+ 도구부터 급락</td><td><strong style="color: var(--orbit);">높음 (도메인 분리)</strong></td></tr>
+    <tr><td><strong>디버깅</strong></td><td>쉬움</td><td>어려움 (어디서 틀렸는지)</td></tr>
+    <tr><td><strong>복잡 질문</strong></td><td class="muted">약함</td><td><strong style="color: var(--orbit);">강함</strong></td></tr>
+    <tr><td><strong>답변 품질 보장</strong></td><td class="muted">모델 운</td><td><strong>Critic 검증</strong></td></tr>
+  </table>
+  <p style="margin-top: 22px; font-size: 16px;">
+    멀티 에이전트는 <strong style="color: var(--ink);">"공짜로 더 똑똑해지는 마법"</strong> 이 아니라 <strong>"비용을 더 써서 정확도를 사는 거래"</strong>.
+    도구 수가 적고 단순한 질문엔 단일 에이전트가 더 낫다.
+  </p>
+</div>
+
+<!-- 4: 5가지 주요 패턴 -->
+<div class="slide" data-slide="4">
+  <p class="eyebrow">Patterns</p>
+  <h2>주요 5가지 패턴</h2>
+  <div class="grid g2" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+    <div class="card">
+      <h4 style="color: var(--ink);">① Supervisor</h4>
+      <p>1명이 라우팅 → N명이 실행. <strong>가장 단순하고 흔한 패턴</strong>. 9주차.</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--ink);">② Hierarchical</h4>
+      <p>Supervisor 가 또 Supervisor 를 가짐. 회사 조직처럼 다층 구조.</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--ink);">③ Self-Correction</h4>
+      <p>평가자(Critic)가 답을 채점 → 재작성. 10주차.</p>
+    </div>
+    <div class="card" style="border-color: var(--orbit); border-width: 1.5px;">
+      <h4 style="color: var(--signal);">④ Plan-and-Execute</h4>
+      <p><strong>계획 → 단계별 실행 → 재계획</strong>. 11주차 ★</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--ink);">⑤ Debate</h4>
+      <p>여러 에이전트가 다른 시각으로 평가 → 토론 → 합의. Multi-Critic 변형.</p>
+    </div>
+    <div class="card dark">
+      <h4>패턴의 조합</h4>
+      <p>실무는 보통 <strong style="color: var(--orbit);">2~3개 패턴을 합쳐서</strong> 쓴다.
+      11주차는 Supervisor + Self-Correction + Plan-and-Execute 의 합성.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 4.5: 실제로 어디서 쓰이는가 -->
+<div class="slide" data-slide="4-real">
+  <span class="ghost-mark" style="top: 60px; right: 60px;">REAL</span>
+  <p class="eyebrow">Real-world</p>
+  <h2>실제로 어디서 쓰이는가</h2>
+  <div class="grid g3" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+    <div class="card">
+      <h4 style="color: var(--ink);">💻 코드 생성 / 개발</h4>
+      <p style="font-size: 13px;"><strong>Cursor</strong> · <strong>Devin (Cognition)</strong> · <strong>Claude Code</strong> · <strong>Aider</strong> · GitHub Copilot Workspace</p>
+      <p style="margin-top: 8px; font-size: 12px; color: var(--orbit);">Plan → Edit → Test → Review</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--ink);">📞 고객 지원</h4>
+      <p style="font-size: 13px;"><strong>Sierra AI</strong> · <strong>Decagon</strong> · <strong>Ada</strong> · Intercom Fin</p>
+      <p style="margin-top: 8px; font-size: 12px; color: var(--orbit);">Triage → Specialist → Escalation</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--ink);">🔍 리서치 / 분석</h4>
+      <p style="font-size: 13px;"><strong>OpenAI Deep Research</strong> · <strong>Perplexity Pro</strong> · <strong>Gemini Deep Research</strong></p>
+      <p style="margin-top: 8px; font-size: 12px; color: var(--orbit);">Plan → Search × N → Synthesize</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--ink);">📊 데이터 / BI</h4>
+      <p style="font-size: 13px;"><strong>Hex Magic</strong> · <strong>Databricks Genie</strong> · Julius AI</p>
+      <p style="margin-top: 8px; font-size: 12px; color: var(--orbit);">SQL Plan → Execute → Visualize</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--ink);">⚙️ DevOps / SRE</h4>
+      <p style="font-size: 13px;"><strong>Cleric</strong> · <strong>Datadog Bits AI</strong> · Resolve.ai</p>
+      <p style="margin-top: 8px; font-size: 12px; color: var(--orbit);">Alert → Triage → Investigate → Fix</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--ink);">⚖️ 법률 / 컴플라이언스</h4>
+      <p style="font-size: 13px;"><strong>Harvey</strong> · <strong>Hebbia</strong> · Robin AI</p>
+      <p style="margin-top: 8px; font-size: 12px; color: var(--orbit);">Research → Draft → Review (사람 최종 검토)</p>
+    </div>
+  </div>
+  <p style="margin-top: 22px; font-size: 15px;">
+    <strong style="color: var(--ink);">공통점:</strong> 모두 <em>답을 자동 검증할 수 있는 도메인</em>이다.
+    코드는 실행되고, SQL 은 결과가 나오고, 콜센터는 해결됐는지 명확하다.
+    검증이 가능해야 Self-Correction 루프가 의미 있다.
+  </p>
+</div>
+
+<!-- 4.6: 실제 사용 방식 -->
+<div class="slide" data-slide="4-how">
+  <p class="eyebrow">How they actually use it</p>
+  <h2>실제 사용 방식 3가지</h2>
+  <div class="grid g3" style="grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+    <div class="card">
+      <h4 style="color: var(--orbit); font-size: 14px;">CASE A · Cursor / Devin</h4>
+      <h3 style="font-size: 18px; margin: 8px 0 12px;">Plan + Self-Correction</h3>
+      <p style="font-size: 13px;">
+        <strong>1.</strong> Planner: 작업 분해<br>
+        <strong>2.</strong> Editor: 코드 작성<br>
+        <strong>3.</strong> Runner: 컴파일 / 테스트<br>
+        <strong>4.</strong> Reviewer: 실패 시 재작성
+      </p>
+      <p style="margin-top: 10px; font-size: 12px; color: var(--slate);">검증 = 테스트 통과 여부</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--orbit); font-size: 14px;">CASE B · Sierra / Decagon</h4>
+      <h3 style="font-size: 18px; margin: 8px 0 12px;">Supervisor (Domain Routing)</h3>
+      <p style="font-size: 13px;">
+        <strong>1.</strong> Intent 분류 (Triage)<br>
+        <strong>2.</strong> Billing / Tech / Sales agent 라우팅<br>
+        <strong>3.</strong> 해결 못 하면 사람으로 escalation<br>
+        <strong>4.</strong> 만족도 측정 → 학습
+      </p>
+      <p style="margin-top: 10px; font-size: 12px; color: var(--slate);">검증 = 사용자 해결 확인</p>
+    </div>
+    <div class="card">
+      <h4 style="color: var(--orbit); font-size: 14px;">CASE C · Deep Research</h4>
+      <h3 style="font-size: 18px; margin: 8px 0 12px;">Plan-and-Execute</h3>
+      <p style="font-size: 13px;">
+        <strong>1.</strong> 질문 → 5~20개 sub-question 분해<br>
+        <strong>2.</strong> 각 sub-question 병렬 검색<br>
+        <strong>3.</strong> 결과 누적 → 추가 검색 필요시 revise<br>
+        <strong>4.</strong> Synthesizer: 보고서 생성
+      </p>
+      <p style="margin-top: 10px; font-size: 12px; color: var(--slate);">검증 = 출처 매칭, 일관성</p>
+    </div>
+  </div>
+  <div class="key-message" style="margin-top: 22px;">
+    <strong>실무 공식:</strong> <em>패턴 1개로 충분한 경우는 거의 없다.</em>
+    Cursor = Plan-and-Execute + Self-Correction. Sierra = Supervisor + Critic.
+    <strong>2~3 개 패턴의 조합</strong>이 실제 production 의 기본 모양이다.
+  </div>
+</div>
+
+<!-- 4.7: 왜 알아야 하는가 -->
+<div class="slide" data-slide="4-why">
+  <span class="ghost-mark" style="bottom: 40px; left: -30px;">WHY</span>
+  <p class="eyebrow">Why learn this</p>
+  <h2>왜 알아야 하는가</h2>
+  <div class="grid g2">
+    <div class="card numbered">
+      <div class="num-circle dark">1</div>
+      <div>
+        <h4>AI 제품의 기본 모양이 멀티 에이전트로 바뀌고 있다</h4>
+        <p>2023년: 단일 ChatGPT 인터페이스. <strong>2025년: 거의 모든 AI 제품이 multi-agent</strong> (Cursor, Devin, Sierra, Deep Research, ChatGPT의 도구 모드까지).
+        단일 LLM API 호출만으로는 경쟁 못한다.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle dark">2</div>
+      <div>
+        <h4>채용 시장의 핵심 스킬</h4>
+        <p>AI Engineer 채용 공고의 <strong>80%+ 가 LangGraph / LangChain / AutoGen 경험을 요구</strong>.
+        단일 prompt engineering 만으로는 더 이상 차별화되지 않음.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle dark">3</div>
+      <div>
+        <h4>단일 LLM 의 한계가 보인다</h4>
+        <p>도구 5개 넘으면 정확도 급락, 도메인 지식 충돌, 자기 답변 못 검증, 복잡 질문 처리 한계.
+        <strong>구조적 한계는 구조적 해법으로</strong> — 더 큰 모델이 아니라 더 나은 그래프.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle dark">4</div>
+      <div>
+        <h4>다음 5년의 AI 가 갈 방향</h4>
+        <p>단순 채팅 → 도구 사용 → <strong>자율 에이전트 (multi-agent + 메모리 + 도구)</strong>.
+        Anthropic / OpenAI / Google 모두 같은 방향으로 투자 중. 멀티 에이전트는 그 토대.</p>
+      </div>
+    </div>
+  </div>
+  <div class="key-message" style="margin-top: 18px;">
+    <strong>한 줄 요약:</strong> 지금 단순 ChatGPT 래퍼만 만들 줄 알면 1~2년 안에 가치가 떨어진다.
+    <em>멀티 에이전트를 설계할 줄 아는 것</em>이 2025년 이후의 AI 개발자 기본기다.
+  </div>
+</div>
+
+<!-- 5: 우리의 진화 -->
+<div class="slide" data-slide="5">
+  <p class="eyebrow">Our Journey</p>
+  <h2>8주차 → 11주차 진화</h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <h4>Week 8</h4>
+      <h3>ReAct</h3>
+      <div class="count">1<span class="muted" style="font-size: 14px;"> 에이전트</span></div>
+      <p style="margin-top: 6px;">도구 26개를 한 LLM에 다. 단일 ReAct 루프.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Week 9</h4>
+      <h3>Supervisor</h3>
+      <div class="count">10<span class="muted" style="font-size: 14px;"> 에이전트</span></div>
+      <p style="margin-top: 6px;">Supervisor + 8 도메인 + Writer. 도메인 분리.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Week 10</h4>
+      <h3>Self-Correction</h3>
+      <div class="count">11<span class="muted" style="font-size: 14px;"> 에이전트</span></div>
+      <p style="margin-top: 6px;">+ Critic. 답변 자동 채점 + 재작성.</p>
+    </div>
+    <div class="timeline-item current">
+      <h4>Week 11 ★</h4>
+      <h3>Plan-and-Execute</h3>
+      <div class="count">13<span class="muted" style="font-size: 14px; color: var(--dust);"> 에이전트</span></div>
+      <p style="margin-top: 6px;">+ Planner + Replanner. 동적 계획 수립.</p>
+    </div>
+  </div>
+  <p style="margin-top: 28px; font-size: 16px;">
+    매주 새 에이전트가 추가되면서 그래프 모양이 진화: <strong>단일 루프 → DAG → Single Cycle → Double Cycle</strong>.
+    역할이 늘어날수록 처리 가능한 질문도 복잡해진다.
+  </p>
+</div>
+
+<!-- 6: Week 11 핵심 - Plan-and-Execute -->
+<div class="slide" data-slide="6">
+  <span class="ghost-mark" style="top: 80px; right: 40px;">PLAN</span>
+  <p class="eyebrow">11주차 패턴</p>
+  <h2>Plan-and-Execute</h2>
+  <div class="quote">
+    LLM 이 답변을 하기 전에 <em>"내가 무엇을 어떤 순서로 할지"</em> 를 먼저 적어둔다.<br>
+    그 plan 자체가 그래프 상태에 들어가고, <em>실행 중에 다시 쓸 수 있다.</em>
+  </div>
+  <div class="grid g3" style="margin-top: 36px;">
+    <div class="card numbered">
+      <div class="num-circle">P</div>
+      <div>
+        <h4>Plan</h4>
+        <p>질문을 1~6개 step 으로 분해. 각 step 에 도메인 hint.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle orbit">E</div>
+      <div>
+        <h4>Execute</h4>
+        <p>한 step 씩 진행. 해당 도메인 에이전트가 도구 호출.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle signal">R</div>
+      <div>
+        <h4>Re-plan</h4>
+        <p>매 step 결과를 보고 continue / revise / finish 결정.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 7: 11주차 아키텍처 -->
+<div class="slide" data-slide="7">
+  <p class="eyebrow">아키텍처</p>
+  <h2>13 에이전트의 협업</h2>
+  <div class="card elevated" style="padding: 32px 24px;">
+    <div class="flow">
+      <div class="node terminal">START</div>
+      <span class="arrow">→</span>
+      <div class="node router">Planner</div>
+      <span class="arrow">→</span>
+      <div class="node exec">Executor</div>
+      <span class="arrow">→</span>
+      <div class="node agent">Domain ×8</div>
+      <span class="arrow">→</span>
+      <div class="node router">Replanner</div>
+      <span class="arrow">→</span>
+      <div class="node writer">Writer</div>
+      <span class="arrow">→</span>
+      <div class="node critic">Critic</div>
+      <span class="arrow">→</span>
+      <div class="node terminal">END</div>
+    </div>
+    <div style="margin-top: 22px; padding-top: 18px; border-top: 1px dashed rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span class="badge badge-continue">continue</span>
+        <span class="muted" style="font-size: 13px;">Replanner → Executor (다음 step 으로)</span>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span class="badge badge-revise">revise</span>
+        <span class="muted" style="font-size: 13px;">남은 plan 을 새 step 으로 교체</span>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span class="badge badge-finish">finish</span>
+        <span class="muted" style="font-size: 13px;">남은 step 건너뛰고 Writer 로</span>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span class="badge" style="background: var(--signal); color: white; border-color: var(--signal);">critic loop</span>
+        <span class="muted" style="font-size: 13px;">7점 미만 시 Writer 재작성 (10주차 재사용)</span>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top: 22px; font-size: 15px;">
+    Execute 루프 + Critic 루프 = <strong style="color: var(--ink);">Double Cycle</strong>.
+    "무엇을 할지 (plan)" 와 "어떻게 답할지 (answer)" 를 각각 다른 루프로 개선한다.
+  </p>
+</div>
+
+<!-- 8: 예시 분해 -->
+<div class="slide" data-slide="8">
+  <p class="eyebrow">예시</p>
+  <h2>복합 질문 분해</h2>
+  <p class="lead" style="margin-bottom: 24px;">
+    <em style="color: var(--signal); font-style: normal;">"서울 날씨 + 어제 KBO 결과 + 강남구 맛집까지 한 번에"</em>
+  </p>
+  <div style="display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1;">
+    <div class="step-row">
+      <div class="num-circle">1</div>
+      <p><strong style="color: var(--ink);">lifestyle</strong> · 서울의 현재 날씨 정보 검색 → <span class="badge badge-continue">continue</span></p>
+    </div>
+    <div class="step-row">
+      <div class="num-circle">2</div>
+      <p><strong style="color: var(--ink);">sports</strong> · 어제 KBO 야구 경기 결과 검색 → <span class="badge badge-continue">continue</span></p>
+    </div>
+    <div class="step-row highlight">
+      <div class="num-circle orbit">3</div>
+      <p><strong style="color: var(--ink);">lifestyle</strong> · 강남구 맛집 검색 → 결과 빈약 → <span class="badge badge-revise">revise</span></p>
+    </div>
+    <div class="step-row highlight">
+      <div class="num-circle orbit">4</div>
+      <p><strong style="color: var(--ink);">lifestyle</strong> · (revised) 다른 도구로 강남 맛집 재시도 → <span class="badge badge-finish">finish</span></p>
+    </div>
+    <div class="step-row">
+      <div class="num-circle dark">✓</div>
+      <p><strong style="color: var(--ink);">Writer + Critic</strong> — 누적 결과로 답변 작성, 8/10 통과</p>
+    </div>
+  </div>
+  <p style="margin-top: 22px; font-size: 14px;">
+    한 문장이 4 step + critic 으로 분해됨. 각 step 후 Replanner 가 "계속 / 수정 / 종료" 를 결정.
+  </p>
+</div>
+
+<!-- 9: 다른 에이전트 패턴 vs 11주차 -->
+<div class="slide" data-slide="9">
+  <p class="eyebrow">Comparison</p>
+  <h2>패턴별 비교</h2>
+  <div class="grid g4">
+    <div class="compare">
+      <h4>Supervisor</h4>
+      <h3>9주차</h3>
+      <ul>
+        <li>한 번 라우팅</li>
+        <li>병렬 실행</li>
+        <li>빠름</li>
+        <li class="muted">실패 회복 X</li>
+      </ul>
+    </div>
+    <div class="compare">
+      <h4>Self-Correction</h4>
+      <h3>10주차</h3>
+      <ul>
+        <li>답변 채점</li>
+        <li>재작성 루프</li>
+        <li>품질 보장</li>
+        <li class="muted">plan 못 고침</li>
+      </ul>
+    </div>
+    <div class="compare dark">
+      <h4>Plan-and-Execute</h4>
+      <h3>11주차 ★</h3>
+      <ul>
+        <li><strong style="color: var(--orbit);">계획 일급</strong></li>
+        <li>step 단위 실행</li>
+        <li>동적 재계획</li>
+        <li><strong style="color: var(--orbit);">복합 질문</strong></li>
+      </ul>
+    </div>
+    <div class="compare">
+      <h4>Debate</h4>
+      <h3>(future)</h3>
+      <ul>
+        <li>다관점 평가</li>
+        <li>토론 → 합의</li>
+        <li>편향 감소</li>
+        <li class="muted">비싸고 느림</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top: 22px; font-size: 16px;">
+    실무에서는 보통 <strong>Supervisor + Self-Correction + Plan-and-Execute</strong> 를 조합한다.
+    11주차 구현은 이 세 패턴을 <strong style="color: var(--ink);">하나의 LangGraph 안에서</strong> 통합한 형태.
+  </p>
+</div>
+
+<!-- 10: 학술적 맥락 -->
+<div class="slide" data-slide="10">
+  <p class="eyebrow">Research Context</p>
+  <h2>멀티 에이전트의 학술 흐름</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Plan-and-Solve <span class="muted" style="font-size: 12px; font-weight: 450;">(Wang et al., 2023)</span></h4>
+      <p>"먼저 계획, 다음에 실행" two-stage prompting. ReAct 대비 다단계 추론 개선.</p>
+    </div>
+    <div class="card">
+      <h4>BabyAGI / AutoGPT <span class="muted" style="font-size: 12px; font-weight: 450;">(2023)</span></h4>
+      <p>자율 에이전트의 효시. plan-task queue-execution 사이클이 11주차의 직접 조상.</p>
+    </div>
+    <div class="card">
+      <h4>AutoGen <span class="muted" style="font-size: 12px; font-weight: 450;">(Microsoft, 2023)</span></h4>
+      <p>Conversable agents 프레임워크. 에이전트 간 대화로 협업하는 표준.</p>
+    </div>
+    <div class="card">
+      <h4>MetaGPT <span class="muted" style="font-size: 12px; font-weight: 450;">(2023)</span></h4>
+      <p>SOP (Standard Operating Procedure) 기반 멀티 에이전트. 회사 조직처럼 역할 분담.</p>
+    </div>
+    <div class="card">
+      <h4>CrewAI <span class="muted" style="font-size: 12px; font-weight: 450;">(2024)</span></h4>
+      <p>역할 + 목표 + 도구로 에이전트 정의. 직관적인 협업 모델.</p>
+    </div>
+    <div class="card">
+      <h4>LangGraph <span class="muted" style="font-size: 12px; font-weight: 450;">(LangChain, 2024)</span></h4>
+      <p>그래프 기반 에이전트 오케스트레이션. 우리 9~11주차의 토대.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 11: Trade-off -->
+<div class="slide" data-slide="11">
+  <p class="eyebrow">When to use</p>
+  <h2>멀티 에이전트가 빛나는 순간</h2>
+  <div class="grid g2">
+    <div class="card" style="background: var(--white);">
+      <h4 style="color: var(--ink);">✓ 좋을 때</h4>
+      <p style="line-height: 1.8;">
+        · 도구가 10개 이상<br>
+        · 도메인이 명확히 분리됨<br>
+        · 답변 품질이 중요 (Critic 가치)<br>
+        · 복합 질문이 자주 옴<br>
+        · 다단계 조사가 필요
+      </p>
+    </div>
+    <div class="card dark">
+      <h4>✗ 오버킬일 때</h4>
+      <p style="line-height: 1.8;">
+        · 도구 3~4개로 충분<br>
+        · 단일 도메인<br>
+        · 응답 속도가 절대 우선<br>
+        · 비용이 빠듯함<br>
+        · 단순 FAQ 봇
+      </p>
+    </div>
+  </div>
+  <div class="key-message">
+    <strong>핵심 관점:</strong> 멀티 에이전트는 <em>"공짜로 똑똑해지는 마법"</em> 이 아니다.
+    <strong>비용을 더 써서 정확도와 복잡 처리 능력을 사는 거래</strong>. 항상 단일 → 분리 → 다시 합치는 진화 과정을 거쳐야 한다.
+  </div>
+</div>
+
+<!-- 12: 마무리 -->
+<div class="slide" data-slide="12">
+  <svg class="orbit-arc" style="bottom: 50px; right: -80px;" width="480" height="480" viewBox="0 0 480 480" fill="none">
+    <circle cx="240" cy="240" r="220" stroke="#F37338" stroke-width="1.2" stroke-dasharray="2 6" opacity="0.4"/>
+  </svg>
+  <p class="eyebrow">Wrap-up</p>
+  <h2>마무리 &amp; 다음 단계</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>이번 주 배운 것</h4>
+      <p style="line-height: 1.9; font-size: 14px;">
+        ✓ 멀티 에이전트의 정의와 4가지 이유<br>
+        ✓ 단일 vs 멀티 trade-off<br>
+        ✓ 5가지 주요 패턴 (Supervisor, Hierarchical, Self-Correction, Plan-Execute, Debate)<br>
+        ✓ Plan 을 일급 객체로 만드는 의미<br>
+        ✓ Double Cycle (Execute + Critic)
+      </p>
+    </div>
+    <div class="card">
+      <h4>다음에 해볼 것</h4>
+      <p style="line-height: 1.9; font-size: 14px;">
+        → <strong>Agentic RAG</strong> (12주차) — plan 안에 문서 검색 step 포함<br>
+        → <strong>Multi-Critic Debate</strong> — 다관점 채점<br>
+        → <strong>Hierarchical Agents</strong> — Supervisor of Supervisors<br>
+        → <strong>Human-in-the-Loop</strong> — revise 시점에 사용자 확인<br>
+        → <strong>Parallel step Execution</strong> — 독립 step 동시 실행
+      </p>
+    </div>
+  </div>
+  <div class="key-message">
+    <strong>한 줄 요약:</strong> 멀티 에이전트는 <em>LLM 을 분업시키는 패턴</em>.
+    단일 LLM 의 한계(컨텍스트, 역할 충돌, 검증 부재)를 풀기 위해 <strong>여러 LLM 을 그래프로 묶는 것</strong>.
+    9~11주차에서 한 모든 게 이 변주였다.
+  </div>
+</div>
+
+</div>
+
+<div class="nav">
+  <div class="nav-info"><span class="curr" id="curr">1</span> / <span id="total">13</span></div>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="nav-keys"><kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let curr = 0;
+
+  function show(i) {
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+    document.getElementById('curr').textContent = i + 1;
+    document.getElementById('total').textContent = total;
+    document.getElementById('progress').style.width = ((i + 1) / total * 100) + '%';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { curr = Math.min(curr + 1, total - 1); show(curr); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { curr = Math.max(curr - 1, 0); show(curr); }
+    else if (e.key === 'Home') { curr = 0; show(curr); }
+    else if (e.key === 'End') { curr = total - 1; show(curr); }
+  });
+
+  show(0);
+</script>
+
+</body>
+</html>

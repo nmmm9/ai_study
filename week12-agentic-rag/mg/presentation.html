@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 12 — Agentic RAG</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --canvas: #F3F0EE;
+    --lifted: #FCFBFA;
+    --bone: #F4F4F4;
+    --white: #FFFFFF;
+    --ink: #2C1F17;       /* deep walnut brown - replaces black */
+    --charcoal: #3F2E22;  /* warm dark brown */
+    --slate: #756A60;     /* warm muted brown-gray */
+    --granite: #5C4B3F;
+    --dust: #D1CDC7;
+    --signal: #CF4500;
+    --orbit: #F37338;
+    --clay: #9A3A0A;
+    --link: #3860BE;
+    --cyan: #0E7490;
+    --ghost: #E8E2DA;
+  }
+
+  body {
+    font-family: 'Sofia Sans', 'Inter', system-ui, sans-serif;
+    background: var(--canvas); color: var(--ink);
+    overflow: hidden; height: 100vh; font-weight: 450;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .slide-container { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 56px 88px 88px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease; overflow: hidden;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .ghost-mark {
+    position: absolute; font-size: 132px; font-weight: 500;
+    letter-spacing: -2.64px; color: var(--ghost);
+    user-select: none; z-index: 0; line-height: 0.95; white-space: nowrap;
+  }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--ink); margin-bottom: 18px;
+  }
+  .eyebrow::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--orbit);
+  }
+  .eyebrow.muted { color: var(--slate); }
+
+  h1 {
+    font-size: 76px; font-weight: 500;
+    line-height: 1.02; letter-spacing: -1.52px;
+    color: var(--ink); position: relative; z-index: 1;
+  }
+  h2 {
+    font-size: 44px; font-weight: 500;
+    line-height: 1.1; letter-spacing: -0.88px;
+    margin-bottom: 28px; color: var(--ink);
+    position: relative; z-index: 1;
+  }
+  h3 { font-size: 20px; font-weight: 500; line-height: 1.3; letter-spacing: -0.4px; }
+  h4 { font-size: 16px; font-weight: 600; letter-spacing: -0.32px; margin-bottom: 8px; }
+
+  p { font-size: 15px; line-height: 1.6; color: var(--charcoal); font-weight: 450; }
+  .lead {
+    font-size: 19px; font-weight: 450; line-height: 1.55;
+    color: var(--ink); max-width: 780px; margin-top: 18px;
+  }
+  .muted { color: var(--slate); }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bone); padding: 2px 7px; border-radius: 6px;
+    font-size: 0.85em; color: var(--ink); border: 1px solid rgba(0,0,0,0.04);
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 500; letter-spacing: -0.24px;
+    background: var(--white); color: var(--ink); border: 1.5px solid var(--ink);
+  }
+  .pill-ink { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .pill-cyan { background: var(--cyan); color: var(--white); border-color: var(--cyan); }
+  .pill-orbit { background: var(--orbit); color: var(--white); border-color: var(--orbit); }
+
+  .card {
+    background: var(--lifted); border-radius: 22px;
+    padding: 22px 24px; border: 1px solid rgba(0,0,0,0.04);
+    position: relative; z-index: 1;
+  }
+  .card.elevated { background: var(--white); box-shadow: rgba(0,0,0,0.06) 0px 24px 48px 0px; }
+  .card.dark { background: var(--ink); border: none; }
+  .card.dark h4 { color: var(--canvas); }
+  .card.dark p { color: var(--dust); }
+  .card h4 { color: var(--ink); }
+  .card p { font-size: 14px; line-height: 1.65; color: var(--charcoal); }
+
+  .grid { display: grid; gap: 14px; position: relative; z-index: 1; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .g5 { grid-template-columns: repeat(5, 1fr); }
+
+  .numbered { display: flex; gap: 14px; align-items: flex-start; }
+  .num-circle {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; background: var(--white);
+  }
+  .num-circle.dark { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .num-circle.cyan { background: var(--cyan); color: var(--white); border-color: var(--cyan); }
+  .num-circle.orbit { background: var(--orbit); color: var(--white); border-color: var(--orbit); }
+
+  table {
+    width: 100%; border-collapse: collapse; background: var(--lifted);
+    border-radius: 18px; overflow: hidden; border: 1px solid rgba(0,0,0,0.04);
+    position: relative; z-index: 1;
+  }
+  th, td {
+    text-align: left; padding: 12px 18px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-size: 14px; font-weight: 450; color: var(--charcoal);
+  }
+  th {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--slate); background: var(--canvas);
+  }
+  td strong { color: var(--ink); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; flex-wrap: nowrap; margin: 8px 0;
+  }
+  .node {
+    background: var(--white); border: 2px solid var(--ink); border-radius: 999px;
+    padding: 10px 16px; font-size: 12.5px; font-weight: 500;
+    letter-spacing: -0.25px; color: var(--ink); white-space: nowrap;
+  }
+  .node.router { background: var(--ink); color: var(--canvas); }
+  .node.exec { background: var(--orbit); color: var(--white); border-color: var(--orbit); }
+  .node.retriever { background: var(--cyan); color: var(--white); border-color: var(--cyan); }
+  .node.writer { background: var(--clay); color: var(--white); border-color: var(--clay); }
+  .node.critic { background: var(--signal); color: var(--white); border-color: var(--signal); }
+  .node.terminal { background: var(--canvas); border-color: var(--slate); color: var(--slate); font-size: 11px; padding: 8px 14px; }
+  .arrow { color: var(--orbit); font-size: 20px; }
+
+  .compare {
+    background: var(--lifted); border-radius: 22px;
+    padding: 24px 26px; border: 1px solid rgba(0,0,0,0.04);
+    position: relative; z-index: 1;
+  }
+  .compare h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--slate); margin-bottom: 10px; font-weight: 700; }
+  .compare h3 { font-size: 22px; margin-bottom: 14px; font-weight: 500; }
+  .compare ul { list-style: none; }
+  .compare li { padding: 7px 0; font-size: 14px; color: var(--charcoal); border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .compare li:last-child { border-bottom: none; }
+  .compare.dark { background: var(--ink); }
+  .compare.dark h4 { color: var(--cyan); }
+  .compare.dark h3 { color: var(--canvas); }
+  .compare.dark li { color: var(--dust); border-bottom-color: rgba(255,255,255,0.08); }
+
+  .step-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 20px; background: var(--lifted);
+    border-radius: 999px; border: 1px solid rgba(0,0,0,0.05);
+  }
+  .step-row.highlight { background: var(--white); border-color: var(--cyan); border-width: 1.5px; }
+  .step-row .num-circle { width: 28px; height: 28px; font-size: 11px; }
+  .step-row p { font-size: 13.5px; color: var(--charcoal); }
+
+  .orbit-arc { position: absolute; pointer-events: none; z-index: 0; }
+
+  .stat-box {
+    background: var(--lifted); border-radius: 18px;
+    padding: 20px 22px; border: 1px solid rgba(0,0,0,0.04);
+    text-align: center; position: relative; z-index: 1;
+  }
+  .stat-box .num { font-size: 44px; font-weight: 500; letter-spacing: -0.88px; line-height: 1; color: var(--ink); }
+  .stat-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--slate); margin-top: 8px; }
+  .stat-box.dark { background: var(--ink); }
+  .stat-box.dark .num { color: var(--orbit); }
+  .stat-box.dark .label { color: var(--dust); }
+
+  .timeline {
+    display: flex; align-items: stretch; gap: 0; position: relative; z-index: 1;
+  }
+  .timeline-item {
+    flex: 1; background: var(--lifted); border-radius: 16px;
+    padding: 18px 16px; border: 1px solid rgba(0,0,0,0.04); position: relative;
+  }
+  .timeline-item.current { background: var(--ink); }
+  .timeline-item.current h4 { color: var(--cyan); }
+  .timeline-item.current h3 { color: var(--canvas); }
+  .timeline-item.current p { color: var(--dust); }
+  .timeline-item + .timeline-item { margin-left: 10px; }
+  .timeline-item h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--slate); margin-bottom: 4px; }
+  .timeline-item h3 { font-size: 17px; margin-bottom: 8px; }
+  .timeline-item p { font-size: 12px; line-height: 1.5; color: var(--charcoal); }
+
+  .nav {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 20px;
+    padding: 11px 22px; background: var(--white); border-radius: 999px;
+    box-shadow: rgba(0,0,0,0.04) 0px 4px 24px 0px; z-index: 100;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .nav-info { font-size: 12px; color: var(--slate); font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+  .nav-info .curr { color: var(--ink); font-weight: 700; }
+  .progress-bar { width: 200px; height: 2px; background: var(--dust); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--ink); transition: width 0.35s ease; }
+  .nav-keys { font-size: 10px; color: var(--slate); display: flex; gap: 6px; align-items: center; }
+  .nav-keys kbd {
+    background: var(--canvas); padding: 2px 7px; border-radius: 999px;
+    font-family: 'JetBrains Mono'; font-size: 10px; border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .topbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px; position: relative; z-index: 1; }
+
+  .summary-box {
+    background: var(--ink); color: var(--canvas);
+    padding: 22px 28px; border-radius: 22px;
+    font-size: 16px; line-height: 1.6; margin-top: 24px; font-weight: 450;
+    position: relative; z-index: 1;
+    box-shadow: rgba(0,0,0,0.08) 0px 24px 48px 0px;
+  }
+  .summary-box strong { color: var(--cyan); font-weight: 600; }
+
+  .source-list {
+    list-style: none; padding-left: 0; font-size: 11.5px; line-height: 1.8;
+    color: var(--slate);
+  }
+  .source-list li { padding: 2px 0; }
+  .source-list a { color: var(--link); text-decoration: none; }
+
+  /* Build animation — 노드 하나씩 등장 */
+  .node-build, .arrow-build {
+    opacity: 0.16;
+    filter: grayscale(80%);
+    transform: scale(0.92);
+    transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease,
+                box-shadow 0.35s ease;
+  }
+  .node-build.build-visible, .arrow-build.build-visible {
+    opacity: 1;
+    filter: none;
+    transform: scale(1);
+  }
+  .node-build.build-current {
+    transform: scale(1.08);
+    box-shadow: rgba(243,115,56,0.35) 0 0 0 4px, rgba(0,0,0,0.06) 0 12px 24px;
+  }
+
+  /* 노드 설명 패널 */
+  .node-desc-area {
+    margin-top: 22px; min-height: 130px;
+    position: relative; z-index: 1;
+  }
+  .node-desc {
+    display: none;
+    background: var(--lifted); border-radius: 18px;
+    padding: 18px 22px; border: 1px solid rgba(0,0,0,0.04);
+    animation: fade-in 0.32s ease;
+  }
+  .node-desc.visible { display: block; }
+  .node-desc h4 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 6px; font-weight: 700;
+  }
+  .node-desc p { font-size: 14px; line-height: 1.65; color: var(--charcoal); }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="slide-container" id="slides">
+
+<!-- 0: Cover -->
+<div class="slide" data-slide="0">
+  <svg class="orbit-arc" style="top: 30px; right: -80px;" width="560" height="560" viewBox="0 0 560 560" fill="none">
+    <circle cx="280" cy="280" r="260" stroke="#F37338" stroke-width="1.2" stroke-dasharray="2 6" opacity="0.5"/>
+    <circle cx="280" cy="280" r="200" stroke="#0E7490" stroke-width="1.2" opacity="0.35"/>
+  </svg>
+  <span class="ghost-mark" style="top: 220px; right: -10px;">RAG</span>
+
+  <p class="eyebrow">Week 12</p>
+  <h1>
+    Agentic RAG.<br>
+    <span style="color: var(--cyan);">검색하는 RAG에서</span><br>
+    <span style="color: var(--orbit);">생각하는 RAG로.</span>
+  </h1>
+  <p class="lead">
+    2024년의 RAG는 한 번 검색하고 끝났다.
+    2026년의 RAG는 LLM이 검색을 직접 운영한다.
+  </p>
+</div>
+
+<!-- 1: 전통 RAG의 한계 -->
+<div class="slide" data-slide="1">
+  <p class="eyebrow muted">출발점</p>
+  <h2>전통 RAG는 무엇을 할 수 없었나</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>한 번 검색하고 끝</h4>
+      <p>임베딩, top-k 검색, 생성. 단방향 파이프라인이다. 검색이 빈약해도 그 결과로 답을 만들어야 한다.</p>
+    </div>
+    <div class="card">
+      <h4>단일 소스 한정</h4>
+      <p>벡터 DB 하나만 본다. 내부 데이터와 외부 공시를 함께 봐야 풀리는 질문에 약하다.</p>
+    </div>
+    <div class="card">
+      <h4>Multi-hop 추론 부재</h4>
+      <p>A를 찾고 그 결과로 B를 찾는 연쇄 추론이 한 번의 검색 안에 표현되지 않는다.</p>
+    </div>
+    <div class="card">
+      <h4>LLM이 수동 소비자</h4>
+      <p>리트리버가 준 결과를 받아쓰는 역할에 그친다. 결과가 부족하다고 판단해도 다시 검색하지 않는다.</p>
+    </div>
+  </div>
+  <p style="margin-top: 24px; font-size: 14.5px;">
+    2026년 엔터프라이즈 AI 도입 보고서에 따르면, 2024년에 표준 RAG를 도입한 팀의 약 58%가
+    6개월 안에 다중 소스 다단계 추론을 한계로 지목했다.
+  </p>
+</div>
+
+<!-- 2: Agentic RAG 정의 -->
+<div class="slide" data-slide="2">
+  <span class="ghost-mark" style="bottom: 30px; left: -20px;">PLAN</span>
+  <p class="eyebrow">정의</p>
+  <h2>Agentic RAG의 핵심</h2>
+  <p class="lead" style="margin-bottom: 32px;">
+    자율 에이전트가 중앙에 앉아 검색 전략을 계획하고, 적절한 도구로 라우팅하고,
+    자기 출력을 평가하고, 충분한 답이 나올 때까지 반복한다.
+  </p>
+  <div class="grid g3">
+    <div class="card numbered">
+      <div class="num-circle cyan">1</div>
+      <div>
+        <h4>Plan</h4>
+        <p>질문을 분해한다. 어떤 소스에서 무엇을 가져올지 먼저 결정한다.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle">2</div>
+      <div>
+        <h4>Route &amp; Retrieve</h4>
+        <p>적절한 도구와 데이터 소스를 선택해 정보를 가져온다.</p>
+      </div>
+    </div>
+    <div class="card numbered">
+      <div class="num-circle orbit">3</div>
+      <div>
+        <h4>Evaluate &amp; Loop</h4>
+        <p>결과를 자기 평가한다. 부족하면 다시 검색하거나 다른 도구를 시도한다.</p>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top: 24px; font-size: 14.5px;">
+    고정된 시퀀스가 아니라 조건부 그래프다. 이것이 2026년 엔터프라이즈 RAG의 표준 정의다.
+  </p>
+</div>
+
+<!-- 3: Traditional vs Agentic -->
+<div class="slide" data-slide="3">
+  <p class="eyebrow">Comparison</p>
+  <h2>전통 RAG vs Agentic RAG</h2>
+  <div class="grid g2">
+    <div class="compare">
+      <h4>Traditional RAG</h4>
+      <h3>Linear Pipeline</h3>
+      <ul>
+        <li>임베딩, top-k 검색, reranking, 생성을 1회 수행</li>
+        <li>검색 실패 시 복구 경로가 없음</li>
+        <li>출처는 벡터 DB 한 곳에 한정</li>
+        <li>LLM은 결과를 받아쓰는 역할</li>
+        <li>구현이 단순하고 비용이 낮음</li>
+      </ul>
+    </div>
+    <div class="compare dark">
+      <h4>Agentic RAG</h4>
+      <h3>Dynamic Graph</h3>
+      <ul>
+        <li>Plan, Route, Retrieve, Evaluate를 반복</li>
+        <li>실패 시 자동으로 다른 경로 시도</li>
+        <li>벡터 DB, API, 도구 등 다중 소스 결합</li>
+        <li>LLM이 검색 전략을 직접 결정</li>
+        <li>비용 3~10배, 응답시간 2~5배 증가</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top: 22px; font-size: 14.5px;">
+    전통 RAG는 LLM을 결과 소비자로 봤다. Agentic RAG는 그 관계를 뒤집어 모델이
+    무엇을, 언제, 어떻게 가져올지 결정하게 한다.
+  </p>
+</div>
+
+<!-- 4: 5가지 패턴 -->
+<div class="slide" data-slide="4">
+  <p class="eyebrow">Patterns</p>
+  <h2>Agentic RAG의 다섯 가지 패턴</h2>
+  <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 12px;">
+    <div class="card">
+      <h4>Router</h4>
+      <p>질문 의도에 따라 소스로 분기한다. 가장 단순한 형태다.</p>
+    </div>
+    <div class="card">
+      <h4>ReAct</h4>
+      <p>Thought, Action, Observation을 반복한다. 8주차에서 다룬 패턴이다.</p>
+    </div>
+    <div class="card" style="border-color: var(--orbit); border-width: 1.5px;">
+      <h4 style="color: var(--orbit);">Plan-Execute</h4>
+      <p>계획을 먼저 세우고 단계별로 실행한다. 11주차의 핵심이다.</p>
+    </div>
+    <div class="card" style="border-color: var(--orbit); border-width: 1.5px;">
+      <h4 style="color: var(--orbit);">Multi-Agent</h4>
+      <p>전문 에이전트가 분업한다. 9주차와 11주차에서 구현했다.</p>
+    </div>
+    <div class="card" style="border-color: var(--cyan); border-width: 1.5px;">
+      <h4 style="color: var(--cyan);">Self-RAG</h4>
+      <p>검색 결과를 자기 채점한 뒤 부족하면 다시 검색한다. 12주차의 핵심이다.</p>
+    </div>
+  </div>
+  <div class="summary-box">
+    실무에서는 하나의 패턴만으로 충분한 경우가 드물다. 12주차 프로젝트는
+    <strong>Router, Plan-Execute, Multi-Agent, Self-RAG</strong> 네 가지를 한 그래프 안에서 결합한다.
+  </div>
+</div>
+
+<!-- 5: Retrieval 재정의 -->
+<div class="slide" data-slide="5">
+  <p class="eyebrow">관점 전환</p>
+  <h2>Retrieval의 범위가 넓어졌다</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>좁은 의미 (2020 교과서)</h4>
+      <p style="line-height: 1.85;">
+        문서 임베딩 기반 벡터 검색.<br>
+        top-k 결과와 reranking.<br>
+        출처는 벡터 DB 한 곳.
+      </p>
+    </div>
+    <div class="card dark">
+      <h4>넓은 의미 (2026 실무)</h4>
+      <p style="line-height: 1.85;">
+        벡터 DB와 외부 API, 웹 검색의 통합.<br>
+        SQL, GraphRAG, 메모리 조회까지 포함.<br>
+        LLM이 어디서 어떻게 가져올지 결정.
+      </p>
+    </div>
+  </div>
+  <p style="margin-top: 24px; font-size: 15px;">
+    Perplexity가 자신을 RAG 회사라 칭하는 이유, ChatGPT와 Claude가 웹 검색을 RAG라 부르는 이유는
+    동일하다. 출처가 무엇이든 LLM이 능동적으로 정보를 가져오면 RAG로 본다.
+  </p>
+</div>
+
+<!-- 6: 두 종류의 Retrieval -->
+<div class="slide" data-slide="6">
+  <p class="eyebrow">프로젝트 구조</p>
+  <h2>두 종류의 Retrieval을 통합한다</h2>
+  <div class="grid g2">
+    <div class="card elevated">
+      <h4 style="color: var(--cyan);">Vector RAG</h4>
+      <h3 style="font-size: 17px; margin-bottom: 10px;">documents 도메인</h3>
+      <p style="line-height: 1.7;">
+        사용자가 업로드한 PDF, TXT, MD 파일을 대상으로 한다.<br>
+        ChromaDB에 영속 인덱스를 만들고, Self-RAG 패턴으로 검색 결과를 1~5점으로 자기 평가한다.
+        점수가 낮으면 쿼리를 재작성해 다시 검색한다.
+      </p>
+    </div>
+    <div class="card elevated">
+      <h4 style="color: var(--orbit);">API RAG</h4>
+      <h3 style="font-size: 17px; margin-bottom: 10px;">나머지 12개 도메인</h3>
+      <p style="line-height: 1.7;">
+        외부 공공 API와 스크래핑 도구를 사용한다. 뉴스, 공시, 매물, 통계, 기상 등.
+        Planner가 어떤 도구를 호출할지 결정하고, Replanner가 결과가 부족하면 도구를 다시 고른다.
+      </p>
+    </div>
+  </div>
+  <div class="summary-box">
+    본질은 같다. <strong>LLM이 답하기 전에 외부에서 정보를 가져온다.</strong>
+    출처가 벡터 DB인지 외부 API인지의 차이일 뿐이다. 두 가지 모두 RAG로 정의한다.
+  </div>
+</div>
+
+<!-- 7: 프로젝트 규모 -->
+<div class="slide" data-slide="7">
+  <p class="eyebrow">Scale</p>
+  <h2>검색 표면의 규모</h2>
+  <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 14px;">
+    <div class="stat-box dark">
+      <div class="num">98</div>
+      <div class="label">Tools</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">13</div>
+      <div class="label">Domains</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">18</div>
+      <div class="label">Graph Nodes</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">2</div>
+      <div class="label">Loop Types</div>
+    </div>
+  </div>
+  <div class="grid g3" style="margin-top: 18px; gap: 12px;">
+    <div class="card" style="padding: 16px 18px;">
+      <h4 style="font-size: 13.5px;">Shopping <span class="muted" style="font-weight: 400;">16</span></h4>
+      <p style="font-size: 12.5px;">다이소, 쿠팡, 올리브영, 네이버쇼핑, 다나와, 컬리, 오늘의집, 당근 4종</p>
+    </div>
+    <div class="card" style="padding: 16px 18px;">
+      <h4 style="font-size: 13.5px;">Lifestyle <span class="muted" style="font-weight: 400;">17</span></h4>
+      <p style="font-size: 12.5px;">택배, 미세먼지, 날씨, 주유소, 부동산, 지하철, 맛집, 화장실, 공시지가</p>
+    </div>
+    <div class="card" style="padding: 16px 18px;">
+      <h4 style="font-size: 13.5px;">Government <span class="muted" style="font-weight: 400;">18</span></h4>
+      <p style="font-size: 12.5px;">식약처, LH, SH, K-Startup, NTS, 응급실, 법원경매, 선거, 기부</p>
+    </div>
+    <div class="card" style="padding: 16px 18px;">
+      <h4 style="font-size: 13.5px;">Finance <span class="muted" style="font-weight: 400;">7</span></h4>
+      <p style="font-size: 12.5px;">한국주식, DART 공시 및 재무, 대신증권 리포트</p>
+    </div>
+    <div class="card" style="padding: 16px 18px;">
+      <h4 style="font-size: 13.5px;">Travel <span class="muted" style="font-weight: 400;">5</span></h4>
+      <p style="font-size: 12.5px;">고속버스, 시외버스, 휴양림, ODsay 길찾기</p>
+    </div>
+    <div class="card" style="padding: 16px 18px;">
+      <h4 style="font-size: 13.5px;">Documents <span class="muted" style="font-weight: 400;">2</span></h4>
+      <p style="font-size: 12.5px;">ChromaDB와 Self-RAG 기반의 벡터 검색</p>
+    </div>
+  </div>
+  <p style="margin-top: 16px; font-size: 13.5px;">
+    이 외에 sports, news, education, info, data, culture, health 도메인이 있다.
+    Planner는 매 호출마다 1~3개 도메인만 선택하므로 LLM은 평균 8개 도구만 보게 된다.
+  </p>
+</div>
+
+<!-- 8: 아키텍처 (8 builds — 노드 하나씩 등장) -->
+<div class="slide" data-slide="8" data-builds="8">
+  <p class="eyebrow">Architecture · 화살표 → 로 노드 하나씩 등장</p>
+  <h2>한 그래프 안에 네 패턴이 결합되어 있다</h2>
+  <div class="card elevated" style="padding: 30px 22px;">
+    <div class="flow">
+      <div class="node terminal node-build" data-step="1">START</div>
+      <span class="arrow arrow-build" data-step="2">→</span>
+      <div class="node router node-build" data-step="2">Planner</div>
+      <span class="arrow arrow-build" data-step="3">→</span>
+      <div class="node exec node-build" data-step="3">Executor</div>
+      <span class="arrow arrow-build" data-step="4">→</span>
+      <div class="node node-build" data-step="4">13 Domains</div>
+      <span class="arrow arrow-build" data-step="5">→</span>
+      <div class="node router node-build" data-step="5">Replanner</div>
+      <span class="arrow arrow-build" data-step="6">→</span>
+      <div class="node writer node-build" data-step="6">Writer</div>
+      <span class="arrow arrow-build" data-step="7">→</span>
+      <div class="node critic node-build" data-step="7">Critic</div>
+      <span class="arrow arrow-build" data-step="8">→</span>
+      <div class="node terminal node-build" data-step="8">END</div>
+    </div>
+  </div>
+
+  <!-- 각 노드 설명 패널 -->
+  <div class="node-desc-area">
+    <div class="node-desc" data-desc-step="0">
+      <p class="muted" style="font-size: 14px;">화살표(→)를 눌러 각 노드를 하나씩 살펴본다.
+        전체 그래프는 사용자 질문이 들어오는 START 부터 답변이 나가는 END 까지 일자형 흐름이고,
+        documents 도메인과 Critic 에는 내부 루프가 들어 있다.</p>
+    </div>
+    <div class="node-desc" data-desc-step="1">
+      <h4 style="color: var(--slate);">1 · START</h4>
+      <p>사용자 질문이 그래프에 진입하는 지점. 이전 대화 기록(memory)과 함께 상태로 들어간다.</p>
+    </div>
+    <div class="node-desc" data-desc-step="2">
+      <h4 style="color: var(--ink);">2 · Planner</h4>
+      <p>질문을 1~6개의 step 으로 분해한다. 각 step 에 어떤 도메인이 필요한지 hint 를 붙인다.
+        JSON 모드로 LLM 을 호출하기 때문에 결과가 정형화되어 다음 노드가 파싱하기 쉽다.</p>
+    </div>
+    <div class="node-desc" data-desc-step="3">
+      <h4 style="color: var(--orbit);">3 · Executor</h4>
+      <p>plan 의 첫 번째 pending step 을 꺼내서 해당 도메인 에이전트로 디스패치한다.
+        한 step 씩 진행하기 때문에 결과가 다음 step 의 결정에 반영될 수 있다.</p>
+    </div>
+    <div class="node-desc" data-desc-step="4">
+      <h4 style="color: var(--cyan);">4 · 13 Domains</h4>
+      <p>shopping, lifestyle, sports, news, finance, government, education, info, data, travel, culture, health,
+        그리고 documents. 각 도메인은 자기 도구 5~17개만 LLM 에 노출한다. documents 도메인 안에는
+        Self-RAG 루프(Query Rewrite → Search → Self-Eval → Re-search)가 따로 돈다.</p>
+    </div>
+    <div class="node-desc" data-desc-step="5">
+      <h4 style="color: var(--ink);">5 · Replanner</h4>
+      <p>step 결과를 보고 세 가지 중 하나를 결정한다.
+        <strong>continue</strong>: 다음 step 으로 진행.
+        <strong>revise</strong>: 남은 plan 을 새 step 으로 교체.
+        <strong>finish</strong>: 충분하다고 판단하고 Writer 로 넘김.
+        최대 2회까지 plan 을 수정할 수 있다.</p>
+    </div>
+    <div class="node-desc" data-desc-step="6">
+      <h4 style="color: var(--clay);">6 · Writer</h4>
+      <p>모든 step 의 도구 결과를 모아 최종 답변을 작성한다. 스트리밍으로 토큰을 흘려보내고,
+        documents 결과가 포함된 경우 인용 마커([1], [2])를 자동으로 부착한다.
+        재작성이 필요할 때는 Critic 의 피드백을 받아 두 번째 호출이 일어난다.</p>
+    </div>
+    <div class="node-desc" data-desc-step="7">
+      <h4 style="color: var(--signal);">7 · Critic</h4>
+      <p>Writer 의 답변을 1~10점으로 채점한다. 사실 정확성, 도구 결과 활용도, 답변 구조, 누락 네 기준이다.
+        7점 미만이면 issues 와 suggestions 를 Writer 에게 돌려보내 재작성 루프를 시작한다.
+        최대 2회 재작성 후에는 어떤 점수든 통과시킨다.</p>
+    </div>
+    <div class="node-desc" data-desc-step="8">
+      <h4 style="color: var(--slate);">8 · END</h4>
+      <p>최종 답변이 사용자에게 전달되고, 질문과 답변이 Checkpointer(thread_id 별 메모리)에 저장된다.
+        다음 대화에서 같은 thread_id 면 이 기록을 다시 불러온다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 9: 시연 시나리오 -->
+<div class="slide" data-slide="9">
+  <p class="eyebrow">Demo</p>
+  <h2>한 질문이 여러 소스를 호출한다</h2>
+  <p class="lead" style="margin-bottom: 22px; font-size: 17px;">
+    예시 질문: 사내 정책 PDF를 보고 부산행 고속버스 운행시간과 비교해 출장 일정을 추천해줘.
+  </p>
+  <div style="display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1;">
+    <div class="step-row">
+      <div class="num-circle">1</div>
+      <p><strong>Planner</strong> 질문을 documents, travel, 종합 3단계로 분해한다.</p>
+    </div>
+    <div class="step-row highlight">
+      <div class="num-circle cyan">2</div>
+      <p><strong>documents</strong> Retriever 루프가 출장 정책을 검색하고 인용 마커를 부착한다.</p>
+    </div>
+    <div class="step-row highlight">
+      <div class="num-circle orbit">3</div>
+      <p><strong>travel</strong> KOBUS API에서 부산행 고속버스 시간표를 가져온다.</p>
+    </div>
+    <div class="step-row">
+      <div class="num-circle">4</div>
+      <p><strong>Replanner</strong> 두 결과가 충분하다고 판단하고 finish를 결정한다.</p>
+    </div>
+    <div class="step-row">
+      <div class="num-circle dark">5</div>
+      <p><strong>Writer + Critic</strong> 두 출처를 통합한 답변을 작성하고 8/10으로 통과한다.</p>
+    </div>
+  </div>
+  <p style="margin-top: 22px; font-size: 14px;">
+    헬스케어에서 환자기록과 의학논문과 약물 DB를, 법률에서 판례와 계약과 규제를,
+    금융에서 내부 데이터와 공시와 시장 데이터를 결합하는 패턴과 동일하다.
+  </p>
+</div>
+
+<!-- 10: 비용 trade-off -->
+<div class="slide" data-slide="10">
+  <p class="eyebrow">Trade-off</p>
+  <h2>비용은 늘지만 가치가 더 크다</h2>
+  <table style="margin-bottom: 24px;">
+    <tr><th>방식</th><th>토큰 비용</th><th>응답 시간</th><th>적합한 상황</th></tr>
+    <tr><td>Vanilla RAG</td><td>1배</td><td>1배</td><td>단순 FAQ</td></tr>
+    <tr><td>Hybrid RAG</td><td>1.5배</td><td>1.2배</td><td>일반적인 검색</td></tr>
+    <tr><td><strong>Agentic RAG (단일 소스)</strong></td><td>3~5배</td><td>2~3배</td><td>다단계 추론이 필요한 질문</td></tr>
+    <tr><td><strong>Agentic RAG (다중 소스)</strong></td><td>5~10배</td><td>3~5배</td><td>이질적 소스 간 비교, 검증</td></tr>
+  </table>
+  <div class="grid g2">
+    <div class="card">
+      <h4>가치 있는 도메인</h4>
+      <p>법률, 의료, 금융, 기업 지식 검색. 답변의 신뢰성이 비용보다 중요한 영역. multi-hop 분석이 필수인 질문.</p>
+    </div>
+    <div class="card dark">
+      <h4>오버킬인 경우</h4>
+      <p>단순 FAQ, 단일 문서 Q&amp;A, 한 번의 검색으로 답이 나오는 질문에는 기본 RAG가 더 적합하다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 11: 산업 사용처 -->
+<div class="slide" data-slide="11">
+  <p class="eyebrow">Industry</p>
+  <h2>실제 산업에서의 활용</h2>
+  <div class="grid g3">
+    <div class="card">
+      <h4>헬스케어</h4>
+      <p>환자 기록, 의학 논문, 약물 상호작용 DB를 결합해 진단을 권고한다. 다중 소스와 다단계 추론이 필요한 대표 영역이다.</p>
+    </div>
+    <div class="card">
+      <h4>법률 및 컴플라이언스</h4>
+      <p>Harvey, Hebbia 같은 서비스가 판례, 계약, 규제, 사례를 통합 검색한다. 출처 인용이 필수다.</p>
+    </div>
+    <div class="card">
+      <h4>금융 분석</h4>
+      <p>내부 데이터, 공시, 시장 데이터, 뉴스를 결합한다. 단일 소스로는 풀리지 않는 비교 분석이 일상적이다.</p>
+    </div>
+    <div class="card">
+      <h4>고객 지원</h4>
+      <p>Sierra, Decagon 같은 서비스가 triage 에이전트를 두고 전문 에이전트로 라우팅한다.</p>
+    </div>
+    <div class="card">
+      <h4>리서치</h4>
+      <p>Perplexity와 OpenAI Deep Research가 sub-question으로 분해하고 병렬 검색 후 합성한다.</p>
+    </div>
+    <div class="card">
+      <h4>개발 도구</h4>
+      <p>Cursor의 Codebase 모드, Devin 같은 자율 SWE 에이전트가 코드 RAG와 실행 검증을 결합한다.</p>
+    </div>
+  </div>
+  <div class="summary-box">
+    공통점은 두 가지다. <strong>답을 자동으로 검증할 수 있다.</strong>
+    그리고 <strong>출처를 인용할 수 있다.</strong> 이 두 조건이 갖춰진 도메인에서 Agentic RAG의 ROI가 높다.
+  </div>
+</div>
+
+<!-- 12: 학술 흐름 -->
+<div class="slide" data-slide="12">
+  <p class="eyebrow">Research</p>
+  <h2>2020년부터 2026년까지의 흐름</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Lewis et al. (2020)</h4>
+      <p>RAG라는 개념을 처음 제안한 논문. 단발 파이프라인 구조였다.</p>
+    </div>
+    <div class="card">
+      <h4>Asai et al. (2023) — Self-RAG</h4>
+      <p>LLM이 reflection token을 통해 검색을 자기 평가하는 패턴. 12주차의 documents 도메인이 이 흐름을 따른다.</p>
+    </div>
+    <div class="card">
+      <h4>Chen et al. (2024) — CRAG</h4>
+      <p>Corrective RAG. 검색이 실패하면 외부 웹 검색으로 자동 보완한다.</p>
+    </div>
+    <div class="card">
+      <h4>Edge et al. (2024) — GraphRAG</h4>
+      <p>Microsoft가 발표한 패턴. 지식 그래프와 RAG를 결합해 entity 관계를 활용한다.</p>
+    </div>
+    <div class="card">
+      <h4>2026 — Agentic RAG 표준화</h4>
+      <p>학계와 업계가 분류와 평가 기준을 정리하는 단계에 있다. SoK 논문이 등장했다.</p>
+    </div>
+    <div class="card dark">
+      <h4>2026 — Context Architecture</h4>
+      <p>RAG가 Context Architecture라는 더 큰 추상화로 흡수되는 흐름이 시작됐다. 검색, 메모리, 도구의 통합이다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 13: 한계와 미래 -->
+<div class="slide" data-slide="13">
+  <p class="eyebrow">Future</p>
+  <h2>현재의 한계와 다음 단계</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>현재 한계</h4>
+      <p style="line-height: 1.85;">
+        비용이 3~10배 증가한다.<br>
+        응답 시간이 2~5배 길어진다.<br>
+        디버깅이 어렵다. 어느 단계에서 틀렸는지 추적이 복잡하다.<br>
+        평가 지표가 아직 미성숙하다. RAGAS, ARES 등이 발전 중이다.<br>
+        다수의 LLM 호출 사이에서 일관성을 유지하기 어렵다.
+      </p>
+    </div>
+    <div class="card dark">
+      <h4>다음 단계</h4>
+      <p style="line-height: 1.85;">
+        Context Architecture: 검색, 메모리, 도구의 통합 추상화.<br>
+        MCP 통합: 도구 표준화. Anthropic이 주도하고 있다.<br>
+        Persistent Memory: 세션 간 학습.<br>
+        Human-in-the-Loop: 민감한 결정에 사람 승인을 추가.<br>
+        Specialized Critics: 사실, 스타일, 안전을 분리해 평가.
+      </p>
+    </div>
+  </div>
+  <p style="margin-top: 22px; font-size: 14.5px;">
+    내 프로젝트가 이미 보유한 요소는 Checkpointer 메모리, Plan-Execute 그래프, Self-RAG 루프,
+    단일 Critic이다. 다음으로 추가할 만한 것은 Multi-Critic, MCP 통합, 영속 메모리다.
+  </p>
+</div>
+
+<!-- 14: 마무리 -->
+<div class="slide" data-slide="14">
+  <svg class="orbit-arc" style="bottom: 40px; right: -80px;" width="480" height="480" viewBox="0 0 480 480" fill="none">
+    <circle cx="240" cy="240" r="220" stroke="#0E7490" stroke-width="1.2" stroke-dasharray="2 6" opacity="0.35"/>
+  </svg>
+  <p class="eyebrow">Wrap-up</p>
+  <h2>정리</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>2026년 RAG의 정의</h4>
+      <p style="line-height: 1.9;">
+        Plan, Retrieve, Evaluate, Loop의 그래프.<br>
+        단일 소스에서 다중 소스로의 확장.<br>
+        고정 파이프라인에서 조건부 cycle로.<br>
+        수동 소비자에서 능동 의사결정자로.
+      </p>
+    </div>
+    <div class="card dark">
+      <h4>내 12주차 프로젝트</h4>
+      <p style="line-height: 1.9;">
+        98개 도구를 통한 98가지 검색 방법.<br>
+        Plan-Execute, Multi-Agent, Self-RAG, Critic의 결합.<br>
+        Vector RAG와 API RAG의 통합.<br>
+        한국 생활 도메인에서 2026 표준 패턴의 구현.
+      </p>
+    </div>
+  </div>
+  <div class="summary-box">
+    2020년의 RAG는 검색이 끝난 뒤에 LLM이 시작했다.
+    <strong>2026년의 RAG는 LLM이 시작하면서 검색을 끌고 다닌다.</strong>
+    12주차 K-Agent는 그 변화를 한국 생활 정보 도메인에서 그대로 구현한 사례다.
+  </div>
+</div>
+
+<!-- 15: References -->
+<div class="slide" data-slide="15">
+  <p class="eyebrow">References</p>
+  <h2>참고 자료</h2>
+  <div class="grid g2">
+    <div>
+      <h4 style="margin-bottom: 10px;">2026 산업 보고서</h4>
+      <ul class="source-list">
+        <li><a href="https://heeya.fr/en/blog/agentic-rag-implementation-enterprise-2026">Heeya — Agentic RAG: 2026 Enterprise Implementation Guide</a></li>
+        <li><a href="https://aetherlink.ai/en/blog/rag-mcp-and-agentic-ai-architecture-patterns-for-2026">AetherLink — RAG, MCP and Agentic AI Architecture Patterns 2026</a></li>
+        <li><a href="https://venturebeat.com/data/context-architecture-is-replacing-rag-as-agentic-ai-pushes-enterprise-retrieval-to-its-limits">VentureBeat — Context Architecture is Replacing RAG</a></li>
+        <li><a href="https://www.marsdevs.com/guides/agentic-rag-2026-guide">MarsDevs — Agentic RAG: 2026 Production Guide</a></li>
+        <li><a href="https://vgts.tech/insights/top-10-enterprise-use-cases-for-agentic-rag/">VGTS — Top 10 Enterprise Use Cases for Agentic RAG 2026</a></li>
+        <li><a href="https://atlan.com/know/enterprise-rag-platforms-comparison/">Atlan — Enterprise RAG Platforms Comparison 2026</a></li>
+        <li><a href="https://www.techment.com/blogs/rag-architectures-enterprise-use-cases-2026/">Techment — 10 RAG Architectures in 2026</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 style="margin-bottom: 10px;">LangGraph 및 학술</h4>
+      <ul class="source-list">
+        <li><a href="https://medium.com/@vinodkrane/next-generation-agentic-rag-with-langgraph-2026-edition-d1c4c068d2b8">Medium — Next-Generation Agentic RAG with LangGraph 2026</a></li>
+        <li><a href="https://rahulkolekar.com/building-agentic-rag-systems-with-langgraph/">Rahul Kolekar — Building Agentic RAG Systems with LangGraph 2026</a></li>
+        <li><a href="https://medium.com/@shuv.sdr/langgraph-traditional-rag-vs-agentic-rag-62e2f642527b">Medium — LangGraph: Traditional vs Agentic RAG</a></li>
+        <li><a href="https://medium.com/@Micheal-Lanham/pipeline-rag-vs-agentic-rag-vs-knowledge-graph-rag-what-actually-works-and-when-47a26649a457">Medium — Pipeline RAG vs Agentic RAG vs Knowledge Graph RAG</a></li>
+        <li><a href="https://arxiv.org/abs/2603.07379">arXiv 2603.07379 — SoK: Agentic Retrieval-Augmented Generation 2026</a></li>
+        <li><a href="https://ragaboutit.com/7-signs-agentic-ai-is-ending-traditional-rag/">RAGAboutIt — 7 Signs Agentic AI Is Ending Traditional RAG</a></li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top: 18px; font-size: 11.5px; color: var(--slate); text-align: center;">
+    검색일: 2026년 5월. 자료는 시점에 따라 변경될 수 있다.
+  </p>
+</div>
+
+</div>
+
+<div class="nav">
+  <div class="nav-info"><span class="curr" id="curr">1</span> / <span id="total">16</span></div>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="nav-keys"><kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let curr = 0;
+  let buildStep = 0;
+
+  function maxBuild(idx) {
+    return parseInt(slides[idx].getAttribute('data-builds') || '0', 10);
+  }
+
+  function applyBuilds(slide, step) {
+    // 노드 / 화살표 등장 처리
+    slide.querySelectorAll('[data-step]').forEach(el => {
+      const s = parseInt(el.getAttribute('data-step'), 10);
+      el.classList.toggle('build-visible', s <= step);
+      el.classList.toggle('build-current', s === step);
+    });
+    // 설명 패널 토글
+    slide.querySelectorAll('[data-desc-step]').forEach(el => {
+      const s = parseInt(el.getAttribute('data-desc-step'), 10);
+      el.classList.toggle('visible', s === step);
+    });
+  }
+
+  function show(i, step = 0) {
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+    applyBuilds(slides[i], step);
+    document.getElementById('curr').textContent = i + 1;
+    document.getElementById('total').textContent = total;
+    document.getElementById('progress').style.width = ((i + 1) / total * 100) + '%';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      const m = maxBuild(curr);
+      if (buildStep < m) {
+        buildStep += 1;
+        applyBuilds(slides[curr], buildStep);
+      } else if (curr < total - 1) {
+        curr += 1;
+        buildStep = 0;
+        show(curr, 0);
+      }
+      e.preventDefault();
+    } else if (e.key === 'ArrowLeft') {
+      if (buildStep > 0) {
+        buildStep -= 1;
+        applyBuilds(slides[curr], buildStep);
+      } else if (curr > 0) {
+        curr -= 1;
+        buildStep = maxBuild(curr);
+        show(curr, buildStep);
+      }
+    } else if (e.key === 'Home') {
+      curr = 0; buildStep = 0; show(curr, 0);
+    } else if (e.key === 'End') {
+      curr = total - 1; buildStep = maxBuild(curr); show(curr, buildStep);
+    }
+  });
+
+  show(0, 0);
+</script>
+
+</body>
+</html>
