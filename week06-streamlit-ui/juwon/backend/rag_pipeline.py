@@ -214,10 +214,11 @@ def extract_metadata_with_parents(
 # 4. 벡터 저장소: ChromaDB + BM25 Hybrid Search (5주차 핵심)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+import os
 import chromadb
 from chromadb.utils import embedding_functions
 
-EMBED_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+EMBED_MODEL = "text-embedding-3-small"  # OpenAI 임베딩 (sentence-transformers/torch 불필요)
 CHROMA_DIR = None  # 메모리 모드 (배포 환경 호환 - @st.cache_resource로 유지)
 
 
@@ -239,8 +240,9 @@ class VectorStore:
 
     def __init__(self, persist_dir: str = None):
         self.client = chromadb.EphemeralClient()  # 메모리 모드 (배포 환경 호환)
-        self.ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=EMBED_MODEL
+        self.ef = embedding_functions.OpenAIEmbeddingFunction(
+            api_key=os.environ["OPENAI_API_KEY"],
+            model_name=EMBED_MODEL,
         )
         self.collection = self.client.get_or_create_collection(
             name=self.COLLECTION_NAME,
@@ -519,6 +521,7 @@ class Reranker:
             self._model = CrossEncoder("cross-encoder/mmarco-mMiniLMv2-L12-H384-v1")
             print("  [Re-ranker] Cross-Encoder 로드 완료")
         except Exception as e:
+            self._model = None
             print(f"  [Re-ranker] Cross-Encoder 미사용 → 임베딩 스코어 유지 ({e})")
 
     def rerank(
@@ -555,8 +558,9 @@ class Guardrail:
         "판단 기준:\n"
         "- 취업, 이직, 채용공고, 자격요건, 연봉, 복리후생, 면접, 직무, 회사, 경력, "
         "  스택, 기술, 지원, 전형, 우대사항, 계약, 인턴, 승무원, 항공, 서비스직, "
-        "  공고, 지원자격, 모집, 신입, 공채 → 관련(true)\n"
-        "- 연애, 음식, 스포츠, 날씨, 정치, 일상 잡담, 영화, 음악 → 무관(false)\n"
+        "  공고, 지원자격, 모집, 신입, 공채, 엔터테인먼트, 미술, 디자인, 음악 프로듀서, "
+        "  큐레이터, 사운드, 게임, 아트 디렉터, 그래픽 디자이너 → 관련(true)\n"
+        "- 연애, 음식, 스포츠, 날씨, 정치, 일상 잡담, 영화 감상, 노래 추천 → 무관(false)\n"
         "반드시 JSON 형식으로만 응답하세요: {\"related\": true} 또는 {\"related\": false}"
     )
 

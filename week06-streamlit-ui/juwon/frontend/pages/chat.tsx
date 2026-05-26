@@ -315,10 +315,20 @@ export default function ChatPage() {
   }
 
   // ── 파일 업로드 ───────────────────────────────────────────
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'done'>('idle')
+
   const handleUpload = async (file: File) => {
+    setUploadStatus('uploading')
     const form = new FormData(); form.append('file', file)
     const res = await fetch(`${API}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form })
-    if (res.ok) { setUploads(prev => [...prev, file.name]); await loadSidebarData() }
+    if (res.ok) {
+      setUploads(prev => [...prev, file.name])
+      await loadSidebarData()
+      setUploadStatus('done')
+      setTimeout(() => setUploadStatus('idle'), 3000)
+    } else {
+      setUploadStatus('idle')
+    }
   }
 
   const handleDeleteUpload = async (fname: string) => {
@@ -332,12 +342,45 @@ export default function ChatPage() {
   // ── 로그아웃 ──────────────────────────────────────────────
   const logout = () => { localStorage.clear(); router.push('/') }
 
-  const SUGGESTIONS = [
-    '백엔드 개발자 채용 공고 있는 회사 알려줘',
-    '데이터 엔지니어 또는 AI 엔지니어 채용 공고 알려줘',
-    '카카오 백엔드 개발자가 되려면 무엇이 필요한가요?',
-    'Java Spring 경험으로 지원할 수 있는 회사는?',
+  const CATEGORIES: { label: string; icon: string; questions: string[] }[] = [
+    {
+      label: '개발', icon: '💻',
+      questions: [
+        '백엔드 개발자 채용 공고 있는 회사 알려줘',
+        '프론트엔드 개발자로 지원할 수 있는 회사는?',
+        'Python 경험으로 지원 가능한 공고 알려줘',
+        'Java Spring 경험으로 지원할 수 있는 회사는?',
+      ],
+    },
+    {
+      label: 'AI · 데이터', icon: '🤖',
+      questions: [
+        '데이터 엔지니어 또는 AI 엔지니어 채용 공고 알려줘',
+        'ML 엔지니어 자격요건이 어떻게 돼?',
+        '데이터 분석가 신입 공고 있어?',
+        'LLM 관련 직무 채용하는 회사 있어?',
+      ],
+    },
+    {
+      label: '엔터 · 미디어', icon: '🎵',
+      questions: [
+        '엔터테인먼트에서 일하고 싶은데 추천해줘',
+        '음악 프로듀서 채용 공고 알려줘',
+        '게임 사운드 디자이너가 되려면 뭐가 필요해?',
+        '아트 디렉터 공고 있어?',
+      ],
+    },
+    {
+      label: '서비스 · 항공', icon: '✈️',
+      questions: [
+        '객실승무원 채용 공고 알려줘',
+        '대한항공 승무원 자격요건이 어떻게 돼?',
+        '항공사 신입 공채 있어?',
+        '서비스직 채용 중인 회사 알려줘',
+      ],
+    },
   ]
+  const [selectedCat, setSelectedCat] = useState<number | null>(null)
 
   const totalTokens = tokenUsage.input + tokenUsage.output
 
@@ -390,9 +433,24 @@ export default function ChatPage() {
 
           {/* 파일 업로드 */}
           <div style={s.sideLabel}>📁 공고 파일 추가</div>
-          <button style={s.uploadBtn} onClick={() => fileInputRef.current?.click()}>+ MD 파일 업로드</button>
+          <button
+            style={{ ...s.uploadBtn, opacity: uploadStatus === 'uploading' ? 0.6 : 1, cursor: uploadStatus === 'uploading' ? 'not-allowed' : 'pointer' }}
+            onClick={() => uploadStatus === 'idle' && fileInputRef.current?.click()}
+          >
+            {uploadStatus === 'uploading' ? '⏳ 업로드 중...' : '+ MD 파일 업로드'}
+          </button>
           <input ref={fileInputRef} type="file" accept=".md" style={{ display: 'none' }}
             onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+          {uploadStatus === 'uploading' && (
+            <div style={{ fontSize: 11, color: '#a0a0c0', padding: '4px 2px' }}>
+              📊 RAG 인덱싱 중... 잠시만 기다려주세요
+            </div>
+          )}
+          {uploadStatus === 'done' && (
+            <div style={{ fontSize: 11, color: '#00e596', padding: '4px 2px' }}>
+              ✅ 처리 완료! 바로 질문할 수 있어요
+            </div>
+          )}
           {uploads.map(f => (
             <div key={f} style={s.uploadItem}>
               <span style={{ fontSize: 12, color: '#8e8ea0', flex: 1 }}>📄 {f}</span>
@@ -448,12 +506,38 @@ export default function ChatPage() {
           {messages.length === 0 && !streaming && (
             <div style={s.welcome}>
               <div style={s.welcomeTitle}>무엇을 도와드릴까요?</div>
-              <div style={s.welcomeSub}>취업공고 기반 AI 상담 서비스</div>
-              <div style={s.suggGrid}>
-                {SUGGESTIONS.map((q, i) => (
-                  <button key={i} style={s.suggBtn} onClick={() => sendMessage(q)}>{q}</button>
+              <div style={s.welcomeSub}>카테고리를 선택하면 추천 질문을 볼 수 있어요</div>
+
+              {/* 카테고리 탭 */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                {CATEGORIES.map((cat, i) => (
+                  <button key={i}
+                    style={{
+                      ...s.catBtn,
+                      ...(selectedCat === i ? s.catBtnActive : {}),
+                    }}
+                    onClick={() => setSelectedCat(selectedCat === i ? null : i)}
+                  >
+                    {cat.icon} {cat.label}
+                  </button>
                 ))}
               </div>
+
+              {/* 선택된 카테고리 질문 */}
+              {selectedCat !== null && (
+                <div style={s.suggGrid}>
+                  {CATEGORIES[selectedCat].questions.map((q, i) => (
+                    <button key={i} style={s.suggBtn} onClick={() => { sendMessage(q); setSelectedCat(null) }}>{q}</button>
+                  ))}
+                </div>
+              )}
+
+              {/* 카테고리 미선택 시 안내 */}
+              {selectedCat === null && (
+                <div style={{ color: '#555', fontSize: 13, marginTop: 8 }}>
+                  위 카테고리 중 하나를 눌러보세요 👆
+                </div>
+              )}
             </div>
           )}
 
@@ -560,6 +644,8 @@ const s: Record<string, React.CSSProperties> = {
   welcomeSub:   { color: '#8e8ea0', marginBottom: 24 },
   suggGrid:     { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, width: '100%', maxWidth: 580 },
   suggBtn:      { background: '#1e1e1e', color: '#ececec', border: '1px solid #2a2a2a', borderRadius: 14, padding: '14px 16px', fontSize: 13, textAlign: 'left', cursor: 'pointer', lineHeight: 1.5 },
+  catBtn:       { background: '#1e1e1e', color: '#8e8ea0', border: '1px solid #2a2a2a', borderRadius: 20, padding: '8px 18px', fontSize: 13, cursor: 'pointer', fontWeight: 500 },
+  catBtnActive: { background: '#10a37f22', color: '#10a37f', border: '1px solid #10a37f', borderRadius: 20 },
 
   inputWrap: { padding: '14px 8%', borderTop: '1px solid #2a2a2a', display: 'flex', gap: 10, alignItems: 'flex-end' },
   inputBox:  { flex: 1, background: '#2a2a2a', color: '#ececec', border: '1px solid #3a3a3a', borderRadius: 16, padding: '13px 18px', fontSize: 15, resize: 'none', maxHeight: 200, overflowY: 'auto' },
