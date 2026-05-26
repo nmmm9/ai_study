@@ -9,3 +9,5 @@ python-dotenv
 requests
 beautifulsoup4
 apscheduler
+ragas>=0.1.14
+datasets>=2.19.0

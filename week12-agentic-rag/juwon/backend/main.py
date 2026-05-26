@@ -12,6 +12,7 @@ week11 대비 변경사항:
 실행: uvicorn main:app --reload --port 8000
 """
 import os
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -20,6 +21,7 @@ from pydantic import BaseModel
 
 from agentic_chat import run_agentic_chat
 from compare import compare_reports
+from evaluation import run_evaluation, SYSTEMS as EVAL_SYSTEMS
 from graph import run_analysis
 from notifier import send_gmail, send_keyword_alert, upload_github_readme
 from scheduler import get_status, scheduler, update_schedule
@@ -30,6 +32,9 @@ from storage import (
 from vector_store import load_history_stats
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# 평가 상태 (단일 인스턴스 - 동시 실행 방지)
+_eval_state: dict = {"status": "idle", "progress": 0, "total": 0, "current_system": "", "results": None, "error": None}
 
 
 @asynccontextmanager
@@ -188,3 +193,35 @@ def create_keyword(req: KeywordRequest):
 def remove_keyword(keyword: str):
     delete_keyword(keyword)
     return {"keywords": get_keywords()}
+
+
+# ── 평가 (Evaluation) ─────────────────────────────────────────
+
+@app.post("/api/evaluate")
+def start_evaluate():
+    """3개 RAG 시스템 평가 시작 (백그라운드 실행)"""
+    if _eval_state["status"] == "running":
+        return {"status": "already_running", "progress": _eval_state["progress"], "total": _eval_state["total"]}
+    _eval_state.update({"status": "idle", "progress": 0, "total": 0, "results": None, "error": None})
+    t = threading.Thread(target=run_evaluation, args=(_eval_state,), daemon=True)
+    t.start()
+    return {"status": "started"}
+
+
+@app.get("/api/evaluate/status")
+def eval_status():
+    """평가 진행 상태 반환"""
+    return {
+        "status":         _eval_state["status"],
+        "progress":       _eval_state["progress"],
+        "total":          _eval_state["total"],
+        "current_system": _eval_state.get("current_system", ""),
+    }
+
+
+@app.get("/api/evaluate/results")
+def eval_results():
+    """평가 결과 반환 (완료된 경우에만)"""
+    if _eval_state["status"] != "done":
+        return {"ready": False}
+    return {"ready": True, **_eval_state["results"]}
