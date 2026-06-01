@@ -29,33 +29,60 @@
 
 - 코드 실행 방법:
   
-  - 
-    - 
-    - 
-    - 
-    - 
-    - 
-
-  - 
-    - 
-    - 
-    - 
-    
+  - 가상환경 생성 및 실행
+    - python -m venv .venv
+  - 가상환경 활성화
+    - windows: .venv\Scripts\activate
+    - Mac/Linux: source .venv/bin/activate
+  - 패키지 설치
+    -  pip install fastapi uvicorn openai python-dotenv jinja2
+  - .env 파일 생성 
+    - OPENAI_API_KEY=본인_API_KEY
+  - FastAPI 서버 실행
+    - uvicorn main:app --reload
   - 브라우저 접속
-    - 
-
+    - http://127.0.0.1:8000
+    
 ## WHY (의사결정 기록)
-1. **Q**: 왜 OOO 방식을 선택했는가?
-   **A**: 
-2. **Q**: 다르게 구현한다면 어떻게 했을까?
+1. **Q**: 왜 REST API 방식을 선택했는가?<br>
    **A**:
+    - 가장 많이 사용되는 API 구조이며 학습 자료가 풍부함
+    - HTTP Method(GET/POST) 기반 구조를 이해하기 쉬움
+    - LLM API 대부분이 REST API 기반으로 동작함
+    - URL + Method + JSON 구조를 통해 API 동작 원리를 명확히 이해 가능
+
+
+3. **Q**: 왜 .env 방식으로 API Key를 관리했는가?<br>
+   **A**:
+     - 프론트엔드에 API Key를 직접 작성하면 브라우저에서 노출될 수 있음
+     - API Key는 사용량 추적 및 과금과 연결되므로 보안이 중요함
+     - .env 파일을 통해 환경변수로 관리하면 코드와 분리 가능
+     - .gitignore에 등록하여 GitHub 업로드 방지 가능
+
+
+4. **Q**: 왜 Streaming 응답을 사용했는가?<br>
+   **A**:
+     - 일반 응답은 답변 생성이 끝난 후 한 번에 출력됨
+     - Streaming은 생성되는 내용을 실시간으로 출력 가능
+     - ChatGPT와 유사한 사용자 경험 제공 가능
+     - 긴 답변에서도 응답 대기 시간이 짧게 느껴짐
+
+     
+5. **Q**: 다르게 구현한다면 어떻게 했을까?<br>
+   **A**:<br> 현재는 REST API 기반의 FastAPI 구조로 구현하였지만,<br>
+   실시간 양방향 통신 강화를 위해 WebSocket 기반 채팅 구조로 구현하거나,<br>
+   프론트엔드를 React로 구성하여 컴포넌트 기반 UI와 상태 관리를 적용할 수도 있었을 것이다.
    
 ## 트러블슈팅 로그
 | # | 문제 상황 | 에러 메시지 | 원인 (Root Cause) | 해결 방법 |
 |---|----------|-----------|-------------------|----------|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
+| 1 | API Key 노출 위험 | 없음 | 프론트엔드 코드에 직접 Key 작성 시도 | .env 환경변수 방식으로 변경 |
+| 2 | 응답이 한 번에 출력됨 | Streaming 미동작 | 일반 응답 방식 사용 | Streaming 방식으로 응답 처리 수정 |
+| 3 | 템플릿 실행 오류 | 404 Template Not Found | templates 폴더 경로 문제 | Jinja2 템플릿 구조 수정 |
+| 4 | 서버 변경사항 미반영 | 코드 수정 후 미출력 | 서버 재실행 누락 | --reload 옵션 사용 |
+| 5 | JSON 구조 이해 어려움 | 요청 Body 오류 | API 요청 형식 미숙 | JSON 구조 및 REST API 흐름 학습 |
 
 ## 회고
-- 이번 주 배운 점: 
-- 다음 주 준비할 것: 
+- 이번 주 배운 점: REST API와 JSON 기반의 LLM API 동작 구조를 이해하고, <br>
+                  FastAPI를 활용한 1:1 채팅 시스템 연동 흐름을 학습하였다.
+- 다음 주 준비할 것: Chunking 개념과, 이를 활용한 검색 기반 AI 구조(RAG)의 기초를 학습할 예정이다.
