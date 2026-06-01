@@ -168,47 +168,52 @@ with tab_chat:
         st.session_state.running = True
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        from graph import stream_run
-
-        accumulated = ""
-        last_trace  = []
+        with st.chat_message("user"):
+            st.markdown(user_input)
 
         with st.chat_message("assistant"):
-            # 실행 추적을 st.status로 표시
-            with st.status("분석 중...", expanded=True) as status:
-                try:
-                    for node_name, updates in stream_run(user_input):
-                        meta = NODE_META.get(node_name, {"icon": "🔧", "label": node_name})
-                        trace = updates.get("execution_trace", [])
-                        summary = trace[-1]["summary"] if trace else ""
-                        st.write(f"{meta['icon']} **{meta['label']}** — {summary}")
+            from graph import run as graph_run
 
-                        if updates.get("recommendation"):
-                            accumulated = updates["recommendation"]
+            trace_ph  = st.empty()
+            result_ph = st.empty()
 
-                        last_trace = trace
+            try:
+                with st.spinner("분석 중..."):
+                    final_state = graph_run(user_input)
 
-                    status.update(label="분석 완료!", state="complete", expanded=False)
+                recommendation = final_state.get("recommendation", "")
+                last_trace     = final_state.get("execution_trace", [])
 
-                except Exception as e:
-                    import traceback
-                    status.update(label="오류 발생", state="error")
-                    st.error(f"오류: {e}")
-                    st.code(traceback.format_exc())
+                # 실행 추적 표시
+                if last_trace:
+                    with st.expander("실행 추적 보기", expanded=False):
+                        for step in last_trace:
+                            meta = NODE_META.get(step["node"], {"icon": "🔧", "label": step["node"]})
+                            st.markdown(
+                                f'<span class="node-badge done">{meta["icon"]} {meta["label"]}</span>'
+                                f'<span style="font-size:0.8rem;color:#333;margin-left:8px">{step["summary"]}</span>',
+                                unsafe_allow_html=True,
+                            )
 
-            # 답변 출력
-            if accumulated:
-                st.markdown(accumulated)
-            else:
-                st.warning("답변을 생성하지 못했습니다. 다시 시도해주세요.")
+                # 답변 표시
+                if recommendation:
+                    st.markdown(recommendation)
+                else:
+                    st.warning("답변을 생성하지 못했습니다. 다시 시도해주세요.")
+
+            except Exception as e:
+                import traceback
+                last_trace     = []
+                recommendation = ""
+                st.error(f"오류: {e}")
+                st.code(traceback.format_exc())
 
         st.session_state.messages.append({
             "role":    "assistant",
-            "content": accumulated,
+            "content": recommendation,
             "trace":   last_trace,
         })
         st.session_state.running = False
-        st.rerun()
 
     if not st.session_state.messages:
         st.markdown("<br>", unsafe_allow_html=True)

@@ -142,3 +142,7 @@ python -X utf8 -m streamlit run app.py
   - 실제 공공데이터포털 API 키 발급 후 정책 데이터 대량 수집 테스트
   - 이메일 HTML 템플릿 개선 (더 읽기 쉬운 레이아웃)
   - 벡터 DB 자동 재빌드 스케줄 추가 (새 데이터 수집 시 자동 반영)
+  
+
+  cd C:\Users\user\Desktop\ai_study\week10-self-correction\minseon
+python -X utf8 -m streamlit run app.py
