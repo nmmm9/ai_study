@@ -22,12 +22,28 @@ _ROOTS = [
     (_WEEK11 / "data" / "youthcenter").resolve(),
 ]
 
-CATEGORY_KEYWORDS: dict[str, list[str]] = {
-    "장학금": ["장학금", "학자금", "등록금", "장학", "교육비", "대학생"],
-    "취업":   ["취업", "일자리", "고용", "채용", "근로", "인턴", "취준"],
-    "주거":   ["주거", "월세", "전세", "임대", "청약", "주택"],
-    "금융":   ["적금", "계좌", "저축", "금융", "도약", "희망", "대출"],
-    "복지":   ["복지", "지원", "바우처", "수당"],
+# 순서가 중요: 제목에서 먼저 매칭, 구체적인 카테고리 → 일반 카테고리 순
+CATEGORY_TITLE_KEYWORDS: dict[str, list[str]] = {
+    "장학금":   ["장학금", "학자금", "등록금", "근로장학", "장학재단"],
+    "금융":     ["적금", "도약계좌", "희망적금", "이차보전", "대출", "저축계좌", "금융지원", "청년통장"],
+    "주거":     ["월세", "전세", "임대", "청약", "주택", "주거"],
+    "취업":     ["취업", "일자리", "채용", "구직", "인턴", "면접", "자격증", "직업훈련", "일경험", "고용", "취준"],
+    "창업":     ["창업", "스타트업", "벤처", "창업공간", "창업몰"],
+    "건강문화": ["건강", "심리", "마음건강", "의료", "문화", "도서", "예술", "체육", "여가"],
+    "참여":     ["참여", "네트워크", "위원회", "협의체", "위촉", "청년단", "청년위원", "포럼", "자치경찰"],
+    "복지":     [],  # catch-all
+}
+
+# UI 표시용 이모지 매핑
+CATEGORY_EMOJI: dict[str, str] = {
+    "장학금":   "📚",
+    "금융":     "💰",
+    "주거":     "🏠",
+    "취업":     "💼",
+    "창업":     "🚀",
+    "건강문화": "🎭",
+    "참여":     "🤝",
+    "복지":     "🤲",
 }
 
 _doc_cache: list[dict] | None = None
@@ -57,7 +73,7 @@ def _load_all_docs() -> list[dict]:
                     "title":    title,
                     "content":  content,
                     "source":   md_file.name,
-                    "category": _detect_category(content),
+                    "category": _detect_category(title, content),
                 })
             except Exception:
                 continue
@@ -74,11 +90,39 @@ def _extract_title(content: str, fallback: str) -> str:
     return fallback.replace("_", " ")
 
 
-def _detect_category(content: str) -> str:
-    lower  = content.lower()
-    scores = {cat: sum(lower.count(kw) for kw in kws)
-              for cat, kws in CATEGORY_KEYWORDS.items()}
-    return max(scores, key=lambda c: scores[c])
+def _detect_category(title: str, content: str) -> str:
+    """제목 우선 → 내용 순으로 카테고리 판별."""
+    title_lower   = title.lower()
+    content_lower = content.lower()
+
+    # 1차: 제목에서 키워드 매칭 (가장 신뢰도 높음)
+    for cat, keywords in CATEGORY_TITLE_KEYWORDS.items():
+        if keywords and any(kw in title_lower for kw in keywords):
+            return cat
+
+    # 2차: 본문 첫 500자에서 키워드 매칭
+    snippet = content_lower[:500]
+    for cat, keywords in CATEGORY_TITLE_KEYWORDS.items():
+        if keywords and any(kw in snippet for kw in keywords):
+            return cat
+
+    return "복지"
+
+
+def get_category_stats() -> dict[str, int]:
+    """카테고리별 정책 수 반환."""
+    docs = _load_all_docs()
+    stats: dict[str, int] = {}
+    for d in docs:
+        stats[d["category"]] = stats.get(d["category"], 0) + 1
+    return stats
+
+
+def get_policies_by_category(category: str, top_k: int = 10) -> list[dict]:
+    """특정 카테고리의 정책 목록 반환."""
+    docs = _load_all_docs()
+    result = [d for d in docs if d["category"] == category]
+    return result[:top_k]
 
 
 def search_policies(keywords: list[str], category: str = "", top_k: int = 5) -> list[dict]:

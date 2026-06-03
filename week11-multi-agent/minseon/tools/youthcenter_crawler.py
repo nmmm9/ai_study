@@ -137,23 +137,53 @@ def save_as_docs(raw_policies: list[dict]) -> list[dict]:
     seen: set[str] = set()
 
     for p in raw_policies:
-        # 다양한 키 이름 대응
+        # 실제 API 응답 필드명 기준 (PLCY_NM, PLCY_EXPLN_CN, PLCY_SPRT_CN ...)
         name = _strip_html(
-            p.get("polyNm") or p.get("PLCY_NM") or
-            p.get("title")  or p.get("policyName") or ""
+            p.get("PLCY_NM") or p.get("polyNm") or
+            p.get("title")   or p.get("policyName") or ""
         )
 
         if not name or name in seen:
             continue
         seen.add(name)
 
-        summary  = _strip_html(p.get("polyItcnCn") or p.get("PLCY_INTDC_CN") or p.get("summary") or "")
-        benefit  = _strip_html(p.get("sporScls")   or p.get("SPRT_CN")       or p.get("benefit") or "")
-        qualify  = _strip_html(p.get("prcpCn")     or p.get("PRCP_TRGT_CN")  or p.get("qualify") or "")
-        age_info = _strip_html(p.get("ageInfo")    or p.get("SPRT_TRGT_AGE") or "")
-        region   = _strip_html(p.get("sporCnCd")   or p.get("CTPVS_NM")      or "전국")
-        url      = _strip_html(p.get("polyUrl")    or p.get("HMPG_URL")      or "")
-        dept     = _strip_html(p.get("cnsgNmor")   or p.get("PVSN_INST_NM")  or "")
+        summary  = _strip_html(
+            p.get("PLCY_EXPLN_CN") or p.get("polyItcnCn") or
+            p.get("PLCY_INTDC_CN") or p.get("summary") or ""
+        )
+        benefit  = _strip_html(
+            p.get("PLCY_SPRT_CN") or p.get("sporScls") or
+            p.get("SPRT_CN") or p.get("benefit") or ""
+        )
+        qualify  = _strip_html(
+            p.get("ADD_APLY_QLFC_CND_CN") or p.get("PTCP_PRP_TRGT_CN") or
+            p.get("prcpCn") or p.get("PRCP_TRGT_CN") or p.get("qualify") or ""
+        )
+        apply_method = _strip_html(p.get("PLCY_APLY_MTHD_CN") or "")
+
+        age_min  = str(p.get("SPRT_TRGT_MIN_AGE") or "").strip()
+        age_max  = str(p.get("SPRT_TRGT_MAX_AGE") or "").strip()
+        age_info = (
+            f"만 {age_min}세 ~ {age_max}세" if age_min and age_max
+            else _strip_html(p.get("ageInfo") or p.get("SPRT_TRGT_AGE") or "")
+        )
+
+        region = _strip_html(
+            p.get("STDG_NM") or p.get("sporCnCd") or
+            p.get("CTPVS_NM") or "전국"
+        )
+        url = _strip_html(
+            p.get("APLY_URL_ADDR") or p.get("REF_URL_ADDR1") or
+            p.get("polyUrl") or p.get("HMPG_URL") or ""
+        )
+        dept = _strip_html(
+            p.get("SPRVSN_INST_CD_NM") or p.get("OPER_INST_CD_NM") or
+            p.get("cnsgNmor") or p.get("PVSN_INST_NM") or ""
+        )
+
+        aply_bgng = str(p.get("APLY_PRD_BGNG_YMD") or "").strip()
+        aply_end  = str(p.get("APLY_PRD_END_YMD")  or "").strip()
+        period    = f"{aply_bgng} ~ {aply_end}" if aply_bgng and aply_end else "수시"
 
         md = f"""# {name}
 
@@ -167,6 +197,12 @@ def save_as_docs(raw_policies: list[dict]) -> list[dict]:
 - 연령: {age_info}
 - 지역: {region}
 {qualify}
+
+## 신청 방법
+{apply_method}
+
+## 신청 기간
+{period}
 
 ## 주관 기관
 {dept}

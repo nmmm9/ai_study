@@ -18,6 +18,7 @@ load_dotenv(Path(__file__).parent / ".env")
 
 import user_db
 from graph import run, run_notify
+from tools.policy_loader import get_category_stats, CATEGORY_EMOJI, get_policies_by_category, _load_all_docs
 
 # ── 스케줄러 (백그라운드) ────────────────────────────────────────
 @st.cache_resource
@@ -117,7 +118,11 @@ st.markdown("""
   .stTabs [aria-selected="true"] span { color: #fff !important; }
 
   /* ── 버튼 ── */
-  .stButton > button { color: #3A3228 !important; }
+  .stButton > button {
+    color: #3A3228 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+  }
 
   /* 입력 필드 */
   .stTextInput input, .stNumberInput input { background: #fff !important; color: #3A3228 !important; }
@@ -228,9 +233,9 @@ with col_h2:
 
 # ── 탭 구성 ─────────────────────────────────────────────────────
 if user:
-    tab_chat, tab_profile, tab_log = st.tabs(["💬 챗봇", "👤 내 프로필", "📧 알림 이력"])
+    tab_chat, tab_category, tab_profile, tab_log = st.tabs(["💬 챗봇", "📂 카테고리", "👤 내 프로필", "📧 알림 이력"])
 else:
-    tab_chat = st.tabs(["💬 챗봇"])[0]
+    tab_chat, tab_category = st.tabs(["💬 챗봇", "📂 카테고리"])
     tab_profile = tab_log = None
 
 # ════════════════════════════════════════════════════════════════
@@ -253,6 +258,57 @@ with tab_chat:
             f"{user['age']}세 · {user['region']} · {user['email']}</div>",
             unsafe_allow_html=True,
         )
+
+    # ── 카테고리 빠른 탐색 ──────────────────────────────────────────
+    @st.cache_data(ttl=300)
+    def _cat_stats():
+        return get_category_stats()
+
+    cat_stats = _cat_stats()
+    CATEGORY_QUESTIONS = {
+        "장학금":   "국가장학금이나 학자금 지원 받을 수 있는 조건 알려줘",
+        "금융":     "청년도약계좌나 금융 지원 정책 추천해줘",
+        "주거":     "청년 월세 지원이나 주거 지원 정책 알려줘",
+        "취업":     "취업 준비생이 받을 수 있는 지원 정책 추천해줘",
+        "창업":     "청년 창업 지원 정책 어떤 게 있어?",
+        "건강문화": "청년 건강, 문화, 여가 관련 지원 정책 알려줘",
+        "참여":     "청년 위원회나 네트워크 참여 프로그램 알려줘",
+        "복지":     "청년 생활 지원, 복지 혜택 알려줘",
+    }
+
+    st.markdown(
+        "<div style='font-size:12px;color:#8B7355;font-weight:600;margin-bottom:6px;'>카테고리별 탐색</div>",
+        unsafe_allow_html=True,
+    )
+    cat_cols = st.columns(len(CATEGORY_QUESTIONS))
+    for i, (cat, question) in enumerate(CATEGORY_QUESTIONS.items()):
+        with cat_cols[i]:
+            if st.button(
+                cat,
+                key=f"cat_{cat}",
+                use_container_width=True,
+                help=question,
+            ):
+                st.session_state["_pending_question"] = question
+
+    st.markdown("<hr style='border:none;border-top:1px solid #E8E4DC;margin:10px 0;'>", unsafe_allow_html=True)
+
+    # 카테고리 버튼 클릭 시 질문 자동 전송
+    if "_pending_question" in st.session_state:
+        pending = st.session_state.pop("_pending_question")
+        full_q = f"[나이:{user['age']}세, 지역:{user['region']}] {pending}" if user else pending
+        st.session_state["messages"].append({"role": "user", "content": pending})
+        with st.spinner("에이전트가 판단 중..."):
+            result = run(full_q)
+        answer = result.get("answer", "답변을 생성하지 못했습니다.")
+        trace  = result.get("execution_trace", [])
+        retry  = result.get("retry_count", 0)
+        if retry > 0:
+            rewritten = result.get("rewritten_question", "")
+            answer = f"_(검색 쿼리를 {retry}회 개선: **{rewritten}**)_\n\n" + answer
+        st.session_state["messages"].append({"role": "assistant", "content": answer})
+        st.session_state["traces"].append(trace)
+        st.rerun()
 
     # 초기 화면
     if not st.session_state["messages"]:
@@ -327,7 +383,124 @@ with tab_chat:
 
 
 # ════════════════════════════════════════════════════════════════
-# Tab 2: 내 프로필
+# Tab 2: 카테고리 탐색
+# ════════════════════════════════════════════════════════════════
+CAT_COLOR = {
+    "금융":     "#5C7FD4",
+    "취업":     "#5C9E62",
+    "주거":     "#5AAFC4",
+    "장학금":   "#9B5CD4",
+    "창업":     "#D4855C",
+    "건강문화": "#C45A8A",
+    "참여":     "#8B7355",
+    "복지":     "#6B8E6B",
+}
+
+with tab_category:
+    @st.cache_data(ttl=300)
+    def _all_docs_cached():
+        return _load_all_docs()
+
+    all_docs = _all_docs_cached()
+    cat_stats = get_category_stats()
+
+    # 선택된 카테고리 상태
+    if "selected_cat" not in st.session_state:
+        st.session_state["selected_cat"] = None
+
+    selected = st.session_state["selected_cat"]
+
+    # ── 카테고리 그리드 ───────────────────────────────────────────
+    st.markdown(
+        "<div style='font-size:13px;color:#5A4F44;margin-bottom:14px;'>"
+        "카테고리를 선택하면 해당 정책 목록을 볼 수 있어요.</div>",
+        unsafe_allow_html=True,
+    )
+
+    cat_cols = st.columns(4)
+    cat_order = ["금융", "취업", "주거", "장학금", "창업", "건강문화", "참여", "복지"]
+    for i, cat in enumerate(cat_order):
+        is_sel = selected == cat
+        with cat_cols[i % 4]:
+            if st.button(
+                f"{'▶ ' if is_sel else ''}{cat}",
+                key=f"catbtn_{cat}",
+                use_container_width=True,
+            ):
+                st.session_state["selected_cat"] = None if selected == cat else cat
+                st.rerun()
+
+    st.markdown("<hr style='border:none;border-top:1px solid #E8E4DC;margin:14px 0;'>", unsafe_allow_html=True)
+
+    # ── 선택된 카테고리 정책 목록 ─────────────────────────────────
+    if selected:
+        color  = CAT_COLOR.get(selected, "#8B7355")
+        emoji  = CATEGORY_EMOJI.get(selected, "📌")
+        docs   = [d for d in all_docs if d["category"] == selected]
+
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:10px;margin-bottom:14px;'>"
+            f"<span style='background:{color};color:#fff;border-radius:20px;padding:4px 16px;"
+            f"font-size:14px;font-weight:700;'>{emoji} {selected}</span>"
+            f"<span style='color:#8B7355;font-size:13px;'>총 {len(docs)}개 정책</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+        # 검색 필터
+        search_q = st.text_input("🔍 이름으로 검색", placeholder="예: 청년도약, 월세, 자격증...",
+                                  key="cat_search", label_visibility="collapsed")
+        if search_q:
+            docs = [d for d in docs if search_q.lower() in d["title"].lower()]
+            st.caption(f"'{search_q}' 검색 결과: {len(docs)}개")
+
+        # 정책 카드 목록
+        for doc in docs:
+            title   = doc["title"]
+            content = doc["content"].strip()
+            preview = ""
+            for line in content.splitlines():
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    preview = line[:80]
+                    break
+
+            with st.expander(f"**{title}**" + (f"  —  {preview}..." if preview else "")):
+                col_content, col_btn = st.columns([4, 1])
+                with col_content:
+                    st.markdown(
+                        f"<div style='font-size:13px;color:#3A3228;line-height:1.7;"
+                        f"white-space:pre-wrap;'>{content[:600]}"
+                        f"{'...' if len(content)>600 else ''}</div>",
+                        unsafe_allow_html=True,
+                    )
+                with col_btn:
+                    if st.button("💬 질문하기", key=f"ask_{title[:20]}", use_container_width=True):
+                        question = f"{title}에 대해 자세히 알려줘"
+                        st.session_state["messages"].append({"role": "user", "content": question})
+                        full_q = f"[나이:{user['age']}세, 지역:{user['region']}] {question}" if user else question
+                        with st.spinner("검색 중..."):
+                            result = run(full_q)
+                        answer = result.get("answer", "답변을 생성하지 못했습니다.")
+                        trace  = result.get("execution_trace", [])
+                        st.session_state["messages"].append({"role": "assistant", "content": answer})
+                        st.session_state["traces"].append(trace)
+                        st.session_state["selected_cat"] = None
+                        st.rerun()
+    else:
+        # 선택 전 전체 통계 표시
+        st.markdown(
+            "<div style='text-align:center;padding:30px 20px;color:#9B8E7E;'>"
+            "<div style='font-size:2rem;margin-bottom:8px;'>📂</div>"
+            "<div style='font-size:14px;font-weight:600;color:#5A4F44;margin-bottom:6px;'>카테고리를 선택해서 정책을 탐색하세요</div>"
+            f"<div style='font-size:13px;'>전체 {sum(cat_stats.values())}개 정책 · {len(cat_stats)}개 카테고리</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+
+# ════════════════════════════════════════════════════════════════
+# Tab 3: 내 프로필
 # ════════════════════════════════════════════════════════════════
 if tab_profile and user:
     with tab_profile:
