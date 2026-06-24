@@ -7,10 +7,11 @@ generate_node.py — 최종 답변 생성 (BACKEND 계층)
   list_by_category  → 정책 목록 요약
 """
 
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 from backend.state import FinalRAGState
 
-_client = OpenAI()
+_client       = OpenAI()
+_async_client = AsyncOpenAI()
 
 _SYSTEM_SEARCH = """\
 당신은 청년정책 전문 AI 가이드입니다.
@@ -162,41 +163,71 @@ _SYSTEM_DEADLINES = """\
 """
 
 
-def generate_node(state: FinalRAGState) -> dict:
-    question  = state.get("question", "")
-    documents = state.get("documents", [])
-    tool_name = state.get("tool_name", "search_policies")
-    tool_args = state.get("tool_args", {})
-    retry     = state.get("retry_count", 0)
-
+def _select_system(tool_name: str) -> str:
     if tool_name == "compare_policies":
-        system = _SYSTEM_COMPARE
+        return _SYSTEM_COMPARE
     elif tool_name == "list_by_category":
-        system = _SYSTEM_LIST
+        return _SYSTEM_LIST
     elif tool_name == "check_eligibility":
-        system = _SYSTEM_ELIGIBILITY
+        return _SYSTEM_ELIGIBILITY
     elif tool_name == "recommend_policies":
-        system = _SYSTEM_RECOMMEND
+        return _SYSTEM_RECOMMEND
     elif tool_name == "get_application_method":
-        system = _SYSTEM_APPLICATION
+        return _SYSTEM_APPLICATION
     elif tool_name == "get_upcoming_deadlines":
-        system = _SYSTEM_DEADLINES
-    else:
-        system = _SYSTEM_SEARCH
+        return _SYSTEM_DEADLINES
+    return _SYSTEM_SEARCH
 
+
+def _build_context(question: str, tool_args: dict, documents: list) -> str:
     context = f"## 질문\n{question}\n\n"
-
     if tool_args:
         relevant = {k: v for k, v in tool_args.items() if v and k not in ("top_k", "keywords", "query")}
         if relevant:
             context += f"## 사용자 입력 조건\n{relevant}\n\n"
-
     if documents:
         context += f"## 검색된 정책 문서 ({len(documents)}개)\n"
         for doc in documents:
             context += f"\n### {doc['title']}\n{doc['content'][:1500]}\n"
     else:
         context += "## 참고\n검색된 문서가 없습니다. 일반 지식으로 답변합니다.\n"
+    return context
+
+
+async def stream_answer(state: FinalRAGState):
+    """FastAPI 스트리밍 엔드포인트에서 호출 — 청크 단위로 yield."""
+    question  = state.get("rewritten_question") or state.get("question", "")
+    documents = state.get("documents", [])
+    tool_name = state.get("tool_name", "")
+    tool_args = state.get("tool_args", {})
+
+    system  = _select_system(tool_name)
+    context = _build_context(question, tool_args, documents)
+
+    stream = await _async_client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user",   "content": context},
+        ],
+        max_tokens=1500,
+        stream=True,
+    )
+    async for chunk in stream:
+        content = chunk.choices[0].delta.content
+        if content:
+            yield content
+
+
+def generate_node(state: FinalRAGState) -> dict:
+    question  = state.get("rewritten_question") or state.get("question", "")
+    documents = state.get("documents", [])
+    tool_name = state.get("tool_name", "")
+    tool_args = state.get("tool_args", {})
+    retry     = state.get("retry_count", 0)
+
+    system  = _select_system(tool_name)
+    context = _build_context(question, tool_args, documents)
 
     resp = _client.chat.completions.create(
         model="gpt-4o",

@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: #1a1a1a;
+    color: #f0f0f0;
+  }
+  #root { height: 100vh; display: flex; }
+}
+
+.markdown h3 { font-size: 1rem; font-weight: 700; margin: 1rem 0 0.4rem; }
+.markdown p  { margin: 0.4rem 0; line-height: 1.7; }
+.markdown ul { padding-left: 1.2rem; }
+.markdown li { margin: 0.2rem 0; }
+.markdown table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; font-size: 0.85rem; }
+.markdown th, .markdown td { border: 1px solid #444; padding: 0.4rem 0.6rem; }
+.markdown th { background: #2a2a2a; }
+.markdown a  { color: #82b4ff; text-decoration: underline; }
+.markdown code { background: #2a2a2a; padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.85em; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
