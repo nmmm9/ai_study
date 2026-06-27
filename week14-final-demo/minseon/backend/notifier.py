@@ -12,10 +12,10 @@ import os
 
 
 def send_email(to: str, subject: str, html: str) -> bool:
-    gmail_user = os.environ.get("GMAIL_USER", "")
-    gmail_pass = os.environ.get("GMAIL_PASS", "")
+    gmail_user = os.environ.get("SMTP_USER", "") or os.environ.get("GMAIL_USER", "")
+    gmail_pass = os.environ.get("SMTP_PASSWORD", "") or os.environ.get("GMAIL_PASS", "")
     if not gmail_user or not gmail_pass:
-        print("[notifier] GMAIL_USER / GMAIL_PASS 설정 없음")
+        print("[notifier] SMTP_USER / SMTP_PASSWORD 설정 없음")
         return False
 
     try:
