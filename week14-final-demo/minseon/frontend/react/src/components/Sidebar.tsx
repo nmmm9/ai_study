@@ -3,19 +3,16 @@ import { deleteSession } from '../api/client'
 import type { Session } from '../types'
 
 interface Props {
-  onAuthClick: () => void
+  onAuthClick:    () => void
   onProfileClick: () => void
+  onSessionLoad:  (session: Session) => void   // History API + View Transitions
+  onNewChat:      () => void                   // History API + View Transitions
 }
 
-export default function Sidebar({ onAuthClick, onProfileClick }: Props) {
-  const { sessions, user, currentSessionId, loadSession, clearMessages, setCurrentSession, setSessions } = useChatStore()
+export default function Sidebar({ onAuthClick, onProfileClick, onSessionLoad, onNewChat }: Props) {
+  const { sessions, user, currentSessionId, setSessions, clearMessages } = useChatStore()
 
-  const handleNewChat = async () => {
-    clearMessages()
-    setCurrentSession('')
-  }
-
-const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     await deleteSession(id)
     setSessions(sessions.filter((s) => s.id !== id))
@@ -30,7 +27,7 @@ const handleDelete = async (e: React.MouseEvent, id: string) => {
 
       <div className="p-3">
         <button
-          onClick={handleNewChat}
+          onClick={onNewChat}
           className="w-full py-2 rounded-xl text-sm text-gray-300 border border-[#333] hover:bg-[#222] transition-colors"
         >
           + 새 대화
@@ -44,7 +41,7 @@ const handleDelete = async (e: React.MouseEvent, id: string) => {
         {sessions.map((s: Session) => (
           <div
             key={s.id}
-            onClick={() => loadSession(s)}
+            onClick={() => onSessionLoad(s)}
             className={`
               group flex items-center justify-between px-3 py-2 rounded-lg mb-1 cursor-pointer text-sm
               ${currentSessionId === s.id ? 'bg-[#2a2a2a] text-white' : 'text-gray-400 hover:bg-[#1e1e1e]'}
