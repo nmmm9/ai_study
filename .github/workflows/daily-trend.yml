@@ -1,0 +1,46 @@
+name: Daily GitHub Trend Analysis
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 UTC 00:00 = KST 09:00
+  workflow_dispatch:      # GitHub에서 수동 실행 버튼
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Python 3.11 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 패키지 설치
+        run: |
+          cd week13-evaluation/juwon/backend
+          pip install -r requirements.txt
+
+      - name: 일일 트렌드 분석 실행
+        env:
+          OPENAI_API_KEY:       ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN:         ${{ secrets.GH_TOKEN }}
+          GMAIL_USER:           ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD:   ${{ secrets.GMAIL_APP_PASSWORD }}
+          GITHUB_TREND_REPO:    ${{ secrets.GITHUB_TREND_REPO }}
+          MY_GITHUB_USERNAME:   ${{ secrets.MY_GITHUB_USERNAME }}
+        run: |
+          cd week13-evaluation/juwon/backend
+          python run_daily.py
+
+      - name: history.json 커밋 및 push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add week13-evaluation/juwon/backend/history.json
+          git diff --staged --quiet || git commit -m "chore: daily trend history [skip ci]"
+          git push

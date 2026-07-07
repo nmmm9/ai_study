@@ -19,6 +19,7 @@ POST /api/notify/github    → GitHub 업로드
 POST /api/evaluate         → RAGAS 평가 실행
 GET  /api/evaluate/results → 평가 결과 조회
 POST /api/my-github        → 내 GitHub vs 트렌드 비교
+GET  /api/predict          → 누적 히스토리 기반 미래 트렌드 예측
 """
 import os
 from contextlib import asynccontextmanager
@@ -33,6 +34,7 @@ from evaluate import load_eval_results, run_evaluation
 from graph import run_analysis
 from my_github import analyze_my_github
 from notifier import send_gmail, send_keyword_alert, upload_github_readme
+from predict import run_prediction
 from scheduler import get_status, scheduler, update_schedule
 from storage import (
     add_keyword, check_keyword_matches, delete_keyword,
@@ -203,6 +205,15 @@ def eval_results():
 @app.post("/api/my-github")
 def my_github(req: MyGithubRequest):
     result = analyze_my_github(req.username, req.report)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+# ── 트렌드 예측 ───────────────────────────────────────────────
+@app.get("/api/predict")
+def predict():
+    result = run_prediction()
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result

@@ -23,7 +23,7 @@ from compare import compare_reports
 from graph import run_analysis
 from my_github import analyze_my_github
 from notifier import send_gmail, upload_github_readme
-from storage import load_latest_history
+from storage import load_latest_history, save_history
 
 
 def build_email_content(report: dict, my_analysis: dict | None) -> str:
@@ -54,18 +54,23 @@ def run_daily():
     print("=" * 50)
 
     # 1. 트렌드 분석
-    print("\n[1/4] 트렌드 분석 중...")
+    print("\n[1/5] 트렌드 분석 중...")
     previous = load_latest_history()
     report   = run_analysis(language="", period="daily")
     prev_repos           = previous.get("repos", []) if previous else []
     report["comparison"] = compare_reports(report.get("repos", []), prev_repos)
     print(f"      완료 — 레포 {len(report.get('repos', []))}개 수집")
 
-    # 2. 내 GitHub 분석
+    # 2. 히스토리 저장 (누적 데이터 → 트렌드 예측에 활용)
+    print("\n[2/5] 히스토리 저장 중...")
+    save_history(report)
+    print("      완료 — history.json에 저장됨")
+
+    # 3. 내 GitHub 분석
     my_username = os.getenv("MY_GITHUB_USERNAME", "").strip()
     my_analysis = None
     if my_username:
-        print(f"\n[2/4] 내 GitHub 분석 중... (@{my_username})")
+        print(f"\n[3/5] 내 GitHub 분석 중... (@{my_username})")
         my_analysis = analyze_my_github(my_username, report)
         if "error" in my_analysis:
             print(f"      경고: {my_analysis['error']}")
@@ -73,16 +78,16 @@ def run_daily():
         else:
             print(f"      완료 — 트렌드 일치도 {my_analysis['match_pct']}%")
     else:
-        print("\n[2/4] MY_GITHUB_USERNAME 미설정 — 스킵")
+        print("\n[3/5] MY_GITHUB_USERNAME 미설정 — 스킵")
 
-    # 3. 이메일 발송
-    print("\n[3/4] 이메일 발송 중...")
+    # 4. 이메일 발송
+    print("\n[4/5] 이메일 발송 중...")
     content = build_email_content(report, my_analysis)
     ok = send_gmail(content, "전체", "daily")
     print(f"      {'✅ 완료' if ok else '❌ 실패 (.env 설정 확인)'}")
 
-    # 4. GitHub 업로드
-    print("\n[4/4] GitHub README 업로드 중...")
+    # 5. GitHub 업로드
+    print("\n[5/5] GitHub README 업로드 중...")
     ok = upload_github_readme(content, "전체", "daily")
     print(f"      {'✅ 완료' if ok else '❌ 실패 (.env 설정 확인)'}")
 
