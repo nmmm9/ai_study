@@ -17,11 +17,15 @@ API 등록: https://www.data.go.kr → "청년정책현황정보서비스" 검�
   023001 일자리  023002 주거  023003 교육  023004 복지·문화  023005 참여·권리
 """
 
-import os
 import json
 import time
 from pathlib import Path
 from datetime import datetime
+
+from backend.config import settings
+from backend.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 import requests
 
@@ -54,7 +58,7 @@ CATEGORY_MAP: dict[str, str] = {
 
 
 def _get_api_key() -> str | None:
-    return os.getenv("PUBLIC_DATA_API_KEY", "").strip() or None
+    return settings.public_data_api_key or None
 
 
 def fetch_raw(
@@ -90,7 +94,7 @@ def fetch_raw(
         resp.raise_for_status()
         return resp.json()
     except Exception as e:
-        print(f"[fetcher] API 오류: {e}")
+        logger.error(f"[fetcher] API 오류: {e}")
         return {"totalCount": 0, "youthPolicyList": []}
 
 
@@ -160,7 +164,7 @@ def fetch_and_save(
     doc dict 목록을 반환합니다.
     """
     if not _get_api_key():
-        print("[fetcher] PUBLIC_DATA_API_KEY 없음 — API 수집 건너뜀")
+        logger.warning("[fetcher] PUBLIC_DATA_API_KEY 없음 — API 수집 건너뜀")
         return []
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -169,7 +173,7 @@ def fetch_and_save(
     page   = 1
     total  = None
 
-    print(f"[fetcher] 수집 시작: age={age}, region={region}, keyword='{keyword}'")
+    logger.info(f"[fetcher] 수집 시작: age={age}, region={region}, keyword='{keyword}'")
 
     while True:
         raw     = fetch_raw(age=age, region=region, keyword=keyword,
@@ -177,7 +181,7 @@ def fetch_and_save(
         items   = raw.get("youthPolicyList") or []
         if total is None:
             total = int(raw.get("totalCount", 0))
-            print(f"[fetcher] 총 {total}개 정책 발견")
+            logger.info(f"[fetcher] 총 {total}개 정책 발견")
 
         if not items:
             break
@@ -193,7 +197,7 @@ def fetch_and_save(
             md_path   = DATA_DIR / f"{safe_name}.md"
             md_path.write_text(doc["content"], encoding="utf-8")
 
-        print(f"[fetcher] 페이지 {page} 완료 — 누적 {len(docs)}개")
+        logger.info(f"[fetcher] 페이지 {page} 완료 — 누적 {len(docs)}개")
 
         if len(docs) >= max_count or len(docs) >= total:
             break
@@ -213,7 +217,7 @@ def fetch_and_save(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    print(f"[fetcher] 완료: {len(docs)}개 저장 → {DATA_DIR}")
+    logger.info(f"[fetcher] 완료: {len(docs)}개 저장 → {DATA_DIR}")
     return docs
 
 

@@ -22,7 +22,7 @@ interface ChatStore {
   setStreaming:     (v: boolean) => void
   setUser:          (u: User | null) => void
   setSessions:      (s: Session[]) => void
-  setCurrentSession:(id: string) => void
+  setCurrentSession:(id: string | null) => void
   clearMessages:    () => void
   loadSession:      (session: Session) => void
   setProfile:       (p: UserProfile) => void

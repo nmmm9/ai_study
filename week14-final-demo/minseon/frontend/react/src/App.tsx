@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom'
 import { useChatStore } from './store/chatStore'
 import { dbSaveMessages, dbLoadMessages } from './utils/offlineDB'
 import { registerServiceWorker, requestNotificationPermission } from './utils/pushNotify'
+import { getSessions } from './api/client'
 import CategoryGrid from './components/CategoryGrid'
 import ChatBubble from './components/ChatBubble'
 import ChatInput from './components/ChatInput'
@@ -12,10 +13,27 @@ import ProfileModal from './components/ProfileModal'
 import type { Session } from './types'
 
 export default function App() {
-  const { messages, isStreaming, loadSession, clearMessages, setCurrentSession, setMessages } = useChatStore()
+  const { messages, isStreaming, loadSession, clearMessages, setCurrentSession, setMessages, setSessions, user } = useChatStore()
   const [showAuth,    setShowAuth]    = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // ── 로그인 상태일 때만 세션 목록 로드 (세션은 로그인 사용자 전용) ──
+  useEffect(() => {
+    if (!user?.access_token) {
+      setSessions([])
+      return
+    }
+    getSessions(user.access_token)
+      .then((data: Record<string, Session>) => {
+        const list = Object.values(data).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        setSessions(list)
+      })
+      .catch(() => { /* 서버 꺼져 있으면 무시 */ })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.access_token])
 
   // ── 스크롤 아래로 ──
   useEffect(() => {
@@ -68,7 +86,7 @@ export default function App() {
     const doNew = () => {
       flushSync(() => {
         clearMessages()
-        setCurrentSession('')
+        setCurrentSession(null)
       })
       window.history.pushState({}, '', '/')
     }

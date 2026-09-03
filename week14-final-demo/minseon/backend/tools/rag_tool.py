@@ -202,14 +202,124 @@ GET_UPCOMING_DEADLINES_TOOL = {
     "function": {
         "name": "get_upcoming_deadlines",
         "description": (
-            "신청 마감이 임박한 청년정책 목록을 조회합니다. "
-            "'곧 마감되는 정책 알려줘', '이번 달 신청 가능한 정책 뭐야?' 등의 질문에 사용하세요."
+            "신청 마감일 기준으로 정렬된 청년정책 목록을 조회합니다. "
+            "'곧 마감되는 정책 알려줘', '이번 달 신청 가능한 정책 뭐야?', "
+            "'청년도약계좌 마감일', '장학금 신청 기간' 등의 질문에 사용하세요."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "region":               {"type": "string",  "description": "거주 지역 (빈 문자열이면 전국)"},
-                "days_until_deadline":  {"type": "integer", "description": "마감까지 남은 일수 기준 (기본값: 14)", "default": 14},
+                "region":              {"type": "string",  "description": "거주 지역 (빈 문자열이면 전국)"},
+                "days_until_deadline": {"type": "integer", "description": "마감까지 남은 일수 기준 (기본값: 30)", "default": 30},
+                "keyword":             {"type": "string",  "description": "특정 정책명 검색 (예: '청년도약계좌', '장학금')"},
+            },
+            "required": [],
+        },
+    },
+}
+
+SEARCH_REALTIME_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "search_realtime_policies",
+        "description": (
+            "오늘 올라온 최신 청년 정책·보도자료·공고를 실시간으로 검색합니다. "
+            "RSS 캐시를 먼저 확인하고 결과가 부족하면 Tavily 웹검색으로 보완합니다. "
+            "'최근 정책', '이번 달', '방금 나온', '새로 생긴', '최신 공고' 등의 질문에 사용하세요."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query":  {"type": "string",  "description": "검색할 키워드 (예: '청년 월세 지원', '취업 지원금')"},
+                "region": {"type": "string",  "description": "지역 필터 (예: '서울', '경기', 빈 문자열이면 전국)"},
+                "age":    {"type": "integer", "description": "사용자 만 나이 (0이면 전체)"},
+                "top_k":  {"type": "integer", "description": "반환 최대 개수 (기본값: 5)", "default": 5},
+            },
+            "required": ["query"],
+        },
+    },
+}
+
+SEARCH_HOUSING_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "search_housing_announcements",
+        "description": (
+            "LH(한국토지주택공사)와 HUG(주택도시보증공사)의 최신 주택 청약·임대 공고를 검색합니다. "
+            "'LH 청약 공고', 'HUG 전세임대', '청약 신청', '임대주택 모집', '분양 공고' 등의 질문에 사용하세요."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query":    {"type": "string",  "description": "검색 키워드 (예: '청년 임대', '신혼부부 전세', '분양 청약')"},
+                "region":   {"type": "string",  "description": "지역 필터 (예: '서울', '경기', ''이면 전국)"},
+                "ann_type": {
+                    "type": "string",
+                    "description": "공고 유형 필터: '임대' | '분양' | '전세임대' | '' (전체)",
+                    "default": "",
+                },
+                "top_k":    {"type": "integer", "description": "반환 최대 개수 (기본값: 5)", "default": 5},
+            },
+            "required": [],
+        },
+    },
+}
+
+DIAGNOSE_ELIGIBILITY_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "diagnose_eligibility",
+        "description": (
+            "사용자와 대화 형식으로 나이·소득·취업 상태 등을 수집하여 "
+            "청년정책 지원 가능 여부와 합격 확률(%)을 예측합니다. "
+            "'내가 신청 가능한지', '자격이 되는지 진단해줘', '자가진단' 등의 질문에 사용하세요."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "사용자 질문 (나이·소득·지역 등 포함 가능)"},
+            },
+            "required": [],
+        },
+    },
+}
+
+COLLAB_RECOMMEND_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "collab_recommend",
+        "description": (
+            "나와 비슷한 사용자들이 많이 조회한 정책을 추천합니다. "
+            "'비슷한 사람들이 본 정책', '다른 청년들이 많이 신청한 거', "
+            "'인기 정책 알려줘' 등의 질문에 사용하세요."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "session_id": {"type": "string", "description": "현재 세션 ID"},
+                "category":   {"type": "string", "description": "카테고리 필터 (선택)"},
+                "top_k":      {"type": "integer", "description": "추천 개수 (기본값: 5)", "default": 5},
+            },
+            "required": [],
+        },
+    },
+}
+
+SEARCH_NEWS_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "search_youth_news",
+        "description": (
+            "청년과 관련된 최신 뉴스·이슈·사회 동향을 검색합니다 (정부 정책 공고가 아닌 일반 뉴스 기사). "
+            "'요즘 청년 관련 뉴스', '청년 취업 이슈 뭐 있어', '청년 관련 최근 소식 알려줘', "
+            "'요즘 청년들 사이에서 화제인 거' 등의 질문에 사용하세요."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "뉴스 검색 키워드 (예: '취업', '주거', '결혼', 비워두면 청년 전반 이슈)"},
+                "days":  {"type": "integer", "description": "최근 며칠 이내 뉴스로 제한할지 (기본값: 7)", "default": 7},
+                "top_k": {"type": "integer", "description": "반환 최대 개수 (기본값: 5)", "default": 5},
             },
             "required": [],
         },
@@ -225,6 +335,11 @@ ALL_TOOLS = [
     GET_UPCOMING_DEADLINES_TOOL,
     COMPARE_TOOL,
     LIST_TOOL,
+    SEARCH_HOUSING_TOOL,
+    SEARCH_REALTIME_TOOL,
+    SEARCH_NEWS_TOOL,
+    DIAGNOSE_ELIGIBILITY_TOOL,
+    COLLAB_RECOMMEND_TOOL,
 ]
 
 
@@ -282,12 +397,16 @@ def execute_get_application_method(policy_id: str) -> list[dict]:
     return execute_get_policy_details(policy_id)
 
 
-def execute_get_upcoming_deadlines(region: str = "", days_until_deadline: int = 14) -> list[dict]:
-    query = f"{region} 청년정책 신청 마감 임박" if region else "청년정책 신청기간 마감 모집"
-    if is_built():
-        return search_vector(embed_query(query), top_k=8)
-    keywords = ["마감", "신청기간", "모집"] + ([region] if region else [])
-    return search_all_policies(keywords=keywords, top_k=8)
+def execute_get_upcoming_deadlines(region: str = "", days_until_deadline: int = 30, keyword: str = "") -> list[dict]:
+    from backend.db.deadline_db import query_upcoming, query_by_keyword, to_doc, seed_sample_data
+    seed_sample_data()  # DB가 비어있으면 샘플 데이터 삽입
+
+    if keyword:
+        rows = query_by_keyword(keyword=keyword, top_k=10)
+    else:
+        rows = query_upcoming(region=region, days=days_until_deadline, top_k=10)
+
+    return [to_doc(r) for r in rows]
 
 
 def execute_search(keywords: list[str], category: str = "", top_k: int = 5) -> list[dict]:
@@ -323,3 +442,55 @@ def execute_compare(policy_a: str, policy_b: str) -> list[dict]:
 
 def execute_list(category: str, top_k: int = 8) -> list[dict]:
     return get_policies_by_category(category=category, top_k=top_k)
+
+
+def execute_diagnose(query: str = "") -> list[dict]:
+    """자가진단은 별도 노드로 처리 — 빈 리스트 반환 (라우팅 신호)."""
+    return []
+
+
+def execute_collab_recommend(session_id: str = "", category: str = "", top_k: int = 5) -> list[dict]:
+    from backend.db.behavior_db import get_collab_recommendations, get_popular_by_category
+    if session_id:
+        names = get_collab_recommendations(session_id, top_k=top_k)
+    else:
+        names = get_popular_by_category(category=category, top_k=top_k)
+
+    if not names:
+        return search_all_policies(keywords=["청년 인기 정책"], top_k=top_k)
+
+    # 정책명으로 벡터 검색
+    results = []
+    seen = set()
+    for name in names:
+        if name in seen:
+            continue
+        seen.add(name)
+        docs = get_policy_by_id(name) or (
+            search_vector(embed_query(name), top_k=1) if is_built() else
+            search_policies(keywords=[name], top_k=1)
+        )
+        results.extend(docs)
+    return results[:top_k]
+
+
+def execute_search_realtime(query: str = "", region: str = "", age: int = 0, top_k: int = 5) -> list[dict]:
+    from backend.tools.realtime_fetcher import hybrid_search
+    return hybrid_search(query=query, region=region, age=age, top_k=top_k)
+
+
+def execute_search_news(query: str = "", days: int = 7, top_k: int = 5) -> list[dict]:
+    from backend.tools.news_fetcher import search_youth_news
+    return search_youth_news(query=query, days=days, top_k=top_k)
+
+
+def execute_search_housing(query: str = "", region: str = "", ann_type: str = "", top_k: int = 5) -> list[dict]:
+    from backend.tools.housing_fetcher import get_cached_announcements, search_housing_by_keyword
+    if query:
+        docs = search_housing_by_keyword(query=query, top_k=top_k)
+        if region:
+            docs = [d for d in docs if region in d.get("region", "")]
+        if ann_type:
+            docs = [d for d in docs if ann_type in d.get("type", "")]
+        return docs[:top_k]
+    return get_cached_announcements(region=region, ann_type=ann_type, top_k=top_k)

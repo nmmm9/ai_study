@@ -1,5 +1,5 @@
 import { useChatStore } from '../store/chatStore'
-import { deleteSession } from '../api/client'
+import { deleteSession, logout } from '../api/client'
 import type { Session } from '../types'
 
 interface Props {
@@ -10,11 +10,19 @@ interface Props {
 }
 
 export default function Sidebar({ onAuthClick, onProfileClick, onSessionLoad, onNewChat }: Props) {
-  const { sessions, user, currentSessionId, setSessions, clearMessages } = useChatStore()
+  const { sessions, user, currentSessionId, setSessions, clearMessages, setUser } = useChatStore()
+
+  const handleLogout = async () => {
+    await logout()
+    setUser(null)
+    setSessions([])
+    clearMessages()
+  }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
-    await deleteSession(id)
+    if (!user?.access_token) return
+    await deleteSession(user.access_token, id)
     setSessions(sessions.filter((s) => s.id !== id))
     if (currentSessionId === id) clearMessages()
   }
@@ -67,6 +75,12 @@ export default function Sidebar({ onAuthClick, onProfileClick, onSessionLoad, on
               className="w-full py-2 rounded-xl text-sm text-gray-300 border border-[#333] hover:bg-[#222] transition-colors"
             >
               내 정보 설정
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full py-2 rounded-xl text-sm text-red-400 border border-[#333] hover:bg-[#1a1a1a] transition-colors"
+            >
+              로그아웃
             </button>
           </>
         ) : (

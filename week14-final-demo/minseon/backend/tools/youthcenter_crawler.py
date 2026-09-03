@@ -21,6 +21,10 @@ from pathlib import Path
 
 import requests
 
+from backend.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 def _strip_html(text: str) -> str:
     """HTML 태그 제거."""
@@ -89,7 +93,7 @@ def fetch_policies(
     all_policies = []
     page = 1
 
-    print(f"[youthcenter] 수집 시작: query='{query}', age={age or '전체'}")
+    logger.info(f"[youthcenter] 수집 시작: query='{query}', age={age or '전체'}")
 
     while len(all_policies) < max_count:
         payload = _build_payload(query=query, page=page, count=100, age=age)
@@ -104,7 +108,7 @@ def fetch_policies(
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
-            print(f"[youthcenter] 오류 (page={page}): {e}")
+            logger.error(f"[youthcenter] 오류 (page={page}): {e}")
             break
 
         # 결과 추출: searchResult → youthpolicy (리스트)
@@ -113,11 +117,11 @@ def fetch_policies(
         items = youth_policy if isinstance(youth_policy, list) else []
 
         if not items:
-            print(f"[youthcenter] 페이지 {page}: 데이터 없음 → 종료")
+            logger.warning(f"[youthcenter] 페이지 {page}: 데이터 없음 → 종료")
             break
 
         all_policies.extend(items)
-        print(f"[youthcenter] 페이지 {page}: {len(items)}개 (누적 {len(all_policies)}개)")
+        logger.info(f"[youthcenter] 페이지 {page}: {len(items)}개 (누적 {len(all_policies)}개)")
 
         total = int(data.get("totalCount", 0) or len(items))
         if len(all_policies) >= int(total):
@@ -126,7 +130,7 @@ def fetch_policies(
         page += 1
         time.sleep(0.5)
 
-    print(f"[youthcenter] 수집 완료: {len(all_policies)}개")
+    logger.info(f"[youthcenter] 수집 완료: {len(all_policies)}개")
     return all_policies[:max_count]
 
 
@@ -225,7 +229,7 @@ def save_as_docs(raw_policies: list[dict]) -> list[dict]:
             "category": _guess_category(summary + benefit + qualify),
         })
 
-    print(f"[youthcenter] {len(docs)}개 MD 파일 저장 → {DATA_DIR}")
+    logger.info(f"[youthcenter] {len(docs)}개 MD 파일 저장 → {DATA_DIR}")
     return docs
 
 
@@ -265,6 +269,6 @@ def get_saved_docs() -> list[dict]:
 if __name__ == "__main__":
     raw  = fetch_policies(query="청년", max_count=500)
     docs = save_as_docs(raw)
-    print(f"\n저장 완료: {len(docs)}개")
+    logger.info(f"\n저장 완료: {len(docs)}개")
     if docs:
-        print(f"첫 번째: {docs[0]['title']}")
+        logger.info(f"첫 번째: {docs[0]['title']}")

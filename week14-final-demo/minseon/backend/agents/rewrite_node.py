@@ -3,21 +3,13 @@ rewrite_node.py — 검색 실패 시 쿼리 재작성 (BACKEND 계층 / week10 
 """
 
 from openai import OpenAI
+from backend.logging_config import get_logger
+from backend.prompts.rewrite import SYSTEM as _SYSTEM
 from backend.state import FinalRAGState
 
+logger = get_logger(__name__)
+
 _client = OpenAI()
-
-_SYSTEM = """\
-당신은 검색 쿼리 최적화 전문가입니다.
-기존 질문으로 검색했지만 관련 문서를 찾지 못했습니다.
-같은 의도를 더 잘 검색할 수 있도록 쿼리를 재작성하세요.
-
-원칙:
-- 더 구체적인 정책명이나 키워드 사용
-- 동의어·유사어 추가 (예: "월세" → "주거비 지원", "임대료")
-- 핵심 단어만 남기고 짧게
-- 재작성된 쿼리만 출력 (설명 없이)
-"""
 
 
 def rewrite_node(state: FinalRAGState) -> dict:
@@ -35,7 +27,7 @@ def rewrite_node(state: FinalRAGState) -> dict:
         temperature=0.3,
     )
     rewritten = (resp.choices[0].message.content or previous).strip()
-    print(f"[rewrite_node] '{previous}' → '{rewritten}'")
+    logger.info(f"[rewrite_node] '{previous}' → '{rewritten}'")
 
     trace = list(state.get("execution_trace", []))
     trace.append({
@@ -48,5 +40,7 @@ def rewrite_node(state: FinalRAGState) -> dict:
         "documents":          [],
         "tool_calls":         [],
         "tool_name":          "",
+        "grade":              "",   # 이전 판정이 다음 라우팅을 오염시키지 않도록 초기화
+        "grade_score":        0,
         "execution_trace":    trace,
     }

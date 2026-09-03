@@ -1,15 +1,30 @@
-const BASE = '/api'
+const BASE = (import.meta.env.VITE_API_URL ?? '') + '/api'
+
+export interface UserProfile {
+  email?:             string
+  age?:               number
+  region?:            string
+  employment_status?: string
+  annual_income?:     number
+}
+
+export interface HistoryTurn {
+  role:    'user' | 'bot'
+  content: string
+}
 
 export async function streamChat(
   message: string,
   onChunk: (chunk: string) => void,
   onMeta: (tool: string) => void,
   onDone: () => void,
+  profile?: UserProfile,
+  history?: HistoryTurn[],
 ) {
   const res = await fetch(`${BASE}/chat/stream`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, history: history ?? [], ...profile }),
   })
   if (!res.ok) throw new Error('서버 오류')
 
@@ -33,13 +48,22 @@ export async function streamChat(
   }
 }
 
+async function _parseError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json()
+    return data.detail || fallback
+  } catch {
+    return fallback
+  }
+}
+
 export async function login(email: string, password: string) {
   const res = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  if (!res.ok) throw new Error((await res.json()).detail || '로그인 실패')
+  if (!res.ok) throw new Error(await _parseError(res, '로그인 실패'))
   return res.json()
 }
 
@@ -49,7 +73,7 @@ export async function signup(email: string, password: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  if (!res.ok) throw new Error((await res.json()).detail || '회원가입 실패')
+  if (!res.ok) throw new Error(await _parseError(res, '회원가입 실패'))
   return res.json()
 }
 
@@ -57,24 +81,32 @@ export async function logout() {
   await fetch(`${BASE}/auth/logout`, { method: 'POST' })
 }
 
-export async function getSessions() {
-  const res = await fetch(`${BASE}/sessions`)
+function _authHeaders(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` }
+}
+
+// 세션 API는 전부 로그인 필요 — access_token을 넘겨줘야 합니다.
+
+export async function getSessions(token: string) {
+  const res = await fetch(`${BASE}/sessions`, { headers: _authHeaders(token) })
+  if (!res.ok) throw new Error('세션 목록을 가져오지 못했습니다')
   return res.json()
 }
 
-export async function createSession() {
-  const res = await fetch(`${BASE}/sessions`, { method: 'POST' })
+export async function createSession(token: string) {
+  const res = await fetch(`${BASE}/sessions`, { method: 'POST', headers: _authHeaders(token) })
+  if (!res.ok) throw new Error('세션 생성 실패')
   return res.json()
 }
 
-export async function saveSession(id: string, messages: unknown[]) {
+export async function saveSession(token: string, id: string, messages: unknown[]) {
   await fetch(`${BASE}/sessions/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders(token) },
     body: JSON.stringify({ messages }),
   })
 }
 
-export async function deleteSession(id: string) {
-  await fetch(`${BASE}/sessions/${id}`, { method: 'DELETE' })
+export async function deleteSession(token: string, id: string) {
+  await fetch(`${BASE}/sessions/${id}`, { method: 'DELETE', headers: _authHeaders(token) })
 }
